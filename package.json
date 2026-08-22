@@ -1,5 +1,5 @@
 {
-  "name": "liminalbd-backend",
+  "name": "liminal-backend",
   "version": "1.0.0",
   "author": "Zahidul Islam",
   "description": "Backend API for Liminal Interior Design Studio",
@@ -17,11 +17,16 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "http-status": "^2.1.0",
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",

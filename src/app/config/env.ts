@@ -4,11 +4,17 @@ interface EnvConfig {
   NODE_ENV: "development" | "production";
   PORT: number;
   DATABASE_URL: string;
+  FRONTEND_URL: string;
 }
 
 // Load and validate environment variables
 const loadEnvConfig = (): EnvConfig => {
-  const requiredEnvVariables = ["NODE_ENV", "PORT", "DATABASE_URL"] as const;
+  const requiredEnvVariables = [
+    "NODE_ENV",
+    "PORT",
+    "DATABASE_URL",
+    "FRONTEND_URL",
+  ] as const;
 
   // Validate presence of required variables
   for (const key of requiredEnvVariables) {
@@ -51,6 +57,7 @@ const loadEnvConfig = (): EnvConfig => {
     NODE_ENV: nodeEnv,
     PORT: port,
     DATABASE_URL: process.env.DATABASE_URL!,
+    FRONTEND_URL: process.env.FRONTEND_URL!,
   };
 };
 
