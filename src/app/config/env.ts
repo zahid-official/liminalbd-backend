@@ -51,7 +51,7 @@ const loadEnvConfig = (): EnvConfig => {
   };
 
   // Parse and validate the server port
-  const port = parseNumber("PORT", process.env.PORT!);
+  const port = parseNumber("PORT", process.env.PORT as string);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new AppError(
       status.INTERNAL_SERVER_ERROR,
@@ -62,8 +62,8 @@ const loadEnvConfig = (): EnvConfig => {
   return {
     NODE_ENV: nodeEnv,
     PORT: port,
-    DATABASE_URL: process.env.DATABASE_URL!,
-    FRONTEND_URL: process.env.FRONTEND_URL!,
+    DATABASE_URL: process.env.DATABASE_URL as string,
+    FRONTEND_URL: process.env.FRONTEND_URL as string,
   };
 };
 

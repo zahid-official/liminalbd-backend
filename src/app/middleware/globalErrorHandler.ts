@@ -13,7 +13,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
 
   // Default error response values
   let statusCode: number = status.INTERNAL_SERVER_ERROR;
-  let message: string = "Something went wrong!";
+  let message = "Something went wrong!";
   let errorSources: ErrorSource[] = [];
 
   // Custom application error
