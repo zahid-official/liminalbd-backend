@@ -8,6 +8,7 @@ import express, {
 import { status } from "http-status";
 import env from "./app/config/env.js";
 import globalErrorHandler from "./app/middleware/globalErrorHandler.js";
+import notFoundErrorHandler from "./app/middleware/notFoundErrorHandler.js";
 
 // Initialize Express app
 const app: Application = express();
@@ -38,6 +39,9 @@ app.get("/", (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Not Found Handler
+app.use(notFoundErrorHandler);
 
 // Global Error Handler
 app.use(globalErrorHandler);
