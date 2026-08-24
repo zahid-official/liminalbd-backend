@@ -7,3 +7,10 @@ dist
 
 # Unignore .env.example
 !.env.example
+
+# Prisma Generated Client
+/generated/
+
+# AI Agent Context & Skills
+.agents/
+skills-lock.json
