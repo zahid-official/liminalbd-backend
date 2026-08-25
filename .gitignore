@@ -9,7 +9,7 @@ dist
 !.env.example
 
 # Prisma Generated Client
-/generated/
+/src/generated/
 
 # AI Agent Context & Skills
 .agents/

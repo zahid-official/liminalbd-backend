@@ -7,7 +7,6 @@
     // Environment Settings
     "target": "ESNext",
     "module": "NodeNext",
-    "types": ["node"],
 
     // Output
     "sourceMap": true,
