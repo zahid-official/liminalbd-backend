@@ -16,7 +16,7 @@ const app: Application = express();
 // CORS configuration
 const allowedOrigins =
   env.NODE_ENV === "development"
-    ? [env.FRONTEND_URL, "http://localhost:3000", "http://localhost:5000"]
+    ? [env.FRONTEND_URL, "http://localhost:3000"]
     : [env.FRONTEND_URL];
 
 // Core Middlewares
