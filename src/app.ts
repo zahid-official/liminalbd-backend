@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Health Check Route
+// Health Check
 app.get("/", (_req: Request, res: Response) => {
   res.status(status.OK).json({
     success: true,
