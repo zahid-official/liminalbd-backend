@@ -10,6 +10,8 @@ import env from "./app/config/env.js";
 import globalErrorHandler from "./app/middleware/globalErrorHandler.js";
 import notFoundErrorHandler from "./app/middleware/notFoundErrorHandler.js";
 
+import RootRouter from "./app/routes/index.js";
+
 // Initialize Express app
 const app: Application = express();
 
@@ -39,6 +41,9 @@ app.get("/", (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Application Routes
+app.use("/api/v1", RootRouter);
 
 // Not Found Handler
 app.use(notFoundErrorHandler);
