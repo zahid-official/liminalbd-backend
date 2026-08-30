@@ -1,5 +1,16 @@
 node_modules
 dist
+
+# Ignore all .env files
 .env
 .env.*
+
+# Unignore .env.example
 !.env.example
+
+# Prisma Generated Client
+/src/generated/
+
+# AI Agent Context & Skills
+.agents/
+skills-lock.json
