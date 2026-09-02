@@ -1,11 +1,11 @@
 import type { ErrorRequestHandler } from "express";
 import status from "http-status";
-import env from "../config/env.js";
+import { env } from "../config/env.js";
+import { AppError } from "../errors/AppError.js";
 import type {
   ErrorResponse,
   ErrorSource,
 } from "../interfaces/error.interface.js";
-import AppError from "../errors/AppError.js";
 
 // globalErrorHandler Function
 const globalErrorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
@@ -53,4 +53,4 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   res.status(statusCode).json(errorResponse);
 };
 
-export default globalErrorHandler;
+export { globalErrorHandler };

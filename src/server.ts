@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import type { Server } from "node:http";
 import app from "./app.js";
-import env from "./app/config/env.js";
+import { env } from "./app/config/env.js";
 
 let server: Server | undefined;
 const port = env.PORT;

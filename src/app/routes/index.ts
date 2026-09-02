@@ -1,21 +1,20 @@
 import { Router } from "express";
 
+// Module route interface
 interface ModuleRoute {
   path: string;
   route: Router;
 }
 
-// Initialize router
+// Initialize Express router
 const router: Router = Router();
 
-// Module routes
+// Application module routes registry
 const moduleRoutes: ModuleRoute[] = [];
 
-// Mount all feature module routers onto the root router
+// Mount module routes onto root router
 moduleRoutes.forEach((moduleRoute: ModuleRoute) => {
   router.use(moduleRoute.path, moduleRoute.route);
 });
 
-// Root router
-const RootRouter: Router = router;
-export default RootRouter;
+export { router as RootRouter };
