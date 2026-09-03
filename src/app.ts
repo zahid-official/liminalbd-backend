@@ -6,11 +6,10 @@ import express, {
   type Response,
 } from "express";
 import { status } from "http-status";
-import env from "./app/config/env.js";
-import globalErrorHandler from "./app/middleware/globalErrorHandler.js";
-import notFoundErrorHandler from "./app/middleware/notFoundErrorHandler.js";
-
-import RootRouter from "./app/routes/index.js";
+import { env } from "./app/config/env.js";
+import { globalErrorHandler } from "./app/middleware/globalErrorHandler.js";
+import { notFoundErrorHandler } from "./app/middleware/notFoundErrorHandler.js";
+import { RootRouter } from "./app/routes/index.js";
 
 // Initialize Express app
 const app: Application = express();

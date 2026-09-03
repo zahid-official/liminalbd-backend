@@ -1,7 +1,8 @@
 import "dotenv/config";
 import status from "http-status";
-import AppError from "../errors/AppError.js";
+import { AppError } from "../errors/AppError.js";
 
+// Interface for environment configuration
 interface EnvConfig {
   NODE_ENV: "development" | "production";
   PORT: number;
@@ -67,5 +68,4 @@ const loadEnvConfig = (): EnvConfig => {
   };
 };
 
-const env = loadEnvConfig();
-export default env;
+export const env = loadEnvConfig();

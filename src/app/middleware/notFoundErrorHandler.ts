@@ -15,4 +15,4 @@ const notFoundErrorHandler: RequestHandler = (req, res) => {
   });
 };
 
-export default notFoundErrorHandler;
+export { notFoundErrorHandler };
