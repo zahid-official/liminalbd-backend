@@ -1,21 +1,26 @@
 import { Router } from "express";
+import { AuthRoutes } from "../modules/auth/auth.routes.js";
 
+// Module route interface
 interface ModuleRoute {
   path: string;
   route: Router;
 }
 
-// Initialize router
+// Initialize Express router
 const router: Router = Router();
 
-// Module routes
-const moduleRoutes: ModuleRoute[] = [];
+// Application module routes registry
+const moduleRoutes: ModuleRoute[] = [
+  {
+    path: "/auth",
+    route: AuthRoutes,
+  },
+];
 
-// Mount all feature module routers onto the root router
+// Mount module routes onto root router
 moduleRoutes.forEach((moduleRoute: ModuleRoute) => {
   router.use(moduleRoute.path, moduleRoute.route);
 });
 
-// Root router
-const RootRouter: Router = router;
-export default RootRouter;
+export { router as RootRouter };
