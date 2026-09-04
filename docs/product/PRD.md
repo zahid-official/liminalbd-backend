@@ -2,35 +2,35 @@
 
 ## Product Overview
 
-Liminal Interior Design Studio is a comprehensive **interior design and furniture commerce platform** built to showcase design work, manage interior design and custom furniture inquiries, and operate a ready-made furniture e-commerce store through a secure, scalable, and maintainable backend.
+Liminal Interior Design Studio is a comprehensive **interior design and furniture commerce platform** built to showcase design work, manage interior design and custom furniture inquiries and operate a ready-made furniture e-commerce store through a secure, scalable and maintainable backend.
 
 ## Business Context
 
 Liminal Interior Design Studio operates across three connected business lines, all supported by a unified backend system:
 
-- **Interior Design Services** covering residential and commercial projects, project showcases, and structured client inquiries
-- **Custom Furniture Design** with a dedicated inquiry process for capturing client requirements, design preferences, and specifications
-- **Ready-Made Furniture Retail** with a complete e-commerce flow covering product catalog, cart, checkout, payment, and order management
+- **Interior Design Services** covering residential and commercial projects, project showcases and structured client inquiries
+- **Custom Furniture Design** with a dedicated inquiry process for capturing client requirements, design preferences and specifications
+- **Ready-Made Furniture Retail** with a complete e-commerce flow covering product catalog, cart, checkout, payment and order management
 
 Supporting business needs across these lines include:
 
-- **Project and content management** for showcasing design work, sharing industry insights, building trust, and supporting SEO
-- **Inquiry management** for capturing, tracking, and managing interior design and custom furniture leads throughout their lifecycle
-- **Secure customer accounts** with profile management, order history, and inquiry status tracking
-- **Role-based administration** for managing projects, furniture, content, inquiries, orders, and customers based on assigned permissions
+- **Project and content management** for showcasing design work, sharing industry insights, building trust and supporting SEO
+- **Inquiry management** for capturing, tracking and managing interior design and custom furniture leads throughout their lifecycle
+- **Secure customer accounts** with profile management, order history and inquiry status tracking
+- **Role-based administration** for managing projects, furniture, content, inquiries, orders and customers based on assigned permissions
 - **Secure order and payment processing** for reliable furniture purchasing and transaction management
 - **Audit-friendly data management** with traceable records and historical information
-- **Scalable infrastructure** capable of supporting future services, integrations, and business capabilities
+- **Scalable infrastructure** capable of supporting future services, integrations and business capabilities
 
 ## Technical Scope
 
 This project delivers a **production-grade RESTful API** that provides:
 
-- Multi-role authentication and authorization for Super Admin, Admin, and Customer
+- Multi-role authentication and authorization for Super Admin, Admin and Customer
 - Project portfolio and showcase management
 - Interior design inquiry capture and lifecycle management
 - Custom furniture inquiry capture and lifecycle management
-- Furniture catalog, shopping cart, checkout, and order lifecycle management
+- Furniture catalog, shopping cart, checkout and order lifecycle management
 - Payment processing for furniture orders
 - Blog content management
 - Contact message and studio location management
@@ -53,7 +53,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | **Cache** | Redis | Current stable | Caching and performance optimization |
 | **Authentication** | Better Auth | Current stable | Authentication and session management |
 | **Payment Gateway** | Stripe | Current stable | Payment processing for furniture orders |
-| **Media Storage** | Cloudinary | Current stable | Project, product, and blog media storage |
+| **Media Storage** | Cloudinary | Current stable | Project, product and blog media storage |
 | **Email Service** | Nodemailer (SMTP) | Current stable | Transactional and notification emails |
 | **Logging** | Winston | Current stable | Application logging |
 | **Validation** | Zod | Current stable | Request and data validation |
@@ -69,7 +69,7 @@ This project delivers a **production-grade RESTful API** that provides:
 - **Authentication:** Better Auth for authentication and session management
 - **Data Model:** Relational PostgreSQL database with soft-delete support
 - **Caching:** Redis for frequently accessed and read-heavy data
-- **File Storage:** Cloudinary for project, product, and blog media
+- **File Storage:** Cloudinary for project, product and blog media
 - **Payment Processing:** Stripe for furniture order payments
 - **Deployment:** Cloud-ready and containerizable
 
@@ -77,15 +77,15 @@ This project delivers a **production-grade RESTful API** that provides:
 
 ### User Roles
 
-1. **Super Admin:** Has full system access, including management of administrator accounts, role assignments, system settings, content, and business data.
-2. **Admin:** Manages assigned business operations such as projects, inquiries, products, orders, and blog content. Cannot create, remove, suspend, or modify administrator accounts or their roles.
-3. **Customer:** Can register and log in, manage their profile, submit inquiries, browse and purchase furniture, and track their orders and inquiry status.
+1. **Super Admin:** Has full system access, including management of administrator accounts, role assignments, system settings, content and business data.
+2. **Admin:** Manages assigned business operations such as projects, inquiries, products, orders and blog content. Cannot create, remove, suspend or modify administrator accounts or their roles.
+3. **Customer:** Can register and log in, manage their profile, submit inquiries, browse and purchase furniture and track their orders and inquiry status.
 
 ### External Integrations
 
 - **Stripe** - Payment processing for furniture orders
-- **Cloudinary** - Media storage for project, product, and blog media
-- **Email Service (SMTP)** - Registration, inquiry, order, and notification emails
+- **Cloudinary** - Media storage for project, product and blog media
+- **Email Service (SMTP)** - Registration, inquiry, order and notification emails
 
 ---
 
@@ -95,14 +95,14 @@ This project delivers a **production-grade RESTful API** that provides:
 
 ## 2.1 Authentication & Authorization Module
 
-> **Authentication Provider:** Authentication and session management are handled by **Better Auth**. Better Auth is responsible for core authentication mechanisms, credential management, session lifecycle, email verification, and Google authentication. The functional requirements below define Liminal's required authentication behavior, security rules, and authorization policies without reimplementing Better Auth internals.
+> **Authentication Provider:** Authentication and session management are handled by **Better Auth**. Better Auth is responsible for core authentication mechanisms, credential management, session lifecycle, email verification and Google authentication. The functional requirements below define Liminal's required authentication behavior, security rules and authorization policies without reimplementing Better Auth internals.
 > 
 
 ### FR-AUTH-001: Email & Password Registration
 
 **Priority**: CRITICAL
 
-**User Story**: As a new visitor, I want to register with my email and password so that I can submit inquiries, track orders, and manage my account.
+**User Story**: As a new visitor, I want to register with my email and password so that I can submit inquiries, track orders and manage my account.
 
 **Requirements**:
 
@@ -201,7 +201,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | FR-AUTH-003.3 | System must allow users to unlink a linked Google account | - Google authentication can be removed when another valid authentication method remains |
 | FR-AUTH-003.4 | System must prevent removal of the user's only authentication method | - Attempt to unlink the sole authentication method → HTTP 422 Unprocessable Entity |
 | FR-AUTH-003.5 | Sensitive authentication changes must require appropriate authentication assurance | - Recent authentication or re-authentication is required where configured by the security policy |
-| FR-AUTH-003.6 | Account linking or unlinking must not modify the user's application role | - Existing `CUSTOMER`, `ADMIN`, or `SUPER_ADMIN` role remains unchanged |
+| FR-AUTH-003.6 | Account linking or unlinking must not modify the user's application role | - Existing `CUSTOMER`, `ADMIN` or `SUPER_ADMIN` role remains unchanged |
 
 ### FR-AUTH-004: Email Verification
 
@@ -223,7 +223,7 @@ This project delivers a **production-grade RESTful API** that provides:
 **Business Rules:**
 
 - Email verification is required before placing a furniture order.
-- Browsing, cart usage, and inquiry submission do not require email verification.
+- Browsing, cart usage and inquiry submission do not require email verification.
 
 **Error Scenarios:**
 
@@ -357,7 +357,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
 | FR-AUTH-009.1 | System must use session-based authentication | - Authenticated sessions are maintained through secure cookies |
-| FR-AUTH-009.2 | Session lifecycle must be managed by Better Auth | - Session creation, validation, expiration, renewal, and revocation follow the configured Better Auth policies |
+| FR-AUTH-009.2 | Session lifecycle must be managed by Better Auth | - Session creation, validation, expiration, renewal and revocation follow the configured Better Auth policies |
 | FR-AUTH-009.3 | Session cookies must use appropriate security attributes | - Cookies use `httpOnly`
 -  `Secure` is enabled in production
 - An appropriate `SameSite` policy is configured |
@@ -366,7 +366,7 @@ This project delivers a **production-grade RESTful API** that provides:
 
 ## 2.2 Role-Based Access Control (RBAC)
 
-> **Authorization Model:** Authorization is enforced at the application level through a role-based access control (RBAC) model built on top of Better Auth's session management. The system defines three roles: `SUPER_ADMIN`, `ADMIN`, and `CUSTOMER`. The functional requirements below define role permissions, administrative hierarchy, resource ownership, and account-level access rules.
+> **Authorization Model:** Authorization is enforced at the application level through a role-based access control (RBAC) model built on top of Better Auth's session management. The system defines three roles: `SUPER_ADMIN`, `ADMIN` and `CUSTOMER`. The functional requirements below define role permissions, administrative hierarchy, resource ownership and account-level access rules.
 > 
 
 ### FR-RBAC-001: User Role System
@@ -377,13 +377,13 @@ This project delivers a **production-grade RESTful API** that provides:
 
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
-| FR-RBAC-001.1 | System must define the supported user roles | - `SUPER_ADMIN`, `ADMIN`, and `CUSTOMER` are the supported application roles |
+| FR-RBAC-001.1 | System must define the supported user roles | - `SUPER_ADMIN`, `ADMIN` and `CUSTOMER` are the supported application roles |
 | FR-RBAC-001.2 | Public registrations must always receive the `CUSTOMER` role | - Applies to both email/password and Google registration
 - Users cannot select or modify their role during registration |
 | FR-RBAC-001.3 | Privileged roles must only be assigned through authorized administrative operations | - `ADMIN` and `SUPER_ADMIN` cannot be assigned through public registration |
 | FR-RBAC-001.4 | System must enforce role-based permissions on protected operations | - Users can perform only actions permitted by their assigned role |
 | FR-RBAC-001.5 | Users must not be able to modify their own role | - Self-promotion and self-demotion are rejected |
-| FR-RBAC-001.6 | Role changes must be atomic and auditable | - Actor, target, previous role, new role, action, and timestamp are recorded |
+| FR-RBAC-001.6 | Role changes must be atomic and auditable | - Actor, target, previous role, new role, action and timestamp are recorded |
 
 ### FR-RBAC-002: Authorization Middleware
 
@@ -413,7 +413,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | FR-RBAC-003.4 | Super Admin can demote another Super Admin to Admin | - `SUPER_ADMIN → ADMIN` |
 | FR-RBAC-003.5 | Super Admin can perform authorized account management operations on other Super Admin accounts | - Operations must follow the defined role hierarchy and account lifecycle rules |
 | FR-RBAC-003.6 | Super Admin cannot modify their own role | - Attempts to change their own role are rejected |
-| FR-RBAC-003.7 | Super Admin role changes must be atomic and auditable | - Actor, target, previous role, new role, action, and timestamp are recorded |
+| FR-RBAC-003.7 | Super Admin role changes must be atomic and auditable | - Actor, target, previous role, new role, action and timestamp are recorded |
 
 **Role Transition Rules:**
 
@@ -429,7 +429,7 @@ SUPER_ADMIN → ADMIN
 
 **Priority**: HIGH
 
-> Admins have no authority to create, modify, remove, suspend, or change the role of `ADMIN` or `SUPER_ADMIN` accounts.
+> Admins have no authority to create, modify, remove, suspend or change the role of `ADMIN` or `SUPER_ADMIN` accounts.
 > 
 
 **Requirements:**
@@ -437,11 +437,11 @@ SUPER_ADMIN → ADMIN
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
 | FR-RBAC-004.1 | Admin cannot create privileged accounts | - Attempts to create accounts with `ADMIN` or `SUPER_ADMIN` roles → HTTP 403 Forbidden |
-| FR-RBAC-004.2 | Admin cannot manage other Admin accounts | - Attempts to modify, suspend, deactivate, or remove another `ADMIN` account → HTTP 403 Forbidden |
-| FR-RBAC-004.3 | Admin cannot manage Super Admin accounts | - Attempts to modify, suspend, deactivate, or remove a `SUPER_ADMIN` account → HTTP 403 Forbidden |
+| FR-RBAC-004.2 | Admin cannot manage other Admin accounts | - Attempts to modify, suspend, deactivate or remove another `ADMIN` account → HTTP 403 Forbidden |
+| FR-RBAC-004.3 | Admin cannot manage Super Admin accounts | - Attempts to modify, suspend, deactivate or remove a `SUPER_ADMIN` account → HTTP 403 Forbidden |
 | FR-RBAC-004.4 | Admin cannot change the role of another privileged account | - `ADMIN → SUPER_ADMIN` or `SUPER_ADMIN → ADMIN` attempts → HTTP 403 Forbidden |
 | FR-RBAC-004.5 | Admin cannot modify their own role | - Attempts to change their own role → HTTP 403 Forbidden |
-| FR-RBAC-004.6 | Unauthorized attempts to manage privileged accounts must be auditable | - Actor, target, attempted action, and timestamp are recorded even when the request is rejected |
+| FR-RBAC-004.6 | Unauthorized attempts to manage privileged accounts must be auditable | - Actor, target, attempted action and timestamp are recorded even when the request is rejected |
 
 ### FR-RBAC-005: Resource Ownership Validation
 
@@ -452,9 +452,9 @@ SUPER_ADMIN → ADMIN
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
 | FR-RBAC-005.1 | Customers may only access or modify resources they own | - Cross-account access or modification attempts → HTTP 403 Forbidden |
-| FR-RBAC-005.2 | Customer-owned resources must be validated against the authenticated user | - Protected resources, including profile, inquiries, cart, orders, and other account-related data, cannot be accessed or modified by another customer |
+| FR-RBAC-005.2 | Customer-owned resources must be validated against the authenticated user | - Protected resources, including profile, inquiries, cart, orders and other account-related data, cannot be accessed or modified by another customer |
 | FR-RBAC-005.3 | Administrative access must follow assigned permissions | - `ADMIN` and `SUPER_ADMIN` users can access resources only within their authorized scope |
-| FR-RBAC-005.4 | Sensitive administrative resource access must be auditable | - Actor, resource, action, and timestamp are recorded where required |
+| FR-RBAC-005.4 | Sensitive administrative resource access must be auditable | - Actor, resource, action and timestamp are recorded where required |
 
 ### FR-RBAC-006: Account Status Enforcement
 
@@ -464,9 +464,9 @@ SUPER_ADMIN → ADMIN
 
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
-| FR-RBAC-006.1 | System must enforce account status during authentication and authorization | - Suspended, deactivated, or soft-deleted accounts cannot authenticate or access protected resources |
+| FR-RBAC-006.1 | System must enforce account status during authentication and authorization | - Suspended, deactivated or soft-deleted accounts cannot authenticate or access protected resources |
 | FR-RBAC-006.2 | Restricting an account must invalidate its active sessions | - Suspended or deactivated accounts can no longer use existing sessions to access protected resources |
-| FR-RBAC-006.3 | Account status changes must be auditable | - Actor, target, previous status, new status, action, and timestamp are recorded |
+| FR-RBAC-006.3 | Account status changes must be auditable | - Actor, target, previous status, new status, action and timestamp are recorded |
 | FR-RBAC-006.4 | Soft-deleted accounts must be excluded from normal system operations | - Soft-deleted accounts are excluded from active-user queries and cannot authenticate or access protected resources |
 
 ## 2.3 User Profile Management
@@ -487,7 +487,7 @@ SUPER_ADMIN → ADMIN
 - Attempt by an Admin or Customer → HTTP 403 Forbidden |
 | FR-ADMIN-001.2 | This operation must not create or assign a `SUPER_ADMIN` role | - Any attempt to create a `SUPER_ADMIN` through this operation → HTTP 403 Forbidden |
 | FR-ADMIN-001.3 | Admin accounts must follow the configured administrative account creation process | - Public self-registration for Admin accounts is not supported |
-| FR-ADMIN-001.4 | Admin account creation must be auditable | - Actor, target, action, and timestamp are recorded |
+| FR-ADMIN-001.4 | Admin account creation must be auditable | - Actor, target, action and timestamp are recorded |
 
 **Error Scenarios:**
 
@@ -506,13 +506,13 @@ SUPER_ADMIN → ADMIN
 
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
-| FR-ADMIN-002.1 | Only Super Admin can update another Admin's permitted profile information | - Name, contact information, and other permitted profile fields can be updated
+| FR-ADMIN-002.1 | Only Super Admin can update another Admin's permitted profile information | - Name, contact information and other permitted profile fields can be updated
 - Attempt by an `ADMIN` → HTTP 403 Forbidden |
 | FR-ADMIN-002.2 | Only Super Admin can modify an Admin's role | - Role changes must follow the role transition rules defined in FR-RBAC-003 |
 | FR-ADMIN-002.3 | Admin cannot modify another Admin or any Super Admin account | - Unauthorized attempt → HTTP 403 Forbidden |
 | FR-ADMIN-002.4 | Super Admin can manage an Admin account's status | - An Admin account can be suspended or reactivated according to account lifecycle rules
 - Active sessions are revoked when the account is suspended |
-| FR-ADMIN-002.5 | Admin account changes must be auditable | - Actor, target, action, previous value, new value, and timestamp are recorded where applicable |
+| FR-ADMIN-002.5 | Admin account changes must be auditable | - Actor, target, action, previous value, new value and timestamp are recorded where applicable |
 
 **Error Scenarios:**
 
@@ -532,7 +532,7 @@ SUPER_ADMIN → ADMIN
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
 | FR-ADMIN-003.1 | Only Super Admin can retrieve the list of Admin accounts | - Attempt by an `ADMIN` or `CUSTOMER` → HTTP 403 Forbidden |
-| FR-ADMIN-003.2 | The Admin list must support standard query capabilities | - Supports pagination, search, sorting, and account status filtering |
+| FR-ADMIN-003.2 | The Admin list must support standard query capabilities | - Supports pagination, search, sorting and account status filtering |
 | FR-ADMIN-003.3 | The Admin list must only include accounts with the `ADMIN` role | - `SUPER_ADMIN` and `CUSTOMER` accounts are excluded |
 
 **Success Response**: HTTP 200 OK
@@ -566,7 +566,7 @@ SUPER_ADMIN → ADMIN
 
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
-| FR-CUSTOMER-001.1 | Customers can update their own permitted profile information | - Name, contact number, address, and avatar can be updated according to field validation rules |
+| FR-CUSTOMER-001.1 | Customers can update their own permitted profile information | - Name, contact number, address and avatar can be updated according to field validation rules |
 | FR-CUSTOMER-001.2 | Authorized administrative users can update permitted customer profile information | - `ADMIN` and `SUPER_ADMIN` access follows assigned permissions
 - Authentication credentials and provider account data cannot be modified through profile management |
 | FR-CUSTOMER-001.3 | Customers can update their own email address through the supported account management flow | - The new email must pass validation and uniqueness checks
@@ -593,7 +593,7 @@ SUPER_ADMIN → ADMIN
 | ID | Requirement | Acceptance Criteria |
 | --- | --- | --- |
 | FR-CUSTOMER-002.1 | `SUPER_ADMIN` and `ADMIN` can retrieve the customer list | - `CUSTOMER` access → HTTP 403 Forbidden |
-| FR-CUSTOMER-002.2 | The customer list must support standard query capabilities | - Supports pagination, name/email search, sorting, account status filtering, and creation date range filtering |
+| FR-CUSTOMER-002.2 | The customer list must support standard query capabilities | - Supports pagination, name/email search, sorting, account status filtering and creation date range filtering |
 | FR-CUSTOMER-002.3 | The customer list must only include accounts with the `CUSTOMER` role | - `ADMIN` and `SUPER_ADMIN` accounts are excluded from the result |
 
 **Success Response**: HTTP 200 OK
@@ -653,9 +653,9 @@ SUPER_ADMIN → ADMIN
 | FR-CUSTOMER-004.2 | `SUPER_ADMIN` and `ADMIN` can deactivate a customer account | - Deactivated customers cannot authenticate or access protected resources |
 | FR-CUSTOMER-004.3 | `SUPER_ADMIN` and `ADMIN` can soft-delete a customer account according to their assigned permissions. | - Account is excluded from normal active-user queries
 - Business records are preserved and not physically deleted |
-| FR-CUSTOMER-004.4 | Customer sessions must be revoked when an account is suspended, deactivated, or soft-deleted | - Existing sessions can no longer authorize protected requests |
-| FR-CUSTOMER-004.5 | Customer account status changes must be auditable | - Actor, target, previous status, new status, action, and timestamp are recorded |
-| FR-CUSTOMER-004.6 | Customers cannot modify their own account status | - Self-suspension, deactivation, or deletion → HTTP 403 Forbidden |
+| FR-CUSTOMER-004.4 | Customer sessions must be revoked when an account is suspended, deactivated or soft-deleted | - Existing sessions can no longer authorize protected requests |
+| FR-CUSTOMER-004.5 | Customer account status changes must be auditable | - Actor, target, previous status, new status, action and timestamp are recorded |
+| FR-CUSTOMER-004.6 | Customers cannot modify their own account status | - Self-suspension, deactivation or deletion → HTTP 403 Forbidden |
 
 **Error Scenarios:**
 
