@@ -10,8 +10,8 @@ export default defineConfig({
     tseslint.configs.stylistic,
   ],
   rules: {
-    "no-console": ["warn", { allow: ["error"] }],
-    "@typescript-eslint/no-explicit-any": "off",
+    "no-console": process.env.NODE_ENV === "production" ? "error" : "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/no-unused-vars": [
       "error",
       {

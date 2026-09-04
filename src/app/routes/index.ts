@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { AuthRoutes } from "../modules/auth/auth.routes.js";
 
 // Module route interface
 interface ModuleRoute {
@@ -10,7 +11,12 @@ interface ModuleRoute {
 const router: Router = Router();
 
 // Application module routes registry
-const moduleRoutes: ModuleRoute[] = [];
+const moduleRoutes: ModuleRoute[] = [
+  {
+    path: "/auth",
+    route: AuthRoutes,
+  },
+];
 
 // Mount module routes onto root router
 moduleRoutes.forEach((moduleRoute: ModuleRoute) => {
