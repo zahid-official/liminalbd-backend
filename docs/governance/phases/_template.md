@@ -133,12 +133,12 @@ Remove the placeholder row when none exist. Do not invent a resolution. Record a
 - [ ] The phase file, [MEMORY.md](../MEMORY.md), [DECISIONS.md](../DECISIONS.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are consistent.
 - [ ] Explicit human approval for phase completion is recorded.
 
-| Approval Field | Value |
-| --- | --- |
-| Outcome | `Pending` |
-| Approved by | `<Name or Pending>` |
-| Approved on | `YYYY-MM-DD or Pending` |
-| Notes | `<Limitation, deferred work or None>` |
+| Approval Field | Value                                 |
+| -------------- | ------------------------------------- |
+| Outcome        | `Pending`                             |
+| Approved by    | `<Name or Pending>`                   |
+| Approved on    | `YYYY-MM-DD or Pending`               |
+| Notes          | `<Limitation, deferred work or None>` |
 
 Do not mark the phase `COMPLETE` or activate another phase before completing the transition defined by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 

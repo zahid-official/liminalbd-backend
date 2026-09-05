@@ -26,11 +26,11 @@
 
 ## 3. Current Roadmap
 
-| Phase | Name | Status | Readiness | Phase File | Requirement Coverage |
-| --- | --- | --- | --- | --- | --- |
-| Phase 1 | Foundation | `COMPLETE` | `N/A` | `docs/governance/phases/phase-1-foundation.md` | Approved foundation, architecture and infrastructure scope |
-| Phase 2 | Authentication & RBAC | `ACTIVE` | `BLOCKED` | `docs/governance/phases/phase-2-auth-rbac.md` | [PRD](../product/PRD.md) Sections 2.1 through 2.3 and related ERD model |
-| Future | Undefined scope | `NOT APPROVED` | `N/A` | None | No approved PRD, ERD impact or phase plan |
+| Phase   | Name                  | Status         | Readiness | Phase File                                     | Requirement Coverage                                                    |
+| ------- | --------------------- | -------------- | --------- | ---------------------------------------------- | ----------------------------------------------------------------------- |
+| Phase 1 | Foundation            | `COMPLETE`     | `N/A`     | `docs/governance/phases/phase-1-foundation.md` | Approved foundation, architecture and infrastructure scope              |
+| Phase 2 | Authentication & RBAC | `ACTIVE`       | `BLOCKED` | `docs/governance/phases/phase-2-auth-rbac.md`  | [PRD](../product/PRD.md) Sections 2.1 through 2.3 and related ERD model |
+| Future  | Undefined scope       | `NOT APPROVED` | `N/A`     | None                                           | No approved PRD, ERD impact or phase plan                               |
 
 ### Current State
 
@@ -40,11 +40,11 @@
 
 ## 4. Phase 2 Requirement Coverage
 
-| Area | PRD Coverage |
-| --- | --- |
-| Authentication and sessions | `FR-AUTH-001` through `FR-AUTH-009` |
-| Role-based access control | `FR-RBAC-001` through `FR-RBAC-006` |
-| Admin account management | `FR-ADMIN-001` through `FR-ADMIN-003` |
+| Area                                    | PRD Coverage                                |
+| --------------------------------------- | ------------------------------------------- |
+| Authentication and sessions             | `FR-AUTH-001` through `FR-AUTH-009`         |
+| Role-based access control               | `FR-RBAC-001` through `FR-RBAC-006`         |
+| Admin account management                | `FR-ADMIN-001` through `FR-ADMIN-003`       |
 | Customer profile and account management | `FR-CUSTOMER-001` through `FR-CUSTOMER-004` |
 
 This coverage defines the phase boundary, not executable tasks. The phase file under `docs/governance/phases/` must divide it into small, ordered tasks with acceptance criteria, dependencies, requirement links and explicit exclusions.

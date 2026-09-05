@@ -102,7 +102,7 @@ The broader product vision includes additional capabilities such as project show
 
 These areas must not be designed or implemented from assumptions.
 
-A future module becomes implementation-ready only when its requirements are formally defined in the approved product documentation and represented in the governance and phase execution plan. When product teams finalize future modules, they are integrated following the PRD's *Phase-Wise Scope Evolution* protocol and the *Requirement Changes* procedure defined in [AGENTS.md](../../AGENTS.md).
+A future module becomes implementation-ready only when its requirements are formally defined in the approved product documentation and represented in the governance and phase execution plan. When product teams finalize future modules, they are integrated following the PRD's _Phase-Wise Scope Evolution_ protocol and the _Requirement Changes_ procedure defined in [AGENTS.md](../../AGENTS.md).
 
 ## 8. Source Documents
 
