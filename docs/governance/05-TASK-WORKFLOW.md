@@ -11,12 +11,12 @@ This workflow applies across all contributors, AI models and IDEs.
 
 ## 2. Task Status
 
-| Status | Meaning |
-|---|---|
-| `🔲` | Not started |
-| `🔄` | In progress, including requested corrections |
-| `🕵️` | Implemented and awaiting human review |
-| `✅` | Human-approved and fully closed |
+| Status | Meaning                                      |
+| ------ | -------------------------------------------- |
+| `🔲`   | Not started                                  |
+| `🔄`   | In progress, including requested corrections |
+| `🕵️`   | Implemented and awaiting human review        |
+| `✅`   | Human-approved and fully closed              |
 
 Only one task may be `🔄` or `🕵️` across the project at a time. If the recorded state violates this rule, stop and resolve the earlier task first.
 
@@ -123,12 +123,12 @@ Explicit human approval unlocks closure. Complete these updates as one controlle
 
 Only after closure may the next task begin.
 
-| Document | Responsibility |
-|---|---|
-| Active phase file | Task scope, acceptance criteria and execution status |
-| `MEMORY.md` | Concise, verified current state and established patterns |
-| `DECISIONS.md` | Durable decisions, rationale and approved deviations |
-| `06-PHASE-ROADMAP.md` | Approved phase scope and status |
+| Document              | Responsibility                                           |
+| --------------------- | -------------------------------------------------------- |
+| Active phase file     | Task scope, acceptance criteria and execution status     |
+| `MEMORY.md`           | Concise, verified current state and established patterns |
+| `DECISIONS.md`        | Durable decisions, rationale and approved deviations     |
+| `06-PHASE-ROADMAP.md` | Approved phase scope and status                          |
 
 Update the relevant section instead of appending conversation history. Do not duplicate the same detail across every document.
 

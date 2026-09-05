@@ -27,18 +27,21 @@ PostgreSQL
 A layer may normally depend only on the layer directly below it. Shared infrastructure such as configuration, errors, middleware and common interfaces or types may be consumed where appropriate.
 
 ### Route
+
 - Maps HTTP method/path.
 - Composes middleware.
 - Connects requests to controllers.
 - No business or persistence logic.
 
 ### Controller
+
 - Receives validated input.
 - Calls the appropriate service.
 - Shapes the HTTP response through shared response conventions.
 - No business logic, repository calls or direct Prisma access.
 
 ### Service
+
 - Owns business rules and orchestration.
 - Enforces authorization that requires business context and ownership checks.
 - Coordinates repositories and approved integrations.
@@ -46,11 +49,13 @@ A layer may normally depend only on the layer directly below it. Shared infrastr
 - Must not depend on Express `req`/`res`.
 
 ### Repository
+
 - Owns persistence and Prisma queries.
 - Applies approved data-access conventions, such as excluding soft-deleted records where required.
 - No HTTP concerns or business authorization decisions.
 
 ### Prisma
+
 - ORM/data-access layer for PostgreSQL.
 - Generated Prisma output must never be hand-edited.
 
@@ -151,6 +156,7 @@ Cross-module behavior should use explicit service or application-level interface
 ## 6. Authentication and Authorization Boundary
 
 **Better Auth owns:**
+
 - credential handling;
 - password hashing;
 - session lifecycle;
@@ -159,6 +165,7 @@ Cross-module behavior should use explicit service or application-level interface
 - Google OAuth mechanics.
 
 **Application code owns:**
+
 - roles: `SUPER_ADMIN`, `ADMIN`, `CUSTOMER`;
 - RBAC and authorization rules;
 - resource ownership;
@@ -181,6 +188,7 @@ Provider SDK → Integration Boundary → Business Service
 ## 8. Data and API Direction
 
 ### Data
+
 - PostgreSQL is the relational database; Prisma is the ORM.
 - Follow the approved PRD/ERD for schema behavior and domain values.
 - Use soft deletion only where the approved model requires it; do not assume every record is soft-deleted.
@@ -188,6 +196,7 @@ Provider SDK → Integration Boundary → Business Service
 - Do not introduce new roles or data-model behavior without an approved requirement and phase update.
 
 ### API
+
 - RESTful HTTP API with JSON payloads.
 - Centralized validation and error handling.
 - Shared response conventions.

@@ -30,19 +30,19 @@
 Use consistent naming for new code. Existing files may retain their current
 names unless renaming is part of the active task or an approved refactoring task.
 
-| Item | Convention | Example |
-|---|---|---|
-| Feature files | `kebab-case` + responsibility suffix | `auth.service.ts` |
-| Middleware, utility & config files | `camelCase` | `globalErrorHandler.ts`, `env.ts` |
-| Class / error class files | `PascalCase` matching the class name | `AppError.ts` |
-| Folders | `kebab-case` | `password-reset/` |
-| Classes | `PascalCase` | `AuthService`, `AppError` |
-| Functions | `camelCase` | `getUserById` |
-| Variables | `camelCase` | `userId` |
-| Constants | `UPPER_SNAKE_CASE` for true constants | `MAX_PAGE_SIZE` |
-| Types / Interfaces | `PascalCase` | `CreateUserInput`, `UserRepository` |
-| Zod schemas | `camelCase` + `Schema` | `registerSchema` |
-| Enum members | Approved `UPPER_SNAKE_CASE` | `SUPER_ADMIN` |
+| Item                               | Convention                            | Example                             |
+| ---------------------------------- | ------------------------------------- | ----------------------------------- |
+| Feature files                      | `kebab-case` + responsibility suffix  | `auth.service.ts`                   |
+| Middleware, utility & config files | `camelCase`                           | `globalErrorHandler.ts`, `env.ts`   |
+| Class / error class files          | `PascalCase` matching the class name  | `AppError.ts`                       |
+| Folders                            | `kebab-case`                          | `password-reset/`                   |
+| Classes                            | `PascalCase`                          | `AuthService`, `AppError`           |
+| Functions                          | `camelCase`                           | `getUserById`                       |
+| Variables                          | `camelCase`                           | `userId`                            |
+| Constants                          | `UPPER_SNAKE_CASE` for true constants | `MAX_PAGE_SIZE`                     |
+| Types / Interfaces                 | `PascalCase`                          | `CreateUserInput`, `UserRepository` |
+| Zod schemas                        | `camelCase` + `Schema`                | `registerSchema`                    |
+| Enum members                       | Approved `UPPER_SNAKE_CASE`           | `SUPER_ADMIN`                       |
 
 Rules:
 
@@ -215,18 +215,18 @@ Do not expose internal implementation details through the response contract.
 
 Follow the approved PRD contract for each feature.
 
-| Status | Typical use |
-|---|---|
-| `200` | Successful read or update |
-| `201` | Resource created |
-| `204` | Successful operation with no response body |
-| `400` | Malformed or invalid request |
-| `401` | Authentication required or invalid |
-| `403` | Authenticated but not authorized |
-| `404` | Resource not found or intentionally hidden |
-| `409` | Conflict with current state or uniqueness |
-| `422` | Only when the approved feature contract requires it |
-| `429` | Rate limit exceeded |
+| Status | Typical use                                         |
+| ------ | --------------------------------------------------- |
+| `200`  | Successful read or update                           |
+| `201`  | Resource created                                    |
+| `204`  | Successful operation with no response body          |
+| `400`  | Malformed or invalid request                        |
+| `401`  | Authentication required or invalid                  |
+| `403`  | Authenticated but not authorized                    |
+| `404`  | Resource not found or intentionally hidden          |
+| `409`  | Conflict with current state or uniqueness           |
+| `422`  | Only when the approved feature contract requires it |
+| `429`  | Rate limit exceeded                                 |
 
 Do not invent feature-specific status conventions when approved requirements
 already define them.

@@ -65,11 +65,11 @@ These are verified observations only. They do not authorize fixes outside an app
 
 ## 6. Verification Snapshot
 
-| Check | Result |
-|---|---|
-| `pnpm build` | `PASS` on 2026-09-05 |
-| `pnpm lint` | `PASS` on 2026-09-05 |
-| Automated tests | `NOT RUN`: test script is a failing placeholder |
+| Check                 | Result                                                             |
+| --------------------- | ------------------------------------------------------------------ |
+| `pnpm build`          | `PASS` on 2026-09-05                                               |
+| `pnpm lint`           | `PASS` on 2026-09-05                                               |
+| Automated tests       | `NOT RUN`: test script is a failing placeholder                    |
 | Database / migrations | `NOT RUN`: database environment and migration state are unverified |
 
 ## 7. Next Action

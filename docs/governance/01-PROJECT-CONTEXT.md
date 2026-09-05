@@ -32,11 +32,11 @@ The backend should be:
 
 The approved role model includes:
 
-| Role | Responsibility |
-|---|---|
+| Role          | Responsibility                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------- |
 | `SUPER_ADMIN` | Privileged administrative authority, including account and role management as defined by the PRD. |
-| `ADMIN` | Manages authorized business operations within defined RBAC boundaries. |
-| `CUSTOMER` | Manages permitted account data and accesses customer-owned resources and services. |
+| `ADMIN`       | Manages authorized business operations within defined RBAC boundaries.                            |
+| `CUSTOMER`    | Manages permitted account data and accesses customer-owned resources and services.                |
 
 Exact permissions, restrictions and ownership rules must follow the approved PRD and RBAC requirements.
 
