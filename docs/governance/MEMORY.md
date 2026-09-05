@@ -8,13 +8,15 @@
 ## 1. Governance and Phase State
 
 - Canonical governance lives under `docs/governance/`.
-- Finalized governance files through Phase Roadmap:
-  - `01-PROJECT-CONTEXT.md`
-  - `02-ARCHITECTURE.md`
-  - `03-CODING-STANDARDS.md`
-  - `04-RULES.md`
-  - `05-TASK-WORKFLOW.md`
-  - `06-PHASE-ROADMAP.md`
+- Finalized governance files:
+  - [01-PROJECT-CONTEXT.md](01-PROJECT-CONTEXT.md)
+  - [02-ARCHITECTURE.md](02-ARCHITECTURE.md)
+  - [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md)
+  - [04-RULES.md](04-RULES.md)
+  - [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md)
+  - [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md)
+  - [DECISIONS.md](DECISIONS.md)
+  - [MEMORY.md](MEMORY.md)
 - Phase 1, Foundation: `COMPLETE`.
 - Phase 2, Authentication & RBAC: `ACTIVE` and `BLOCKED` until its phase task breakdown is created and human-approved.
 - No future phase has approved implementation scope.
@@ -51,6 +53,7 @@ These are verified observations only. They do not authorize fixes outside an app
 - Create custom interfaces or types only when a real application-level contract is needed.
 - New files follow `03-CODING-STANDARDS.md`; existing files are not renamed solely for stylistic cleanup.
 - Better Auth owns authentication/session mechanics; application code owns RBAC, authorization, ownership, account status and business rules.
+- Shared infrastructure: `src/app/utils/` for stateless reusable helpers (e.g., `catchAsync`, `sendResponse`), `src/app/shared/` for cross-cutting constants and domain contracts.
 - Shared validation, errors, response helpers and logging should be reused rather than recreated per module.
 
 ## 5. Security and Data State
@@ -76,12 +79,12 @@ These are verified observations only. They do not authorize fixes outside an app
 
 - Create and review `docs/governance/phases/phase-2-auth-rbac.md`.
 - Keep Phase 2 `ACTIVE/BLOCKED` until the phase task breakdown, acceptance criteria, dependencies and exclusions are human-approved.
-- Once Phase 2 is `READY`, select exactly one eligible task and follow `05-TASK-WORKFLOW.md`.
+- Once Phase 2 is `READY`, select exactly one eligible task and follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
 - If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.
 
 ## 8. Maintenance Rule
 
 - Update this file only after human-approved task closure or an approved governance-state change.
 - Replace stale facts in place; do not append a chronological diary.
-- Keep durable decisions in `DECISIONS.md` and task execution state in phase files.
+- Keep durable decisions in [DECISIONS.md](DECISIONS.md) and task execution state in phase files under `docs/governance/phases/`.
 - Record verified current state only, never assumptions or unapproved plans.

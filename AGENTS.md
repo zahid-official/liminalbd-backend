@@ -158,7 +158,7 @@ Never invent requirements, business rules, API behavior, database structure or s
 | `06-PHASE-ROADMAP.md` | Phase status and active phase |
 | `MEMORY.md` | Condensed current state of the codebase |
 | `DECISIONS.md` | Durable decisions and rationale |
-| `phases/` | Task-level execution plans |
+| `docs/governance/phases/` | Task-level execution plans |
 | `docs/product/PRD.md` | Full functional requirements |
 | `docs/product/ERD.drawio` | Entity and data-model design |
 

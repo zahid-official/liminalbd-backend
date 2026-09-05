@@ -7,7 +7,7 @@
 
 - Add an entry only after human approval.
 - Record lasting choices, trade-offs, provider boundaries or approved deviations.
-- Keep current state in `MEMORY.md` and task progress in phase files.
+- Keep current state in [MEMORY.md](MEMORY.md) and task progress in phase files under `docs/governance/phases/`.
 - Do not duplicate coding standards or ordinary implementation details.
 - Never rewrite an accepted decision to hide history. Supersede it with a new entry and link both records.
 - Use the next sequential ID in the form `DEC-NNN`.
@@ -19,6 +19,28 @@ Statuses:
 - `REJECTED`: retained only when its rejection prevents repeated reconsideration.
 
 ## Accepted Decisions
+
+### DEC-009: Human Authority Over Git Operations and Environment Invariance
+
+**Recorded:** 2026-09-05  
+**Status:** `ACCEPTED`
+
+**Decision:** AI agents must never execute git commits or pushes autonomously without explicit human direction. Furthermore, all AI models and IDE environments (Cursor, Windsurf, Copilot, Antigravity, Claude Code) must conform strictly to canonical repository governance, and environment-specific configs must never contradict repository rules.
+
+**Why:** Autonomous AI commits pollute git history, risk committing unintended/secret files, and bypass human accountability. Multi-environment development requires a single canonical source of truth.
+
+**Consequences:** AI proposes conventional commit messages upon task review approval; human approves or executes git commits. Tool configurations are strictly subordinated to `AGENTS.md` and `docs/governance/`.
+
+### DEC-008: Progressive Scope Integration and Governance Synchronization
+
+**Recorded:** 2026-09-05  
+**Status:** `ACCEPTED`
+
+**Decision:** Future business modules (Inquiries, Commerce, Cart, Payments, Blog, Showcases) will be integrated phase-wise into the PRD. When product teams finalize a new phase, AI agents must update canonical governance files (`06-PHASE-ROADMAP.md`, phase execution plans, `DECISIONS.md`) and receive explicit human approval before any implementation begins.
+
+**Why:** Product vision must not be mistaken for approved implementation scope. Prevents speculative coding and hallucinated business logic.
+
+**Consequences:** Future module absence in the active phase is treated as intentional, not missing. AI must never invent requirements for future modules.
 
 ### DEC-007: Separate Phase Status From Execution Readiness
 
@@ -42,7 +64,7 @@ ready phase with an eligible task.
 
 **Why:** Small review checkpoints reduce scope drift and preserve continuity across contributors and tools.
 
-**Consequences:** Review corrections remain in the same task. The next task cannot begin before closure under `05-TASK-WORKFLOW.md`.
+**Consequences:** Review corrections remain in the same task. The next task cannot begin before closure under [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
 
 ### DEC-005: Responsibility-Driven Module Structure
 
@@ -97,7 +119,7 @@ Route → Middleware → Controller → Service → Repository → Prisma → Po
 **Recorded:** 2026-09-05  
 **Status:** `ACCEPTED`
 
-**Decision:** Use root `AGENTS.md` as the universal AI entry point, supported by focused documents under `docs/governance/`.
+**Decision:** Use root [AGENTS.md](../../AGENTS.md) as the universal AI entry point, supported by focused documents under `docs/governance/`.
 
 **Why:** Contributors using different AI models and IDEs need the same durable, token-efficient project context.
 

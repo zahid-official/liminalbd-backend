@@ -1,7 +1,7 @@
 # Phase <N>: <Phase Name>
 
 > Canonical execution plan for this phase.
-> One task equals one implementation and human-review cycle under `05-TASK-WORKFLOW.md`.
+> One task equals one implementation and human-review cycle under [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md).
 
 ## 1. Phase Identity
 
@@ -12,7 +12,7 @@
 | Readiness    | `N/A`        |
 | Last updated | `YYYY-MM-DD` |
 
-Use only status and readiness combinations defined in `06-PHASE-ROADMAP.md`.
+Use only status and readiness combinations defined in [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 These values mirror the roadmap and must be updated with it.
 
 ## 2. Goal and Requirement Boundary
@@ -59,7 +59,7 @@ An active phase remains `BLOCKED` until every applicable item is satisfied.
 | Security           | `<Authentication, authorization, ownership or other rules>` |
 | External providers | `<Approved boundary or None>`                               |
 
-Reference `DECISIONS.md` for durable changes. This file does not approve a new product or architecture decision by itself.
+Reference [DECISIONS.md](../DECISIONS.md) for durable changes. This file does not approve a new product or architecture decision by itself.
 
 ## 5. Task Index
 
@@ -104,7 +104,7 @@ Copy this block for every approved task, then remove this instruction.
 
 Use `PASS`, `FAIL` or `NOT RUN`, with a reason when a check does not run. A task is not review-ready while a required check failed or could not run.
 
-**Implementation Notes:** <Concise facts needed to review or resume the task.>
+**Implementation Notes:** <Concise facts needed to review or resume the task. Upon approval: update memory/decisions, and propose conventional git commit message under human direction.>
 
 **Human Review:**
 
@@ -122,7 +122,7 @@ Use `PASS`, `FAIL` or `NOT RUN`, with a reason when a check does not run. A task
 | ------- | --------------------------------------------------------------------- | --------------- | ------------------------------- | ------ |
 | `B-001` | `<Requirement, Architecture, Security, Data, Dependency or External>` | `<Description>` | `<Specific decision or action>` | `OPEN` |
 
-Remove the placeholder row when none exist. Do not invent a resolution. Record approved durable choices in `DECISIONS.md`. Use only `OPEN` or `RESOLVED` for blocker status.
+Remove the placeholder row when none exist. Do not invent a resolution. Record approved durable choices in [DECISIONS.md](../DECISIONS.md). Use only `OPEN` or `RESOLVED` for blocker status.
 
 ## 8. Phase Completion
 
@@ -130,17 +130,17 @@ Remove the placeholder row when none exist. Do not invent a resolution. Record a
 - [ ] Phase-level acceptance criteria and required checks are satisfied.
 - [ ] Migrations and data-integrity verification are complete where applicable.
 - [ ] Blockers and approved deferred work are documented.
-- [ ] The phase file, `MEMORY.md`, `DECISIONS.md` and roadmap are consistent.
+- [ ] The phase file, [MEMORY.md](../MEMORY.md), [DECISIONS.md](../DECISIONS.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are consistent.
 - [ ] Explicit human approval for phase completion is recorded.
 
-| Approval Field | Value                                 |
-| -------------- | ------------------------------------- |
-| Outcome        | `Pending`                             |
-| Approved by    | `<Name or Pending>`                   |
-| Approved on    | `YYYY-MM-DD or Pending`               |
-| Notes          | `<Limitation, deferred work or None>` |
+| Approval Field | Value |
+| --- | --- |
+| Outcome | `Pending` |
+| Approved by | `<Name or Pending>` |
+| Approved on | `YYYY-MM-DD or Pending` |
+| Notes | `<Limitation, deferred work or None>` |
 
-Do not mark the phase `COMPLETE` or activate another phase before completing the transition defined by `05-TASK-WORKFLOW.md` and `06-PHASE-ROADMAP.md`.
+Do not mark the phase `COMPLETE` or activate another phase before completing the transition defined by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
 ## 9. Maintenance Rule
 

@@ -95,6 +95,7 @@ Also:
 
 - Prefer named exports for controllers, services and repositories.
 - Remove unused imports and dead dependencies.
+- Use explicit `.js` extensions for relative TypeScript/ESM imports (e.g., `import { env } from "./config/env.js";`, `import { AuthService } from "./auth.service.js";`) in compliance with Node.js native ESM (`"type": "module"`).
 - Respect the dependency direction in `02-ARCHITECTURE.md`.
 - Do not import Prisma into controllers.
 - Do not import Express `Request` or `Response` into services.
@@ -173,7 +174,7 @@ Services own business behavior.
 
 ## 12. Response Contract
 
-Use the shared response helper. Do not recreate response envelopes ad hoc.
+Use the shared response helper (`sendResponse` from `src/app/utils/`). Do not recreate response envelopes ad hoc.
 
 ### Success
 
@@ -235,7 +236,7 @@ already define them.
 
 - Use `async` / `await`.
 - Avoid unnecessary `.then()` chains.
-- Use the shared async error wrapper where the codebase provides one.
+- Use the shared async error wrapper (`catchAsync` from `src/app/utils/`) for controller methods.
 - Prefer early returns over deeply nested conditions.
 - Keep functions focused and reasonably small.
 

@@ -102,14 +102,15 @@ The broader product vision includes additional capabilities such as project show
 
 These areas must not be designed or implemented from assumptions.
 
-A future module becomes implementation-ready only when its requirements are formally defined in the approved product documentation and represented in the governance and phase execution plan.
+A future module becomes implementation-ready only when its requirements are formally defined in the approved product documentation and represented in the governance and phase execution plan. When product teams finalize future modules, they are integrated following the PRD's *Phase-Wise Scope Evolution* protocol and the *Requirement Changes* procedure defined in [AGENTS.md](../../AGENTS.md).
 
 ## 8. Source Documents
 
 The authoritative product sources are:
 
-- `docs/product/PRD.md`: functional requirements, business rules and acceptance criteria.
-- `docs/product/ERD.drawio`: entity relationships and data-model intent.
+- [docs/product/PRD.md](../product/PRD.md): functional requirements, business rules, acceptance criteria, and phase-wise scope evolution.
+- [docs/product/ERD.drawio](../product/ERD.drawio): entity relationships and data-model intent.
+- [docs/governance/06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md): canonical roadmap and active phase status.
 
 This document is a condensed context layer.
 

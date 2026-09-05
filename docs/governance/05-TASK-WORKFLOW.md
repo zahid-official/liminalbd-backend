@@ -1,7 +1,7 @@
 # 05. Task Workflow
 
 > Defines how one approved task is selected, implemented, verified, reviewed and closed.
-> Source-of-truth precedence follows `AGENTS.md`; mandatory boundaries follow `04-RULES.md`.
+> Source-of-truth precedence follows [AGENTS.md](../../AGENTS.md); mandatory boundaries follow [04-RULES.md](04-RULES.md).
 
 ## 1. Core Principle
 
@@ -22,11 +22,11 @@ Only one task may be `🔄` or `🕵️` across the project at a time. If the re
 
 ## 3. Select and Start
 
-1. Complete the session startup protocol in `AGENTS.md`.
+1. Complete the session startup protocol in [AGENTS.md](../../AGENTS.md).
 2. Resume any task already `🔄` or `🕵️`; otherwise select the first eligible task in the active phase file.
 3. Confirm its objective, scope, acceptance criteria, dependencies and affected areas.
 4. Read only the relevant PRD, ERD, decisions, code and dependency context.
-5. Check the task against `02-ARCHITECTURE.md`, `03-CODING-STANDARDS.md` and `04-RULES.md`.
+5. Check the task against [02-ARCHITECTURE.md](02-ARCHITECTURE.md), [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md) and [04-RULES.md](04-RULES.md).
 6. Mark only the selected task `🔄` before changing code.
 
 A task is eligible only when its phase is `ACTIVE`, its requirements and acceptance criteria are defined, required predecessors are `✅` and no unresolved conflict or blocker prevents implementation.
@@ -109,26 +109,27 @@ For a proposed requirement or scope change, use:
 Proposal → Impact assessment → Product source update → Governance and task update → Human approval → Implementation
 ```
 
-Do not implement an unapproved change. For an architecture change, obtain explicit approval, record it in `DECISIONS.md`, update `02-ARCHITECTURE.md` and the affected task plan, then resume implementation.
+Do not implement an unapproved change. For an architecture change, obtain explicit approval, record it in [DECISIONS.md](DECISIONS.md), update [02-ARCHITECTURE.md](02-ARCHITECTURE.md) and the affected task plan, then resume implementation.
 
 ## 8. Close an Approved Task
 
 Explicit human approval unlocks closure. Complete these updates as one controlled step:
 
 1. record the approved outcome and completion date in the active phase file;
-2. update `MEMORY.md` with concise, verified current state;
-3. update `DECISIONS.md` only when a durable decision or approved deviation exists;
-4. update `06-PHASE-ROADMAP.md` only when phase status or scope changed;
-5. mark the task `✅` and confirm all closure records are consistent.
+2. update [MEMORY.md](MEMORY.md) with concise, verified current state;
+3. update [DECISIONS.md](DECISIONS.md) only when a durable decision or approved deviation exists;
+4. update [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md) only when phase status or scope changed;
+5. mark the task `✅` and confirm all closure records are consistent;
+6. commit (or propose the conventional commit message for) the approved code changes and updated governance documentation under explicit human direction (AI must never execute git commits or pushes autonomously).
 
 Only after closure may the next task begin.
 
-| Document              | Responsibility                                           |
-| --------------------- | -------------------------------------------------------- |
-| Active phase file     | Task scope, acceptance criteria and execution status     |
-| `MEMORY.md`           | Concise, verified current state and established patterns |
-| `DECISIONS.md`        | Durable decisions, rationale and approved deviations     |
-| `06-PHASE-ROADMAP.md` | Approved phase scope and status                          |
+| Document                                   | Responsibility                                           |
+| ------------------------------------------ | -------------------------------------------------------- |
+| Active phase file                          | Task scope, acceptance criteria and execution status     |
+| [MEMORY.md](MEMORY.md)                     | Concise, verified current state and established patterns |
+| [DECISIONS.md](DECISIONS.md)               | Durable decisions, rationale and approved deviations     |
+| [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md) | Approved phase scope and status                          |
 
 Update the relevant section instead of appending conversation history. Do not duplicate the same detail across every document.
 
@@ -146,7 +147,7 @@ Only one phase may be `ACTIVE`. Do not activate or begin the next phase until it
 
 ## 10. Session Continuity and Definition of Done
 
-Canonical governance files carry task state across chats, IDEs and AI models. A new session must follow `AGENTS.md` and resume or resolve any existing `🔄` or `🕵️` task before selecting another.
+Canonical governance files carry task state across chats, IDEs and AI models. A new session must follow [AGENTS.md](../../AGENTS.md) and resume or resolve any existing `🔄` or `🕵️` task before selecting another.
 
 When a session ends with unfinished work, leave task status, verified progress and blockers accurate. Do not record partial or unreviewed behavior as approved current state.
 

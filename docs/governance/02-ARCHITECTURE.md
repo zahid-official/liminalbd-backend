@@ -45,12 +45,13 @@ A layer may normally depend only on the layer directly below it. Shared infrastr
 - Owns business rules and orchestration.
 - Enforces authorization that requires business context and ownership checks.
 - Coordinates repositories and approved integrations.
-- Coordinates transactions when required.
+- Coordinates transactions across repositories when atomic multi-operation consistency is required (e.g., passing a Prisma transaction client/context `tx` to repository methods).
 - Must not depend on Express `req`/`res`.
 
 ### Repository
 
 - Owns persistence and Prisma queries.
+- Executes queries against the primary Prisma client or an optional transaction context (`tx`) provided by the caller service.
 - Applies approved data-access conventions, such as excluding soft-deleted records where required.
 - No HTTP concerns or business authorization decisions.
 
@@ -79,7 +80,10 @@ liminalbd-backend/
 │   │   │       └── <module files as required>
 │   │   ├── routes/
 │   │   │   └── index.ts
-│   │   └── generated/
+│   │   ├── shared/
+│   │   └── utils/
+│   ├── generated/
+│   │   └── prisma/
 │   ├── app.ts
 │   └── server.ts
 ├── docs/
@@ -151,7 +155,9 @@ Cross-module behavior should use explicit service or application-level interface
 - `src/app/interfaces/`: shared interfaces, contracts and common types.
 - `src/app/middleware/`: authentication, authorization/RBAC, validation, error handling, rate limiting and other cross-cutting middleware.
 - `src/app/routes/index.ts`: mounts module routers; no business logic.
-- `src/app/generated/`: generated output; never hand-edit.
+- `src/app/shared/`: cross-cutting domain constants, shared contracts and common structures used across multiple modules.
+- `src/app/utils/`: reusable stateless helper functions (e.g., `catchAsync`, `sendResponse`, formatting utilities).
+- `src/generated/`: generated output (e.g., Prisma client); never hand-edit.
 
 ## 6. Authentication and Authorization Boundary
 

@@ -2,12 +2,12 @@
 
 > Mandatory boundaries for AI-assisted work in Liminal Backend.
 > These rules constrain AI preferences. Source-of-truth precedence follows
-> `AGENTS.md`; execution and approval follow `05-TASK-WORKFLOW.md`.
+> [AGENTS.md](../../AGENTS.md); execution and approval follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
 
 ## 1. Scope and Context
 
 - Work on exactly one eligible task from the active phase file at a time.
-- Follow the session startup protocol in `AGENTS.md`, including reading `MEMORY.md`, `06-PHASE-ROADMAP.md` and the active phase file.
+- Follow the session startup protocol in [AGENTS.md](../../AGENTS.md), including reading [MEMORY.md](MEMORY.md), [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md) and the active phase file.
 - Resolve any task already in progress or awaiting human review before starting another.
 - Read only the authoritative context needed for the task. Consult the PRD and ERD for exact requirements.
 - Do not invent missing requirements, security policies or future-phase behavior.
@@ -15,15 +15,15 @@
 
 ## 2. Architecture and Contracts
 
-- Follow `02-ARCHITECTURE.md` and `03-CODING-STANDARDS.md`.
+- Follow [02-ARCHITECTURE.md](02-ARCHITECTURE.md) and [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md).
 - Preserve established repository patterns where they align with approved requirements and decisions.
 - Respect layer responsibilities, repository access boundaries and approved integration boundaries.
 - Use Better Auth for authentication/session mechanics, Zod for boundary validation and shared response helpers and typed errors.
 - Do not build a second authentication/session system or scatter provider SDK calls across unrelated feature logic.
-- Do not change architecture or repository layout without approval and a decision recorded in `DECISIONS.md`.
+- Do not change architecture or repository layout without approval and a decision recorded in [DECISIONS.md](DECISIONS.md).
 - Do not change API or data contracts merely for implementation convenience.
 - Preserve behavior and required compatibility outside the approved change.
-- Check existing project capabilities before adding dependencies. New dependencies or provider changes require approved task scope or a technical decision.
+- Check existing project capabilities before adding dependencies. Never install new npm/pnpm packages or introduce unapproved third-party architectural libraries without explicit human approval. New dependencies or provider changes require approved task scope or a technical decision.
 
 ## 3. Authorization and Security
 
@@ -47,14 +47,14 @@
 
 ## 5. Verification and Approval
 
-- Run the applicable checks and meaningful tests defined in `03-CODING-STANDARDS.md`.
+- Run the applicable checks and meaningful tests defined in [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md).
 - Do not weaken tests, type checking or lint rules merely to obtain a passing result.
 - Use the shared logger. Remove ad-hoc `console.*` debugging before review.
 - Report checks as passed, failed or not run. Do not claim verification without evidence.
 - If required checks cannot pass or run, report the blocker. Do not claim readiness for review.
 - Mark `🕵️ Awaiting human review` only after acceptance criteria, required checks and self-review are satisfied. Present the result and stop.
 - Human approval is required before `✅ Done` and before starting the next task.
-- After approval, complete the required memory, decision and roadmap updates under `05-TASK-WORKFLOW.md`.
+- After approval, complete the required memory, decision and roadmap updates under [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
 
 ## 6. Governance Integrity
 
@@ -69,7 +69,7 @@
 
 ## 7. Conflicts and Escalation
 
-Apply the source-of-truth hierarchy in `AGENTS.md`. Do not silently ignore a human instruction or change an approved requirement to fit the implementation.
+Apply the source-of-truth hierarchy in [AGENTS.md](../../AGENTS.md). Do not silently ignore a human instruction or change an approved requirement to fit the implementation.
 
 If a conflict, missing decision or required scope change remains unresolved:
 
@@ -77,4 +77,4 @@ If a conflict, missing decision or required scope change remains unresolved:
 2. State the conflict, its impact and the specific decision needed.
 3. Request human direction without inventing a resolution.
 
-If explicit approval already resolves the same action and scope, do not request it again. Record approved durable changes in `DECISIONS.md` and update affected governance documents before relying on the new contract.
+If explicit approval already resolves the same action and scope, do not request it again. Record approved durable changes in [DECISIONS.md](DECISIONS.md) and update affected governance documents before relying on the new contract.
