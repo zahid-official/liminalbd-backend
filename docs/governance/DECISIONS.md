@@ -29,7 +29,7 @@ Statuses:
 
 **Why:** IDE-specific artifacts (e.g., Antigravity `implementation_plan.md`) lack continuity across models, IDEs, and new chat sessions. Conversely, generating dozens of task files upfront creates massive maintenance overhead. JIT task files provide model-independent, git-tracked continuity and token-efficient execution while preserving canonical scope in the phase file.
 
-**Consequences:** `docs/governance/tasks/` holds individual task plans and permanent execution evidence. Phase files remain canonical for scope, boundaries, and task status. Tasks transition `🔲` → Draft Plan → Human Approval → `🔄` → `🕵️` → `✅`.
+**Consequences:** `docs/governance/tasks/` holds individual task plans and permanent execution evidence. Phase files remain canonical for scope, boundaries, and task status. While canonical status remains `🔲`, the selected task passes through Draft Plan → Human Plan Approval. Canonical execution status then proceeds `🔲` → `🔄` → `🕵️` → `✅`.
 
 ### DEC-009: Human Authority Over Git Operations and Environment Invariance
 

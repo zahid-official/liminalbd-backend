@@ -25,15 +25,17 @@ Only one task may be `🔄` or `🕵️` across the project at a time. If the re
 Before marking a task `🔄 In progress` or modifying application code, execute the preparation and planning gate:
 
 1. Complete the session startup protocol in [AGENTS.md](../../AGENTS.md).
-2. Resume any task already `🔄` or `🕵️`; otherwise select the first eligible task in the active phase file (while currently `🔲`).
+2. Resume any task already `🔄` or `🕵️`; otherwise select the next ordered planning candidate in the active phase file while it remains `🔲`.
 3. Confirm its objective, scope, acceptance criteria, dependencies and affected areas.
 4. Perform read-only inspection of the relevant repository code, schema, and referenced PRD/ERD sections.
 5. Create a persistent Just-In-Time (JIT) task file under `docs/governance/tasks/<phase-folder>/<TASK_ID>-<short-name>.md` using `docs/governance/tasks/_template.md`.
 6. Draft the concrete implementation approach, affected files, architecture layers, verification steps, and any design assumptions/blockers in the JIT task file.
 7. Present the implementation plan to the human reviewer for explicit review and direction.
-8. Only after the human approves the plan (and any blockers are cleared), mark the selected task `🔄` in the active phase file and begin implementation.
+8. Only after the human approves the plan, all implementation blockers are cleared and the phase is confirmed as `ACTIVE/READY`, mark the selected task `🔄` in the active phase file and begin implementation.
 
-A task is eligible only when its phase is `ACTIVE/READY`, its requirements and acceptance criteria are defined, required predecessors are `✅` and no unresolved conflict or blocker prevents implementation.
+The next ordered task may enter read-only preparation and JIT planning while its phase is `ACTIVE/READY` or `ACTIVE/BLOCKED`, provided its approved definition and acceptance criteria exist. When the phase is blocked, preparation must remain limited to the selected task and the analysis needed to resolve its documented blockers. The task remains `🔲`; do not generate plans for later tasks upfront.
+
+A task becomes implementation-eligible only when its phase is `ACTIVE/READY`, its plan is human-approved, required predecessors are `✅` and no unresolved conflict or blocker prevents implementation.
 
 Do not select work from an inactive, future or undefined phase. Do not begin implementation when a required product, architecture, security, API or data-model decision is missing.
 

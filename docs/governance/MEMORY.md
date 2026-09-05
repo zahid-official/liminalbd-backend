@@ -17,7 +17,7 @@
   - [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md)
   - [DECISIONS.md](DECISIONS.md)
   - [MEMORY.md](MEMORY.md)
-  - [tasks/_template.md](tasks/_template.md)
+  - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
 - Phase 2, Authentication & RBAC: `ACTIVE / BLOCKED` (execution plan approved and committed at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). Blocked by phase-level blocker `P2-B006` (Prisma/database migration baseline reconciliation).
 - No future phase has approved implementation scope.

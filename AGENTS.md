@@ -35,11 +35,12 @@ Work on **exactly one task at a time**.
 
 For every task:
 
-1.  Select one eligible task (`🔲`).
+1.  Select the next planning candidate (`🔲`) from the active phase.
 2.  Perform read-only inspection of relevant repository code and dependencies.
 3.  Draft the JIT task plan using `docs/governance/tasks/_template.md`.
 4.  Submit the plan and wait for explicit human approval.
-5.  Mark the task `🔄 In progress`.
+5.  After plan approval and blocker clearance, confirm the phase is
+    `ACTIVE/READY` and mark the task `🔄 In progress`.
 6.  Implement only that task.
 7.  Run the required checks and tests.
 8.  Record actual implementation evidence in the JIT task file.
@@ -184,10 +185,11 @@ At the beginning of every new AI session:
     `🕵️ Awaiting human review`.
     - If yes, open its persistent task file (`docs/governance/tasks/...`), resume or resolve that task.
     - Do not start another task.
-7.  If no task is in progress, select the next eligible task (`🔲`).
+7.  If no task is in progress, select the next planning candidate (`🔲`).
 8.  Perform read-only inspection of relevant repository code and dependencies.
 9.  Create/draft the JIT task file using `docs/governance/tasks/_template.md`.
-10. Submit plan for human review; mark `🔄` only after approval.
+10. Submit the plan for human review. Mark `🔄` only after approval, required
+    blocker clearance and confirmation that the phase is `ACTIVE/READY`.
 11. Read `03-CODING-STANDARDS.md` and `04-RULES.md` before writing code.
 12. Follow the one-task workflow in `05-TASK-WORKFLOW.md`.
 

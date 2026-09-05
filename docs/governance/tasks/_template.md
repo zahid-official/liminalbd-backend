@@ -15,9 +15,27 @@
 
 ---
 
-## 2. Verified Current Codebase State
+## 2. Approved Scope & Acceptance Criteria
 
-*Concise findings from read-only repository inspection before planning or writing code:*
+### In Scope
+
+- `<Approved task scope>`
+
+### Out of Scope
+
+- `<Explicit exclusion>`
+
+### Acceptance Criteria Mapping
+
+| Acceptance Criterion   | Planned Step | Verification                     |
+| :--------------------- | :----------- | :------------------------------- |
+| `<Approved criterion>` | `Step <N>`   | `<Test, command, or inspection>` |
+
+---
+
+## 3. Verified Current Codebase State
+
+_Concise findings from read-only repository inspection before planning or writing code:_
 
 - **Current Behavior / Gaps:**
 - **Existing Code Patterns to Follow:**
@@ -25,28 +43,28 @@
 
 ---
 
-## 3. Implementation Approach
+## 4. Implementation Approach
 
-*Detailed technical design of how this task satisfies its acceptance criteria:*
+_Detailed technical design of how this task satisfies its acceptance criteria:_
 
-- **Architecture Layer Flow:** `Route → Middleware → Controller → Service → Repository → Prisma`
+- **Applicable Architecture Flow:** `<Only the layers involved in this task>`
 - **Data / Schema Impact:**
 - **Public API / Contract Impact:**
 - **Security & Authorization Considerations:**
 
 ---
 
-## 4. Affected Files & Directives
+## 5. Affected Files & Directives
 
-| Action | File Path | Responsibility |
-| :--- | :--- | :--- |
-| `[NEW]` | `src/...` | |
-| `[MODIFY]` | `src/...` | |
-| `[DELETE]` | `src/...` | |
+| Action     | File Path | Responsibility |
+| :--------- | :-------- | :------------- |
+| `[NEW]`    | `src/...` |                |
+| `[MODIFY]` | `src/...` |                |
+| `[DELETE]` | `src/...` |                |
 
 ---
 
-## 5. Step-by-Step Execution Plan
+## 6. Step-by-Step Execution Plan
 
 1. **Step 1:**
 2. **Step 2:**
@@ -54,26 +72,42 @@
 
 ---
 
-## 6. Verification & Quality Gates
+## 7. Verification & Quality Gates
 
-- [ ] **Type Check:** `pnpm build`
-- [ ] **Lint Check:** `pnpm lint`
-- [ ] **Automated / Unit Tests:**
-- [ ] **Manual API / Database Verification:**
-- [ ] **Coding Standards & Governance Compliance:**
+| Check                      | Required     | Command or Method     | Result    |
+| :------------------------- | :----------- | :-------------------- | :-------- |
+| Acceptance criteria        | `Yes`        | `<Method>`            | `NOT RUN` |
+| Type check / build         | `Yes`        | `pnpm build`          | `NOT RUN` |
+| Lint                       | `Yes`        | `pnpm lint`           | `NOT RUN` |
+| Tests                      | `<Yes / No>` | `<Command or reason>` | `NOT RUN` |
+| Migration / data integrity | `<Yes / No>` | `<Command or method>` | `NOT RUN` |
+| Manual verification        | `<Yes / No>` | `<Method>`            | `NOT RUN` |
+
+Use only `PASS`, `FAIL` or `NOT RUN`, with a reason when a required or applicable check does not run.
 
 ---
 
-## 7. Assumptions & Blockers
+## 8. Assumptions & Blockers
 
 - **Active Blockers:** `<None or Blocker ID>`
 - **Design Assumptions Awaiting Approval:**
 
 ---
 
-## 8. Implementation Evidence
+## 9. Plan Review
 
-*To be completed after code execution and before marking awaiting human review:*
+| Field       | Value                                    |
+| :---------- | :--------------------------------------- |
+| Outcome     | `Pending / Approved / Changes requested` |
+| Reviewed by | `<Name or Pending>`                      |
+| Reviewed on | `<YYYY-MM-DD or Pending>`                |
+| Notes       | `<Concise direction or None>`            |
+
+---
+
+## 10. Implementation Evidence
+
+_To be completed after code execution and before marking awaiting human review:_
 
 - **Changed Files:**
 - **Migration Created:**
