@@ -659,3 +659,19 @@ SUPER_ADMIN → ADMIN
 - Unauthorized access → HTTP 403 Forbidden
 - Customer not found → HTTP 404 Not Found
 - Invalid account status transition → HTTP 422 Unprocessable Entity
+
+---
+
+## 📑 Phase-Wise Scope Evolution & Future Modules
+
+> **Implementation & Governance Rule:**
+>
+> 1. **Current Approved Scope:** The functional requirements above strictly cover **Phase 2: Authentication & RBAC** (`FR-AUTH-001` through `FR-AUTH-009`, `FR-RBAC-001` through `FR-RBAC-006`, `FR-ADMIN-001` through `FR-ADMIN-003`, and `FR-CUSTOMER-001` through `FR-CUSTOMER-004`).
+> 2. **Upcoming Modules:** Subsequent modules (e.g., Interior Design Inquiries, Custom Furniture Inquiries, Furniture Catalog & Inventory, Cart & Checkout, Orders & Payment Processing, Blog & Content Management, Studio Showcase) are being prepared by the product team.
+> 3. **Progressive Integration & Governance Sync:** As future modules/phases are added to this PRD:
+>    - Corresponding governance files must be updated immediately in accordance with `AGENTS.md` (Section 9: Requirement Changes).
+>    - The AI must update `docs/governance/06-PHASE-ROADMAP.md` to reflect new phase scope and readiness.
+>    - The relevant phase execution plan (`phases/phase-X-...md`) must be created/updated with reviewable tasks.
+>    - Durable decisions must be recorded in `docs/governance/DECISIONS.md`.
+>    - Implementation must only begin after explicit human approval of the updated governance documents.
+> 4. **AI Instruction:** AI agents and contributors must **never** assume or invent requirements for future modules. Any functionality outside the currently documented FRs is considered unapproved for implementation.
