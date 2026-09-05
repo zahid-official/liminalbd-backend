@@ -20,6 +20,17 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-010: Persistent Just-In-Time (JIT) Task Planning and Preparation Gate
+
+**Recorded:** 2026-09-05  
+**Status:** `ACCEPTED`
+
+**Decision:** Do not generate all phase task files upfront. Instead, create a persistent Just-In-Time (JIT) task file under `docs/governance/tasks/<phase-folder>/<TASK_ID>-<short-name>.md` only for the currently selected task using `docs/governance/tasks/_template.md`. Furthermore, enforce a preparation and planning gate before marking a task `🔄 In progress`: perform read-only inspection, draft the concrete execution plan in the JIT task file, resolve blockers/assumptions, submit it for human review, and mark `🔄` only upon approval. Post-implementation, concise actual evidence (changed files, tests, deviations) is recorded in the task file as a permanent audit trail.
+
+**Why:** IDE-specific artifacts (e.g., Antigravity `implementation_plan.md`) lack continuity across models, IDEs, and new chat sessions. Conversely, generating dozens of task files upfront creates massive maintenance overhead. JIT task files provide model-independent, git-tracked continuity and token-efficient execution while preserving canonical scope in the phase file.
+
+**Consequences:** `docs/governance/tasks/` holds individual task plans and permanent execution evidence. Phase files remain canonical for scope, boundaries, and task status. Tasks transition `🔲` → Draft Plan → Human Approval → `🔄` → `🕵️` → `✅`.
+
 ### DEC-009: Human Authority Over Git Operations and Environment Invariance
 
 **Recorded:** 2026-09-05  

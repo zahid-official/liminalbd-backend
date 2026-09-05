@@ -35,19 +35,21 @@ Work on **exactly one task at a time**.
 
 For every task:
 
-1.  Select one eligible task.
-2.  Mark it `🔄 In progress`.
-3.  Read only the context required for that task.
-4.  Implement only that task.
-5.  Run the required checks and tests.
-6.  Self-review against the task requirements and project rules.
-7.  Mark it `🕵️ Awaiting human review`.
-8.  Stop and present the result.
-9.  Wait for explicit human approval.
-10. Only after approval:
+1.  Select one eligible task (`🔲`).
+2.  Perform read-only inspection of relevant repository code and dependencies.
+3.  Draft the JIT task plan using `docs/governance/tasks/_template.md`.
+4.  Submit the plan and wait for explicit human approval.
+5.  Mark the task `🔄 In progress`.
+6.  Implement only that task.
+7.  Run the required checks and tests.
+8.  Record actual implementation evidence in the JIT task file.
+9.  Self-review against the task requirements and project rules.
+10. Mark it `🕵️ Awaiting human review`.
+11. Stop, present the result and evidence, and wait for explicit human approval.
+12. Only after approval:
 
 - mark the task `✅ Done`;
-- update `MEMORY.md`;
+- finalize closure records across phase file, JIT task file, and `MEMORY.md`;
 - update `DECISIONS.md` when a durable decision was made;
 - update the roadmap when required.
 
@@ -158,7 +160,8 @@ Never invent requirements, business rules, API behavior, database structure or s
 | `06-PHASE-ROADMAP.md`     | Phase status and active phase                        |
 | `MEMORY.md`               | Condensed current state of the codebase              |
 | `DECISIONS.md`            | Durable decisions and rationale                      |
-| `docs/governance/phases/` | Task-level execution plans                           |
+| `docs/governance/phases/` | Phase-level execution plans, scope, and status       |
+| `docs/governance/tasks/`  | Persistent JIT task implementation plans & evidence  |
 | `docs/product/PRD.md`     | Full functional requirements                         |
 | `docs/product/ERD.drawio` | Entity and data-model design                         |
 
@@ -176,16 +179,17 @@ At the beginning of every new AI session:
 2.  Read `docs/governance/MEMORY.md`.
 3.  Read `docs/governance/06-PHASE-ROADMAP.md`.
 4.  Identify the single `ACTIVE` phase.
-5.  Open its phase file.
+5.  Open its phase file and read its global boundaries and task status.
 6.  Check whether a task is already `🔄 In progress` or
     `🕵️ Awaiting human review`.
-    - If yes, continue or resolve that task.
+    - If yes, open its persistent task file (`docs/governance/tasks/...`), resume or resolve that task.
     - Do not start another task.
-7.  Select the next eligible task.
-8.  Read task-specific requirements only when the phase file is insufficient.
-9.  Read `03-CODING-STANDARDS.md` and `04-RULES.md`.
-10. Inspect only the relevant code and dependencies.
-11. Follow the one-task workflow.
+7.  If no task is in progress, select the next eligible task (`🔲`).
+8.  Perform read-only inspection of relevant repository code and dependencies.
+9.  Create/draft the JIT task file using `docs/governance/tasks/_template.md`.
+10. Submit plan for human review; mark `🔄` only after approval.
+11. Read `03-CODING-STANDARDS.md` and `04-RULES.md` before writing code.
+12. Follow the one-task workflow in `05-TASK-WORKFLOW.md`.
 
 Do not automatically read the entire PRD, ERD or repository.
 

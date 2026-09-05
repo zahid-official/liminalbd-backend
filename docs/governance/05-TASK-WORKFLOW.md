@@ -20,16 +20,20 @@ This workflow applies across all contributors, AI models and IDEs.
 
 Only one task may be `🔄` or `🕵️` across the project at a time. If the recorded state violates this rule, stop and resolve the earlier task first.
 
-## 3. Select and Start
+## 3. Preparation, Planning Gate, and Start
+
+Before marking a task `🔄 In progress` or modifying application code, execute the preparation and planning gate:
 
 1. Complete the session startup protocol in [AGENTS.md](../../AGENTS.md).
-2. Resume any task already `🔄` or `🕵️`; otherwise select the first eligible task in the active phase file.
+2. Resume any task already `🔄` or `🕵️`; otherwise select the first eligible task in the active phase file (while currently `🔲`).
 3. Confirm its objective, scope, acceptance criteria, dependencies and affected areas.
-4. Read only the relevant PRD, ERD, decisions, code and dependency context.
-5. Check the task against [02-ARCHITECTURE.md](02-ARCHITECTURE.md), [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md) and [04-RULES.md](04-RULES.md).
-6. Mark only the selected task `🔄` before changing code.
+4. Perform read-only inspection of the relevant repository code, schema, and referenced PRD/ERD sections.
+5. Create a persistent Just-In-Time (JIT) task file under `docs/governance/tasks/<phase-folder>/<TASK_ID>-<short-name>.md` using `docs/governance/tasks/_template.md`.
+6. Draft the concrete implementation approach, affected files, architecture layers, verification steps, and any design assumptions/blockers in the JIT task file.
+7. Present the implementation plan to the human reviewer for explicit review and direction.
+8. Only after the human approves the plan (and any blockers are cleared), mark the selected task `🔄` in the active phase file and begin implementation.
 
-A task is eligible only when its phase is `ACTIVE`, its requirements and acceptance criteria are defined, required predecessors are `✅` and no unresolved conflict or blocker prevents implementation.
+A task is eligible only when its phase is `ACTIVE/READY`, its requirements and acceptance criteria are defined, required predecessors are `✅` and no unresolved conflict or blocker prevents implementation.
 
 Do not select work from an inactive, future or undefined phase. Do not begin implementation when a required product, architecture, security, API or data-model decision is missing.
 
@@ -70,15 +74,17 @@ Do not claim a check passed unless it ran and passed. A task is not ready for re
 
 When implementation, verification and self-review are complete:
 
-1. Mark the task `🕵️`.
-2. Present:
+1. Record actual implementation evidence in the JIT task file (changed files, migrations, test/check output, deviations, remaining concerns).
+2. Mark the task `🕵️` in the active phase file.
+3. Present:
    - what changed and why;
    - acceptance criteria addressed;
    - materially affected files or behavior;
    - checks run and results;
    - relevant API, migration, compatibility or security impact;
-   - unresolved limitations or separate follow-up findings.
-3. Stop and wait for explicit human approval.
+   - unresolved limitations or separate follow-up findings;
+   - reference to the completed evidence in the JIT task file.
+4. Stop and wait for explicit human approval.
 
 AI self-review, passing checks and human silence do not constitute approval. Do not begin another task while review is pending.
 
@@ -87,7 +93,7 @@ If changes are requested:
 1. Return the same task to `🔄`.
 2. Apply corrections within its approved scope.
 3. Follow Section 7 if feedback changes requirements, scope or architecture.
-4. Repeat affected verification and self-review.
+4. Repeat affected verification, self-review, and update the implementation evidence.
 5. Return the task to `🕵️`, present updated evidence and stop again.
 
 ## 7. Changes, Conflicts and Blockers
@@ -116,17 +122,19 @@ Do not implement an unapproved change. For an architecture change, obtain explic
 Explicit human approval unlocks closure. Complete these updates as one controlled step:
 
 1. record the approved outcome and completion date in the active phase file;
-2. update [MEMORY.md](MEMORY.md) with concise, verified current state;
-3. update [DECISIONS.md](DECISIONS.md) only when a durable decision or approved deviation exists;
-4. update [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md) only when phase status or scope changed;
-5. mark the task `✅` and confirm all closure records are consistent;
-6. commit (or propose the conventional commit message for) the approved code changes and updated governance documentation under explicit human direction (AI must never execute git commits or pushes autonomously).
+2. finalize closure records in the JIT task file;
+3. update [MEMORY.md](MEMORY.md) with concise, verified current state;
+4. update [DECISIONS.md](DECISIONS.md) only when a durable decision or approved deviation exists;
+5. update [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md) only when phase status or scope changed;
+6. mark the task `✅` in the active phase file and confirm all closure records are consistent;
+7. commit (or propose the conventional commit message for) the approved code changes and updated governance documentation under explicit human direction (AI must never execute git commits or pushes autonomously).
 
 Only after closure may the next task begin.
 
 | Document                                   | Responsibility                                           |
 | ------------------------------------------ | -------------------------------------------------------- |
-| Active phase file                          | Task scope, acceptance criteria and execution status     |
+| Active phase file                          | Task scope, acceptance criteria and canonical status     |
+| JIT task file (`docs/governance/tasks/`)   | Detailed implementation plan and execution evidence      |
 | [MEMORY.md](MEMORY.md)                     | Concise, verified current state and established patterns |
 | [DECISIONS.md](DECISIONS.md)               | Durable decisions, rationale and approved deviations     |
 | [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md) | Approved phase scope and status                          |
