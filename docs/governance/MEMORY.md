@@ -17,8 +17,8 @@
   - [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md)
   - [DECISIONS.md](DECISIONS.md)
   - [MEMORY.md](MEMORY.md)
-- Phase 1, Foundation: `COMPLETE`.
-- Phase 2, Authentication & RBAC: `ACTIVE` and `BLOCKED` until its phase task breakdown is created and human-approved.
+- Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
+- Phase 2, Authentication & RBAC: `ACTIVE / BLOCKED` (execution plan approved and committed at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). Blocked by phase-level blocker `P2-B006` (Prisma/database migration baseline reconciliation).
 - No future phase has approved implementation scope.
 - No approved phase task is currently recorded as `🔄` or `🕵️`.
 
@@ -77,8 +77,8 @@ These are verified observations only. They do not authorize fixes outside an app
 
 ## 7. Next Action
 
-- Create and review `docs/governance/phases/phase-2-auth-rbac.md`.
-- Keep Phase 2 `ACTIVE/BLOCKED` until the phase task breakdown, acceptance criteria, dependencies and exclusions are human-approved.
+- Resolve phase-level blocker `P2-B006` (reconcile Prisma schema and migration baseline state).
+- Keep Phase 2 `ACTIVE/BLOCKED` until all phase-level blockers are resolved.
 - Once Phase 2 is `READY`, select exactly one eligible task and follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
 - If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.
 

@@ -34,9 +34,9 @@
 
 ### Current State
 
-- Create `docs/governance/phases/phase-1-foundation.md` as a concise retrospective record. Do not reopen completed implementation to reconstruct historical task execution.
-- Phase 2 remains blocked until `docs/governance/phases/phase-2-auth-rbac.md` is created and human-approved.
-- Do not begin Phase 2 implementation from this roadmap alone.
+- `docs/governance/phases/phase-1-foundation.md` is established as a concise retrospective record of the completed foundation.
+- `docs/governance/phases/phase-2-auth-rbac.md` is created and human-approved with 27 atomic tasks. Phase 2 remains `ACTIVE / BLOCKED` pending resolution of phase-level blocker `P2-B006` (Prisma/database migration baseline).
+- Do not begin Phase 2 implementation from this roadmap alone. Follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md) and [phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md).
 
 ## 4. Phase 2 Requirement Coverage
 
