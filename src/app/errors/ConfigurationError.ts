@@ -1,5 +1,5 @@
 // Internal configuration error representing startup or environment validation failure
-export class ConfigurationError extends Error {
+class ConfigurationError extends Error {
   public readonly code = "CONFIGURATION_ERROR" as const;
 
   constructor(message: string) {
@@ -11,3 +11,5 @@ export class ConfigurationError extends Error {
     }
   }
 }
+
+export { ConfigurationError };

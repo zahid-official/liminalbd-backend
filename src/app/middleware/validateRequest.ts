@@ -28,7 +28,7 @@ const formatZodIssues = (
 };
 
 // Express middleware for validating request body, params, and query using Zod schemas
-export const validateRequest = <TSchema extends RequestValidationSchema>(
+const validateRequest = <TSchema extends RequestValidationSchema>(
   schema: TSchema,
 ): RequestHandler => {
   return async (
@@ -83,3 +83,5 @@ export const validateRequest = <TSchema extends RequestValidationSchema>(
     next();
   };
 };
+
+export { validateRequest };

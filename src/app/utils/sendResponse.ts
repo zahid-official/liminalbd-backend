@@ -5,7 +5,7 @@ import type {
 } from "../interfaces/response.interface.js";
 
 // Standardized HTTP success response helper
-export const sendResponse = <T>(
+const sendResponse = <T>(
   res: Response,
   options: SendResponseOptions<T>,
 ): Response<SuccessResponse<T>> => {
@@ -25,3 +25,5 @@ export const sendResponse = <T>(
     SuccessResponse<T>
   >;
 };
+
+export { sendResponse };

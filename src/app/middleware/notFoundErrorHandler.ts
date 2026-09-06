@@ -4,7 +4,7 @@ import { AppError } from "../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../errors/errorCodes.js";
 
 // Catch-all middleware to forward unhandled routes as a typed 404 AppError
-export const notFoundErrorHandler: RequestHandler = (_req, _res, next) => {
+const notFoundErrorHandler: RequestHandler = (_req, _res, next) => {
   next(
     new AppError(
       status.NOT_FOUND,
@@ -13,3 +13,5 @@ export const notFoundErrorHandler: RequestHandler = (_req, _res, next) => {
     ),
   );
 };
+
+export { notFoundErrorHandler };
