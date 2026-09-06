@@ -10,7 +10,7 @@
 | Phase        | `Phase 1`    |
 | Status       | `COMPLETE`   |
 | Readiness    | `N/A`        |
-| Last updated | `2026-09-05` |
+| Last updated | `2026-09-06` |
 
 ## 2. Goal and Boundary
 
@@ -55,7 +55,7 @@ Phase 1 was marked `COMPLETE` before this file existed. Its original task IDs, c
 | API routing               | `src/app/routes/index.ts`, `/api/v1` mount                                                                             | Present                                   |
 | Shared infrastructure     | `src/app/shared/`, `src/app/utils/`                                                                                    | Present (scaffolded directories)          |
 | Error handling            | `src/app/errors/AppError.ts`, `src/app/middleware/globalErrorHandler.ts`, `src/app/middleware/notFoundErrorHandler.ts` | Present; current contract needs alignment |
-| Container setup           | `Dockerfile`, `.dockerignore`                                                                                          | Present                                   |
+| Container setup           | `DEC-012`                                                                                                              | `Dockerfile` and `.dockerignore` removed; configuration deferred |
 
 The existing auth module is a Phase 2 skeleton. Its presence does not prove completion of any authentication requirement.
 
@@ -94,4 +94,5 @@ These gaps neither reopen Phase 1 automatically nor authorize implementation. Th
 - Keep this file concise and evidence-based; never invent historical tasks, checks or approvals.
 - Keep active execution in its phase file, current truth in [MEMORY.md](../MEMORY.md) and durable rationale in [DECISIONS.md](../DECISIONS.md).
 - Update this record only after an approved foundation change.
+- The root `Dockerfile` and `.dockerignore` were removed by explicit human direction on 2026-09-06; container configuration will be designed in separately approved future work (`DEC-012`).
 - Change phase status only through [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).

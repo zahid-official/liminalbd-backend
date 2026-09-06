@@ -140,7 +140,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 
 | Order | Workstream | Task ID   | Task                                                                     | Status | Depends On                      | Blocked By                                   |
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
-| 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `🔲`   | None                            | None                                         |
+| 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
 | 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `🔲`   | `P2-T001`                       | `P2-B009`                                    |
 | 3     | A          | `P2-T003` | Establish Winston logging                                                | `🔲`   | `P2-T002`                       | `P2-B009`                                    |
 | 4     | A          | `P2-T004` | Establish the Jest test foundation                                       | `🔲`   | `P2-T002`                       | `P2-B009`                                    |
@@ -200,7 +200,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Do not manually edit generated Prisma output or generated migration SQL.
 
 **Additional verification:** Prisma format/validate/generate and applicable migration checks.  
-**Human review:** `Pending`
+**Human review:** `Approved`
 
 #### P2-T002: Establish Shared Response, Typed-Error and Zod Validation Infrastructure
 
@@ -666,7 +666,7 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | Outcome        | `Pending`                      |
 | Approved by    | `Pending`                      |
 | Approved on    | `Pending`                      |
-| Notes          | Phase remains `ACTIVE/BLOCKED` |
+| Notes          | Phase remains `ACTIVE/READY`   |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 

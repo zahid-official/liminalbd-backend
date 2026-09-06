@@ -20,6 +20,17 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-012: Defer Docker Configuration
+
+**Recorded:** 2026-09-06
+**Status:** `ACCEPTED`
+
+**Decision:** Remove the current root `Dockerfile` and `.dockerignore`, and defer Docker build and runtime configuration until separately approved deployment work.
+
+**Why:** The existing file does not represent an approved production container workflow, and Docker behavior is outside the current implementation focus.
+
+**Consequences:** The repository contains no active Docker configuration and does not currently define a Docker build contract. Generated Prisma Client creation for future container builds must be designed and verified when Docker configuration is introduced. The product remains intended to be containerizable; this decision defers its implementation.
+
 ### DEC-011: Discard Disposable Test Migrations and Establish a Clean Phase 2 Baseline
 
 **Recorded:** 2026-09-06

@@ -31,6 +31,7 @@
 - Prisma Client uses the PostgreSQL adapter.
 - Server lifecycle handling includes startup errors, shutdown signals, unhandled rejections and uncaught exceptions.
 - `/api/v1/auth` is mounted, but it currently has no endpoints; its controller and service are empty.
+- `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
 
@@ -40,8 +41,8 @@
 - No shared response helper is currently available.
 - Current error responses use `errorSources` and may expose raw error/stack data in development; this has not yet been reconciled with `03-CODING-STANDARDS.md`.
 - Server lifecycle logging currently uses `console.*` under a file-level ESLint disable.
-- `prisma/schema.prisma` currently defines no models or enums; `P2-T001` will establish the first canonical Phase 2 schema and initial migration baseline.
-- Legacy migrations were disposable test artifacts and have been removed. The inspected disposable test database was reset once on 2026-09-06 and contains no migration records or business tables. This is historical state, not an instruction to reset other databases; each developer must use a clean isolated development database or explicitly approve resetting their own disposable database.
+- `prisma.config.ts` uses the directory-based `prisma/schema` root with models partitioned across `schema.prisma`, `auth.prisma`, `profiles.prisma` and `audit.prisma`.
+- First canonical Phase 2 migration `20260906064109_init_phase_2` is applied and verified under `P2-T001`. Generated Prisma Client is created at `src/generated/prisma` and intentionally ignored by Git.
 
 These are verified observations only. They do not authorize fixes outside an approved task.
 

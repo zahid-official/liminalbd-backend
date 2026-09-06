@@ -1,0 +1,21 @@
+// Administrative profile linked to User
+model Admin {
+  userId        String   @id
+  contactNumber String?
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+// Customer profile linked to User
+model Customer {
+  userId        String   @id
+  contactNumber String?
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+}

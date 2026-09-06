@@ -90,7 +90,6 @@ liminalbd-backend/
 │   ├── product/
 │   └── governance/
 ├── AGENTS.md
-├── Dockerfile
 ├── prisma.config.ts
 ├── package.json
 └── tsconfig.json
