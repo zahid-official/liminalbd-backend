@@ -10,6 +10,7 @@ import { env } from "./app/config/env.js";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler.js";
 import { notFoundErrorHandler } from "./app/middleware/notFoundErrorHandler.js";
 import { RootRouter } from "./app/routes/index.js";
+import { sendResponse } from "./app/utils/sendResponse.js";
 
 // Initialize Express app
 const app: Application = express();
@@ -33,11 +34,13 @@ app.use(cookieParser());
 
 // Health Check
 app.get("/", (_req: Request, res: Response) => {
-  res.status(status.OK).json({
-    success: true,
+  sendResponse(res, {
+    statusCode: status.OK,
     message: "Liminal Backend API is running successfully",
-    environment: env.NODE_ENV,
-    timestamp: new Date().toISOString(),
+    data: {
+      environment: env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+    },
   });
 });
 
