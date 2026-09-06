@@ -75,8 +75,8 @@ The existing auth module is a Phase 2 skeleton. Its presence does not prove comp
 | -------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | Validation           | Zod and reusable request-validation middleware are absent                                             | Assess as a Phase 2 prerequisite       |
 | Responses and errors | No shared response helper exists; the error contract needs alignment                                  | Define an approved correction task     |
-| Logging              | Winston is absent; server lifecycle code uses `console.*`                                             | Define an approved correction task     |
-| Testing              | Jest is absent and the test script is a placeholder                                                   | Establish testing in an approved task  |
+| Logging              | Winston is absent; server lifecycle code uses the approved temporary `console.*` baseline             | Deferred under `DEC-013`               |
+| Testing              | Jest is absent and the test script is an approved temporary placeholder                               | Deferred under `DEC-013`               |
 | Data model           | The Prisma schema has no models, while the initial migration contains legacy `User` and `Post` tables | Reconcile with the approved ERD        |
 | Migration state      | Applied database state is unverified                                                                  | Verify before migration-dependent work |
 
@@ -95,4 +95,5 @@ These gaps neither reopen Phase 1 automatically nor authorize implementation. Th
 - Keep active execution in its phase file, current truth in [MEMORY.md](../MEMORY.md) and durable rationale in [DECISIONS.md](../DECISIONS.md).
 - Update this record only after an approved foundation change.
 - The root `Dockerfile` and `.dockerignore` were removed by explicit human direction on 2026-09-06; container configuration will be designed in separately approved future work (`DEC-012`).
+- Docker, Jest and Winston implementation is scheduled for dedicated project-completion tooling work under `DEC-013`.
 - Change phase status only through [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).

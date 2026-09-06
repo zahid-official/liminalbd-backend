@@ -106,6 +106,8 @@ Also:
 
 - Validate all externally supplied body, params, query and relevant external payloads at the application boundary.
 - Use Zod and the shared validation mechanism.
+- Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers must read from `res.locals.validated` rather than unvalidated raw input.
+- Format validation issue fields with source-qualified paths (e.g., `body.email`, `params.id`, `query.page`).
 - Keep schemas aligned with approved requirements.
 - Do not duplicate the same validation rule across layers without a boundary-specific reason.
 - Never trust client-supplied role, ownership, account status or privileged flags.
@@ -200,17 +202,20 @@ Use the shared response helper (`sendResponse` from `src/app/utils/`). Do not re
 {
   "success": false,
   "message": "Human-readable error summary",
+  "code": "VALIDATION_ERROR",
   "errors": [
     {
-      "field": "email",
+      "field": "body.email",
       "message": "Invalid email format"
     }
   ]
 }
 ```
 
-`errors` is included when field-level or multiple validation details are useful.
-Do not expose internal implementation details through the response contract.
+- `code` is required and represents a stable application error code (adhering to `DEC-014`).
+- `errors` is optional and is included when field-level or multiple validation details are useful.
+- Unexpected errors must serialize as HTTP 500 with `code: "INTERNAL_SERVER_ERROR"` and a generic message.
+- Do not expose stack traces, internal implementation details, or debug info through the response contract in any environment.
 
 ## 13. HTTP Semantics
 
@@ -259,8 +264,9 @@ Example:
 
 ## 16. Logging
 
-- Use the shared project logger for application logging.
-- Do not commit ad-hoc `console.*` debugging. Temporary console usage during local development must be removed before review.
+- Winston and the shared project logger are deferred to project-completion tooling work under `DEC-013`.
+- Until that work is approved, preserve only the documented server-lifecycle `console.*` baseline and do not add ad hoc `console.*` debugging.
+- Temporary console usage during local development must be removed before review.
 - The ESLint configuration treats `console.*` as a warning outside production and an error in production.
 - Log meaningful operational events at appropriate levels.
 - Include useful context such as module, operation and correlation/request context when available.
@@ -289,17 +295,18 @@ Never hard-code secrets. Read them through approved configuration boundaries.
 
 ## 18. Testing
 
-Use Jest and the repository's established test organization.
+Jest setup and automated suites are deferred to project-completion tooling work under `DEC-013`.
 
-For new business logic:
+Until that work is complete, each feature task must define and execute the strongest available focused verification for its behavior, including:
 
-- cover at least one expected path;
-- cover at least one meaningful failure path;
-- add authorization, ownership, state-transition or edge-case tests when relevant.
+- at least one expected path;
+- at least one meaningful failure path;
+- authorization, ownership, state-transition or edge-case checks when relevant;
+- build, lint and task-specific executable or manual acceptance checks.
 
-Tests should verify behavior, not implementation details alone.
+Record automated tests as `NOT RUN: deferred under DEC-013`; this approved deferral does not by itself block task review.
 
-Do not weaken or remove tests merely to make a change pass.
+When Jest is introduced, tests must verify behavior rather than implementation details alone. Do not weaken or remove tests merely to make a change pass.
 
 ## 19. Database and Migration Changes
 
@@ -321,7 +328,7 @@ Keep provider SDK usage behind the boundaries defined in
 
 ## 21. Formatting and Quality Checks
 
-Use the repository's configured formatter, linter, type checker and test scripts.
+Use the repository's configured formatter, linter and type checker. Use test scripts when the approved test foundation is available.
 
 The current ESLint baseline includes:
 
@@ -335,7 +342,7 @@ Before presenting a task for human review, run the applicable checks:
 - formatter;
 - linter;
 - TypeScript type checking;
-- relevant tests;
+- relevant executable/manual verification, and automated tests when available;
 - build or migration checks when affected.
 
 Do not introduce another formatter, linter or test framework without an approved decision.
@@ -365,7 +372,7 @@ Do not:
 Code is ready for human review only when:
 
 - the active task's acceptance criteria are addressed;
-- relevant tests and quality checks pass;
+- relevant approved verification and quality checks pass;
 - architecture and coding standards are followed;
 - no unrelated work is included;
 - no known requirement or security issue is being hidden.

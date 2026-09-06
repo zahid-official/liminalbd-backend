@@ -47,9 +47,9 @@
 
 ## 5. Verification and Approval
 
-- Run the applicable checks and meaningful tests defined in [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md).
-- Do not weaken tests, type checking or lint rules merely to obtain a passing result.
-- Use the shared logger. Remove ad-hoc `console.*` debugging before review.
+- Run the applicable checks and task-specific verification defined in [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md).
+- Do not weaken available tests, type checking or lint rules merely to obtain a passing result.
+- Follow the temporary logging boundary in `DEC-013`. Do not add ad hoc `console.*` debugging, and never log sensitive data.
 - Report checks as passed, failed or not run. Do not claim verification without evidence.
 - If required checks cannot pass or run, report the blocker. Do not claim readiness for review.
 - Mark `🕵️ Awaiting human review` only after acceptance criteria, required checks and self-review are satisfied. Present the result and stop.

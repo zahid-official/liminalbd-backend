@@ -30,7 +30,7 @@
 
 - Better Auth installation, configuration or runtime authentication behavior (`P2-T005`).
 - Services, repositories, controllers, middleware, routes or public API behavior.
-- Jest installation or test-runner changes (`P2-T004`).
+- Docker, Jest or Winston changes, now deferred under `DEC-013`.
 - Seed data, initial `SUPER_ADMIN` provisioning or account/profile creation flows.
 - Any model, field, enum, index or business rule outside the approved Phase 2 ERD.
 - Resetting a database or rewriting migration history.
@@ -103,7 +103,7 @@ The following field contract is the approved implementation contract for this ta
 - Better Auth is not installed or configured.
 - Legacy test migration files are absent from the repository.
 - The database inspected and reset for `DEC-011` had zero migration records and no business tables. That observation does not prove that another developer's current `DATABASE_URL` is safe to migrate.
-- The test script is a failing placeholder pending `P2-T004`.
+- The test script is an approved temporary failing placeholder under `DEC-013`.
 
 ---
 
@@ -133,7 +133,7 @@ The following field contract is the approved implementation contract for this ta
 | `[DELETE, REVIEW CHANGE]`     | `Dockerfile`                                                                                    | Defer unapproved Docker configuration under `DEC-012`                    |
 | `[DELETE, REVIEW CHANGE]`     | `.dockerignore`                                                                                 | Remove the deferred Docker-specific ignore configuration                 |
 | `[MODIFY, REVIEW CHANGE]`     | `docs/governance/02-ARCHITECTURE.md`                                                            | Remove the deferred file from the current layout                         |
-| `[MODIFY, REVIEW CHANGE]`     | `docs/governance/phases/phase-1-foundation.md`                                                   | Reconcile the retrospective foundation record                           |
+| `[MODIFY, REVIEW CHANGE]`     | `docs/governance/phases/phase-1-foundation.md`                                                  | Reconcile the retrospective foundation record                            |
 | `[MODIFY, REVIEW CHANGE]`     | `docs/governance/DECISIONS.md`                                                                  | Record the approved Docker deferral                                      |
 | `[MODIFY, REVIEW CHANGE]`     | `docs/governance/MEMORY.md`                                                                     | Record the current Docker boundary                                       |
 | `[MODIFY]`                    | `docs/governance/phases/phase-2-auth-rbac.md`                                                   | Canonical task status only: `🔄`, then `🕵️`                              |
@@ -157,20 +157,20 @@ No other file is authorized by this plan. Stop and amend the plan if implementat
 
 ## 7. Verification & Quality Gates
 
-| Check                 | Required | Command or Method                                                                | Result                                 |
-| :-------------------- | :------- | :------------------------------------------------------------------------------- | :------------------------------------- |
-| Acceptance criteria   | `Yes`    | ERD-to-schema checklist and Section 2 contract inspection                        | `PASS`                                 |
-| Schema format         | `Yes`    | `pnpm exec prisma format`                                                        | `PASS`                                 |
-| Schema validation     | `Yes`    | `pnpm exec prisma validate`                                                      | `PASS`                                 |
-| Migration safety      | `Yes`    | Target identity plus pre-migration table/data/history inventory                  | `PASS`                                 |
-| Migration application | `Yes`    | `pnpm exec prisma migrate dev --name init_phase_2`                               | `PASS`                                 |
-| Client generation     | `Yes`    | `pnpm exec prisma generate` and output inspection                                | `PASS`                                 |
-| Migration status      | `Yes`    | `pnpm exec prisma migrate status`                                                | `PASS`                                 |
-| Database integrity    | `Yes`    | PostgreSQL catalog queries against Section 2                                     | `PASS`                                 |
-| Type check / build    | `Yes`    | `pnpm build`                                                                     | `PASS`                                 |
-| Lint                  | `Yes`    | `pnpm lint`                                                                      | `PASS`                                 |
-| Automated tests       | `No`     | Test foundation is deferred to `P2-T004`; no runtime business logic changes here | `NOT RUN`: not applicable to this task |
-| Manual review         | `Yes`    | Inspect schema, generated SQL, generated-output diff and unexpected files        | `PASS`                                 |
+| Check                 | Required | Command or Method                                                         | Result                       |
+| :-------------------- | :------- | :------------------------------------------------------------------------ | :--------------------------- |
+| Acceptance criteria   | `Yes`    | ERD-to-schema checklist and Section 2 contract inspection                 | `PASS`                       |
+| Schema format         | `Yes`    | `pnpm exec prisma format`                                                 | `PASS`                       |
+| Schema validation     | `Yes`    | `pnpm exec prisma validate`                                               | `PASS`                       |
+| Migration safety      | `Yes`    | Target identity plus pre-migration table/data/history inventory           | `PASS`                       |
+| Migration application | `Yes`    | `pnpm exec prisma migrate dev --name init_phase_2`                        | `PASS`                       |
+| Client generation     | `Yes`    | `pnpm exec prisma generate` and output inspection                         | `PASS`                       |
+| Migration status      | `Yes`    | `pnpm exec prisma migrate status`                                         | `PASS`                       |
+| Database integrity    | `Yes`    | PostgreSQL catalog queries against Section 2                              | `PASS`                       |
+| Type check / build    | `Yes`    | `pnpm build`                                                              | `PASS`                       |
+| Lint                  | `Yes`    | `pnpm lint`                                                               | `PASS`                       |
+| Automated tests       | `No`     | Jest is deferred under `DEC-013`; no runtime business logic changes here  | `NOT RUN`: approved deferral |
+| Manual review         | `Yes`    | Inspect schema, generated SQL, generated-output diff and unexpected files | `PASS`                       |
 
 Use only `PASS`, `FAIL` or `NOT RUN`, with a reason when a required or applicable check does not run.
 
@@ -192,12 +192,12 @@ Use only `PASS`, `FAIL` or `NOT RUN`, with a reason when a required or applicabl
 
 ## 9. Plan Review
 
-| Field       | Value                                                                                                  |
-| :---------- | :----------------------------------------------------------------------------------------------------- |
-| Outcome     | `Approved`                                                                                             |
-| Reviewed by | User                                                                                                   |
-| Reviewed on | 2026-09-06                                                                                             |
-| Notes       | Explicit human approval received to execute the 7-step plan. Marked `🔄 In progress`.                  |
+| Field       | Value                                                                                 |
+| :---------- | :------------------------------------------------------------------------------------ |
+| Outcome     | `Approved`                                                                            |
+| Reviewed by | User                                                                                  |
+| Reviewed on | 2026-09-06                                                                            |
+| Notes       | Explicit human approval received to execute the 7-step plan. Marked `🔄 In progress`. |
 
 ---
 

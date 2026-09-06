@@ -203,8 +203,9 @@ Provider SDK → Integration Boundary → Business Service
 ### API
 
 - RESTful HTTP API with JSON payloads.
-- Centralized validation and error handling.
-- Shared response conventions.
+- Centralized validation and error handling adhering to `DEC-014`.
+- Shared response conventions (`sendResponse` envelope for success; `AppError` and centralized global error envelope with stable `code` and optional `errors` details).
+- Request validation occurs at the middleware layer using Zod, storing parsed and normalized data in `res.locals.validated` (`ValidatedLocals<T>`) rather than mutating `req`.
 - Cookie-based session handling through Better Auth.
 - Do not expose session secrets as application-managed access/refresh tokens without an approved architecture change.
 

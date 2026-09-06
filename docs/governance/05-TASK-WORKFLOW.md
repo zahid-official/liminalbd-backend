@@ -54,6 +54,8 @@ If implementation requires expanded scope or another task, follow Section 7.
 
 Run the checks applicable to the task, including relevant formatting, linting, type checking, tests, build, migration and data-integrity checks.
 
+An explicitly approved tooling deferral may make a check unavailable. Record it as `NOT RUN` with the governing decision and complete the strongest available task-specific executable or manual verification instead; the approved absence alone is not a blocker.
+
 Self-review the complete task against:
 
 - every acceptance criterion;

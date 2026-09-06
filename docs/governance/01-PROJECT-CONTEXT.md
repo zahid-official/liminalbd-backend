@@ -59,7 +59,7 @@ The backend technology direction includes:
 - Jest
 - pnpm
 
-Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions.
+Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions. Docker, Winston and Jest remain part of the intended technology direction, but their implementation is deferred to project-completion tooling work under `DEC-013`.
 
 ## 5. Architecture Direction
 

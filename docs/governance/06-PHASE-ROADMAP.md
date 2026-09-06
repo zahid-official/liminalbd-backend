@@ -35,7 +35,8 @@
 ### Current State
 
 - `docs/governance/phases/phase-1-foundation.md` is established as a concise retrospective record of the completed foundation.
-- `docs/governance/phases/phase-2-auth-rbac.md` is created and human-approved with 27 atomic tasks. Phase 2 is `ACTIVE / READY`; phase-level blocker `P2-B006` was resolved under `DEC-011` after the disposable test database and legacy migration state were reset.
+- `docs/governance/phases/phase-2-auth-rbac.md` is human-approved with 25 executable tasks. `P2-T003` and `P2-T004` are retired from Phase 2 because Docker, Winston and Jest are deferred to project-completion tooling work under `DEC-013`.
+- Phase 2 is `ACTIVE / READY`. `P2-B009` is resolved for Zod (`zod@^4.5.4` approved for `P2-T002`), and `P2-T002` is `🔄 In progress`.
 - Do not begin Phase 2 implementation from this roadmap alone. Follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md) and [phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md).
 
 ## 4. Phase 2 Requirement Coverage

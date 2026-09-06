@@ -237,7 +237,7 @@ A task is **not complete merely because the code compiles**.
 A task may be marked `🕵️ Awaiting human review` only after:
 
 - acceptance criteria have been checked;
-- required validation and tests have been performed;
+- required validation and approved task-specific verification have been performed;
 - relevant architecture and coding rules have been reviewed.
 
 A task becomes `✅ Done` only after:

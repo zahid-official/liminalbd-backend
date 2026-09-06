@@ -20,6 +20,28 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-014: Standardize Public Error Envelope, Stable Application Error Codes, and Typed Validated-Input Locals Contract
+
+**Recorded:** 2026-09-06
+**Status:** `ACCEPTED`
+
+**Decision:** Standardize the public error JSON envelope across the backend to require `success` (false), `message` (string), and `code` (string), with an optional `errors` array of field-level details (`field`, `message`). Establish an initial public error-code registry containing `VALIDATION_ERROR`, `ROUTE_NOT_FOUND`, and `INTERNAL_SERVER_ERROR`. Keep startup configuration errors typed internally (`CONFIGURATION_ERROR`) without public HTTP exposure. Validate request inputs at the middleware layer using Zod, and pass parsed/normalized data to controllers exclusively via a typed Express response locals contract (`res.locals.validated` / `ValidatedLocals<T>`) rather than mutating `req.body`, `req.params`, or `req.query`. Deterministically qualify validation issue paths by their request source (`body.<path>`, `params.<path>`, `query.<path>`).
+
+**Why:** The previous error response structure allowed inconsistent field names and dev-mode stack trace leakage, violating security and contract stability standards. Passing validated input through `res.locals.validated` guarantees that controllers operate on sanitized and schema-coerced data while leaving Express request objects untouched.
+
+**Consequences:** All HTTP endpoints must conform to the unified success (`sendResponse`) and error (`AppError` / `globalErrorHandler`) envelopes. Unexpected errors will always serialize as HTTP 500 with code `INTERNAL_SERVER_ERROR` and a generic message, preventing information leakage in all environments. New public error codes may only be added through approved feature tasks. Controllers consume parsed and coerced data from `res.locals.validated`.
+
+### DEC-013: Defer Docker, Jest and Winston Until Project Completion
+
+**Recorded:** 2026-09-06
+**Status:** `ACCEPTED`
+
+**Decision:** Exclude Docker configuration, Jest setup and Winston integration from Phase 2 and all remaining feature implementation phases. Introduce them later through dedicated, human-approved project-completion tooling tasks after product feature implementation is complete. Retire Phase 2 task IDs `P2-T003` and `P2-T004` without reusing them.
+
+**Why:** The team has chosen to keep current feature delivery focused on application behavior and postpone containerization, automated-test infrastructure and structured logging until the complete product implementation can define their final requirements coherently.
+
+**Consequences:** Phase tasks may close without Jest suites when their approved build, lint, executable/manual acceptance and security checks pass. The placeholder test script remains accepted temporary state. Existing lifecycle `console.*` logging is tolerated only as the documented temporary baseline; new ad hoc debug logging and sensitive-data logging remain prohibited. Docker files remain absent. The later project-completion tooling plan must implement and verify Docker, Jest and Winston across the completed application before production readiness is claimed.
+
 ### DEC-012: Defer Docker Configuration
 
 **Recorded:** 2026-09-06

@@ -19,9 +19,9 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). Phase-level blocker `P2-B006` is resolved under `DEC-011`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-B009` resolved for Zod (`zod@^4.5.4` approved); `P2-T002` is `🔄 In progress`.
 - No future phase has approved implementation scope.
-- No approved phase task is currently recorded as `🔄` or `🕵️`.
+- Active task: `P2-T002` (`🔄 In progress`).
 
 ## 2. Current Codebase State
 
@@ -35,12 +35,13 @@
 
 ## 3. Known Gaps and Blockers
 
-- Better Auth, Zod, Winston and Jest are not yet installed or configured.
+- Better Auth is not configured; dependencies remain subject to `P2-B009` under `P2-T005`.
+- Docker, Jest and Winston are intentionally deferred to project-completion tooling work under `DEC-013`; former Phase 2 IDs `P2-T003` and `P2-T004` are retired.
 - Authentication, sessions, RBAC, ownership and account-status enforcement are not implemented.
-- The test script is currently a failing placeholder.
+- The test script is an approved temporary failing placeholder under `DEC-013`; current tasks use documented executable/manual verification.
 - No shared response helper is currently available.
 - Current error responses use `errorSources` and may expose raw error/stack data in development; this has not yet been reconciled with `03-CODING-STANDARDS.md`.
-- Server lifecycle logging currently uses `console.*` under a file-level ESLint disable.
+- Server lifecycle logging currently uses `console.*` under a file-level ESLint disable as the temporary baseline accepted by `DEC-013`.
 - `prisma.config.ts` uses the directory-based `prisma/schema` root with models partitioned across `schema.prisma`, `auth.prisma`, `profiles.prisma` and `audit.prisma`.
 - First canonical Phase 2 migration `20260906064109_init_phase_2` is applied and verified under `P2-T001`. Generated Prisma Client is created at `src/generated/prisma` and intentionally ignored by Git.
 
@@ -70,17 +71,17 @@ These are verified observations only. They do not authorize fixes outside an app
 
 ## 6. Verification Snapshot
 
-| Check                 | Result                                                             |
-| --------------------- | ------------------------------------------------------------------ |
-| `pnpm build`          | `PASS` on 2026-09-05                                               |
-| `pnpm lint`           | `PASS` on 2026-09-05                                               |
-| Automated tests       | `NOT RUN`: test script is a failing placeholder                    |
-| Database / migrations | `PASS` on 2026-09-06: disposable test database reset; zero migration records and no business tables |
+| Check                 | Result                                                                                       |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `pnpm build`          | `PASS` on 2026-09-05                                                                         |
+| `pnpm lint`           | `PASS` on 2026-09-05                                                                         |
+| Automated tests       | `NOT RUN`: Jest is deferred under `DEC-013`                                                  |
+| Database / migrations | `PASS` on 2026-09-06: canonical migration `20260906064109_init_phase_2` applied and verified |
 
 ## 7. Next Action
 
-- Select `P2-T001` (Establish the Phase 2 Prisma Schema and Initial Migration Baseline) as the next planning candidate and create its persistent JIT task file from [tasks/_template.md](tasks/_template.md).
-- Keep `P2-T001` as `🔲` until its JIT plan is human-approved; then mark it `🔄` and implement only that task under [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
+- Review the prepared `P2-T002` JIT plan, approve its public contracts and exact `zod@^4.5.4` dependency, and resolve `P2-B009` for this task.
+- Keep `P2-T002` as `🔲` and Phase 2 as `ACTIVE / BLOCKED` until those approvals are recorded. Then restore `ACTIVE / READY`, mark only `P2-T002` as `🔄`, and implement it under [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
 - If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.
 
 ## 8. Maintenance Rule

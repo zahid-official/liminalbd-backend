@@ -20,7 +20,7 @@ These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
 - Follow [AGENTS.md](../../../AGENTS.md) and [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md).
 - Do not modify code without active task authorization.
-- The active status is `ACTIVE / READY`. Implementation may proceed only through the next eligible task after its JIT plan is human-approved.
+- The active status is `ACTIVE / READY`. Implementation proceeds through eligible tasks under human direction.
 - Work on exactly one task at a time and obtain human approval before starting the next.
 - Git operations remain under explicit human direction. Propose commit messages; do not commit or push autonomously.
 - Progressive future-scope integration follows `DEC-008`; it does not expand Phase 2 implementation scope.
@@ -35,7 +35,7 @@ These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [PRD](../../product/PRD.md)     | Sections 2.1 through 2.3: `FR-AUTH-001` through `FR-AUTH-009`, `FR-RBAC-001` through `FR-RBAC-006`, `FR-ADMIN-001` through `FR-ADMIN-003`, and `FR-CUSTOMER-001` through `FR-CUSTOMER-004` |
 | [ERD](../../product/ERD.drawio) | `User`, `Account`, `Session`, `Verification`, `Customer`, `Admin`, `AuditLog`, and related enums                                                                                           |
-| [DECISIONS.md](../DECISIONS.md) | `DEC-002` through `DEC-009`                                                                                                                                                                |
+| [DECISIONS.md](../DECISIONS.md) | Applicable accepted decisions through `DEC-013`                                                                                                                                            |
 
 ### In Scope
 
@@ -54,6 +54,7 @@ These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 - A custom password, token, OAuth or session implementation that duplicates Better Auth.
 - Granular permission administration beyond an extensible role-based design.
 - New roles, unapproved account states or business behavior not defined by the PRD/ERD.
+- Docker, Jest and Winston setup. These are deferred to dedicated project-completion tooling work under `DEC-013`.
 
 ---
 
@@ -113,7 +114,7 @@ Every listed top-level FR includes all of its approved sub-requirements unless a
 - [x] Out-of-scope boundaries are explicit.
 - [x] Every phase-level blocker is resolved.
 - [x] The complete task breakdown is human-approved.
-- [x] [MEMORY.md](../MEMORY.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are updated consistently to `ACTIVE/READY`.
+- [x] [MEMORY.md](../MEMORY.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are updated consistently with current phase status and readiness.
 
 Implementation must not begin until every readiness item is satisfied and the selected task has no unresolved task-level blocker.
 
@@ -141,32 +142,30 @@ Implementation must not begin until every readiness item is satisfied and the se
 | Order | Workstream | Task ID   | Task                                                                     | Status | Depends On                      | Blocked By                                   |
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
 | 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
-| 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `🔲`   | `P2-T001`                       | `P2-B009`                                    |
-| 3     | A          | `P2-T003` | Establish Winston logging                                                | `🔲`   | `P2-T002`                       | `P2-B009`                                    |
-| 4     | A          | `P2-T004` | Establish the Jest test foundation                                       | `🔲`   | `P2-T002`                       | `P2-B009`                                    |
-| 5     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `🔲`   | `P2-T001` to `P2-T004`          | `P2-B002`, `P2-B009`                         |
-| 6     | B          | `P2-T006` | Implement email/password Customer registration                           | `🔲`   | `P2-T005`                       | `P2-B001`                                    |
-| 7     | B          | `P2-T007` | Implement email verification and resend flow                             | `🔲`   | `P2-T006`                       | `P2-B001`                                    |
-| 8     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔲`   | `P2-T005`, `P2-T006`            | `P2-B001`                                    |
-| 9     | B          | `P2-T009` | Implement Google sign-in and sign-up                                     | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
-| 10    | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔲`   | `P2-T005`, `P2-T008`            | None                                         |
-| 11    | B          | `P2-T011` | Implement Google account linking and unlinking                           | `🔲`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
-| 12    | B          | `P2-T012` | Implement password reset                                                 | `🔲`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
-| 13    | B          | `P2-T013` | Implement change or set password                                         | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
-| 14    | B          | `P2-T014` | Implement logout and session revocation                                  | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
-| 15    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `🔲`   | `P2-T010`                       | None                                         |
-| 16    | C          | `P2-T016` | Implement the audit-log application boundary                             | `🔲`   | `P2-T001`, `P2-T004`, `P2-T010` | None                                         |
-| 17    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
-| 18    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
-| 19    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔲`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
-| 20    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
-| 21    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔲`   | `P2-T019`                       | `P2-B001`                                    |
-| 22    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
-| 23    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `🔲`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
-| 24    | D          | `P2-T024` | Implement Customer profile and email updates                             | `🔲`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
-| 25    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔲`   | `P2-T022`                       | `P2-B001`                                    |
-| 26    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
-| 27    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | `P2-T001` through `P2-T026`     | All unresolved blockers, including `P2-B010` |
+| 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `🔄`   | `P2-T001`                       | None                                         |
+| 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `🔲`   | `P2-T001`, `P2-T002`            | `P2-B002`, `P2-B009`                         |
+| 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `🔲`   | `P2-T005`                       | `P2-B001`                                    |
+| 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `🔲`   | `P2-T006`                       | `P2-B001`                                    |
+| 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔲`   | `P2-T005`, `P2-T006`            | `P2-B001`                                    |
+| 7     | B          | `P2-T009` | Implement Google sign-in and sign-up                                     | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
+| 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔲`   | `P2-T005`, `P2-T008`            | None                                         |
+| 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `🔲`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
+| 10    | B          | `P2-T012` | Implement password reset                                                 | `🔲`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
+| 11    | B          | `P2-T013` | Implement change or set password                                         | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
+| 12    | B          | `P2-T014` | Implement logout and session revocation                                  | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
+| 13    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `🔲`   | `P2-T010`                       | None                                         |
+| 14    | C          | `P2-T016` | Implement the audit-log application boundary                             | `🔲`   | `P2-T001`, `P2-T010`            | None                                         |
+| 15    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 16    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
+| 17    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔲`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
+| 18    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
+| 19    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔲`   | `P2-T019`                       | `P2-B001`                                    |
+| 20    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 21    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `🔲`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
+| 22    | D          | `P2-T024` | Implement Customer profile and email updates                             | `🔲`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
+| 23    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔲`   | `P2-T022`                       | `P2-B001`                                    |
+| 24    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
+| 25    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
 
 Workstreams organize one phase; they are not sub-phases and do not permit parallel implementation. Execute tasks in order unless the plan is explicitly re-approved. Update status only in this index.
 
@@ -174,7 +173,7 @@ Workstreams organize one phase; they are not sub-phases and do not permit parall
 
 ## 9. Task Definitions
 
-For every task, `build`, `lint`, applicable Jest tests and acceptance-criteria inspection are required unless the task records an approved exception. Results begin as `NOT RUN`. No task is review-ready while a required check fails or cannot run.
+For every task, `build`, `lint`, task-specific executable or manual verification and acceptance-criteria inspection are required unless the task records an approved exception. Results begin as `NOT RUN`. Jest setup and automated suites are deferred under `DEC-013`; their absence does not block Phase 2 task review when the approved task verification is complete.
 
 Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-provider evidence is required by `P2-T027` before phase completion.
 
@@ -199,7 +198,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Verify the resulting tables, constraints, relationships and migration status against the approved ERD.
 - Do not manually edit generated Prisma output or generated migration SQL.
 
-**Additional verification:** Prisma format/validate/generate and applicable migration checks.  
+**Additional verification:** Prisma format/validate/generate and applicable migration checks.
+
 **Human review:** `Approved`
 
 #### P2-T002: Establish Shared Response, Typed-Error and Zod Validation Infrastructure
@@ -213,40 +213,17 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Align typed application errors and global error output with the approved error contract without leaking stack traces, Prisma objects or provider internals.
 - Validate body, params and query inputs through shared Zod middleware.
 - Preserve correct HTTP status and stable error-code behavior.
-- Add focused tests for success, validation failure and safe error serialization.
+- Verify success, validation failure and safe error serialization through focused executable and manual contract checks.
 
-**Additional verification:** Targeted unit and middleware integration tests.  
+**Additional verification:** Build, lint and focused runtime contract verification.
+
 **Human review:** `Pending`
 
-#### P2-T003: Establish Winston Logging
+#### Deferred Tooling IDs
 
-**Requirements:** Architecture and coding standards  
-**Objective:** Replace ad hoc application and lifecycle logging with the approved shared logger.
-
-**Acceptance Criteria:**
-
-- Configure Winston behind the shared logging boundary.
-- Replace committed `console.*` use across the application and server lifecycle.
-- Prevent passwords, tokens, cookies, OAuth values, secrets and unnecessary personal data from being logged.
-- Cover logger configuration, log formatting, redaction rules and lifecycle behavior with focused tests.
-
-**Additional verification:** Unit tests verifying logger formatting, redaction rules and server lifecycle.  
-**Human review:** `Pending`
-
-#### P2-T004: Establish the Jest Test Foundation
-
-**Requirements:** Architecture and coding standards  
-**Objective:** Replace the placeholder test command with a repeatable Jest unit and integration test foundation.
-
-**Acceptance Criteria:**
-
-- Configure Jest for the repository's ESM and TypeScript setup (`"type": "module"`).
-- Establish repeatable unit and integration test commands in `package.json` with appropriate data/environment isolation.
-- Provide an application test harness with reusable mocking helpers.
-- Add meaningful baseline tests proving that the test runner executes, reports and completes successfully.
-
-**Additional verification:** Run `pnpm test` successfully.  
-**Human review:** `Pending`
+- `P2-T003` (Winston logging) and `P2-T004` (Jest foundation) are retired from the executable Phase 2 plan under `DEC-013`.
+- Their IDs must not be reused or treated as incomplete Phase 2 work.
+- Docker, Winston and Jest will receive new task IDs in a dedicated project-completion tooling plan after feature implementation is complete.
 
 #### P2-T005: Configure Better Auth, Secure Sessions and Provider Boundaries
 
@@ -259,9 +236,10 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Configure environment-validated Google OAuth and SMTP boundaries without logging or hard-coding secrets.
 - Apply approved cookie attributes, session expiry/renewal and CSRF policy.
 - Keep ordinary JSON responses free of application-managed access or refresh tokens.
-- Expose reusable session operations needed by later tasks and cover them with focused tests using approved mocks.
+- Expose reusable session operations needed by later tasks and verify them through focused contract checks using approved mocks where required.
 
-**Additional verification:** Configuration, cookie and CSRF tests; provider flows may use approved mocks.  
+**Additional verification:** Configuration, cookie and CSRF contract checks; provider flows may use approved mocks.
+
 **Human review:** `Pending`
 
 ### Workstream B: Authentication and Sessions
@@ -279,7 +257,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract.
 - Never store or log a plain-text password; cover success and meaningful failure paths.
 
-**Additional verification:** Registration integration tests, including duplicate and privileged-role attempts.  
+**Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts.
+
 **Human review:** `Pending`
 
 #### P2-T007: Implement Email Verification and Resend Flow
@@ -295,7 +274,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Rate-limit resend requests and map invalid, expired or reused links to the required errors.
 - Cover verification and resend success and failure paths using approved mocks without exposing tokens.
 
-**Additional verification:** Provider-mocked integration tests and token/error mapping tests.  
+**Additional verification:** Provider-mocked flow and token/error mapping checks.
+
 **Human review:** `Pending`
 
 #### P2-T008: Implement Login with Account-Status and Rate-Limit Enforcement
@@ -311,7 +291,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return the approved user data in the shared envelope while maintaining the session only through secure cookies.
 - Cover active, invalid-credential and restricted-account paths.
 
-**Additional verification:** Login, rate-limit, cookie and status integration tests.  
+**Additional verification:** Login, rate-limit, cookie and status behavior checks.
+
 **Human review:** `Pending`
 
 #### P2-T009: Implement Google Sign-In and Sign-Up
@@ -327,7 +308,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Apply the approved matching/linking policy without unintended duplicate accounts.
 - Preserve every existing privileged role and map denial, provider failure and conflicts safely.
 
-**Additional verification:** Provider-mocked first-time, returning, conflict and privileged-account tests.  
+**Additional verification:** Provider-mocked first-time, returning, conflict and privileged-account checks.
+
 **Human review:** `Pending`
 
 #### P2-T010: Implement Session and Authentication Middleware Guard
@@ -341,9 +323,10 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Resolve the authenticated user and attach trusted server-derived identity context to the request.
 - Ensure revoked sessions cannot bypass the guard.
 - Never trust client-supplied headers or body for authentication identity.
-- Cover missing, invalid, expired and valid session paths with focused tests.
+- Verify missing, invalid, expired and valid session paths through focused runtime checks.
 
-**Additional verification:** Unit and middleware integration tests with mocked Better Auth sessions.  
+**Additional verification:** Middleware and protected-route checks with mocked Better Auth sessions.
+
 **Human review:** `Pending`
 
 #### P2-T011: Implement Google Account Linking and Unlinking
@@ -359,7 +342,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return HTTP 422 when unlinking would remove the only authentication method.
 - Preserve the application role and cover unauthorized, conflict and sole-method paths.
 
-**Additional verification:** Account-linking integration tests with approved provider mocks.  
+**Additional verification:** Account-linking behavior checks with approved provider mocks.
+
 **Human review:** `Pending`
 
 #### P2-T012: Implement Password Reset
@@ -375,7 +359,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Revoke all existing sessions after a successful reset.
 - Handle Google-only accounts and rate limits exactly as approved without revealing account existence.
 
-**Additional verification:** Enumeration, token reuse/expiry, password policy and session-revocation tests using approved mocks.  
+**Additional verification:** Enumeration, token reuse/expiry, password policy and session-revocation checks using approved mocks.
+
 **Human review:** `Pending`
 
 #### P2-T013: Implement Change or Set Password
@@ -392,7 +377,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve linked Google authentication and never expose credential data.
 - Cover existing-password, Google-only and invalid-state paths.
 
-**Additional verification:** Credential-method and session-policy integration tests.  
+**Additional verification:** Credential-method and session-policy behavior checks.
+
 **Human review:** `Pending`
 
 #### P2-T014: Implement Logout and Session Revocation
@@ -409,7 +395,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - A user cannot revoke another user's sessions through the public flow.
 - Cover current-session, all-session and replay-after-revocation paths.
 
-**Additional verification:** Session persistence and revocation integration tests.  
+**Additional verification:** Session persistence and revocation behavior checks.
+
 **Human review:** `Pending`
 
 ### Workstream C: RBAC and Admin Management
@@ -425,9 +412,10 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Enforce approved route roles and return HTTP 403 for insufficient access.
 - Support only `SUPER_ADMIN`, `ADMIN` and `CUSTOMER` through extensible permission mapping.
 - Attach trusted server-derived role context; never trust client role or ownership claims.
-- Keep privileged and resource-specific authorization in the service layer and test bypass attempts.
+- Keep privileged and resource-specific authorization in the service layer and verify bypass attempts.
 
-**Additional verification:** Middleware unit and protected-route integration tests.  
+**Additional verification:** Middleware and protected-route authorization checks.
+
 **Human review:** `Pending`
 
 #### P2-T016: Implement the Audit-Log Application Boundary
@@ -443,7 +431,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Keep audit persistence behind repository/service boundaries and exclude secrets or unnecessary sensitive data.
 - Cover successful, rejected and transaction-rollback behavior.
 
-**Additional verification:** Repository, service and transaction tests.  
+**Additional verification:** Repository, service and transaction behavior checks.
+
 **Human review:** `Pending`
 
 #### P2-T017: Enforce Restricted Account Status Across Protected Access
@@ -459,7 +448,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve business records and avoid physical deletion.
 - Produce required audit events and cover every restricted status.
 
-**Additional verification:** Status, soft-delete filtering, revocation and audit tests.  
+**Additional verification:** Status, soft-delete filtering, revocation and audit checks.
+
 **Human review:** `Pending`
 
 #### P2-T018: Implement Super Admin Creation of Admin Accounts
@@ -475,7 +465,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Follow the approved credential/invitation process without exposing secrets.
 - Create required data consistently and record the audit event.
 
-**Additional verification:** Role, duplicate, forbidden-role, creation-flow and audit tests.  
+**Additional verification:** Role, duplicate, forbidden-role, creation-flow and audit checks.
+
 **Human review:** `Pending`
 
 #### P2-T019: Implement Privileged Profile, Role and Status Management
@@ -491,7 +482,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Reject missing targets and invalid status transitions with the required HTTP behavior.
 - Apply changes atomically with complete audit before/after values.
 
-**Additional verification:** Role-transition, self-mutation, status, authorization and audit tests.  
+**Additional verification:** Role-transition, self-mutation, status, authorization and audit checks.
+
 **Human review:** `Pending`
 
 #### P2-T020: Enforce and Audit Admin Restrictions on Privileged Accounts
@@ -507,7 +499,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Enforce restrictions in services even if route middleware is bypassed.
 - Audit rejected privileged-management attempts with actor, target, action and timestamp.
 
-**Additional verification:** Direct-service and HTTP bypass tests plus rejected-attempt audit tests.  
+**Additional verification:** Direct-service and HTTP bypass checks plus rejected-attempt audit verification.
+
 **Human review:** `Pending`
 
 #### P2-T021: Implement the Super Admin Admin-List Operation
@@ -523,7 +516,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Exclude soft-deleted accounts from normal results and return approved pagination metadata.
 - Prevent unsafe sort/filter fields and unnecessary data exposure.
 
-**Additional verification:** Authorization, filtering, sorting, pagination and exposure tests.  
+**Additional verification:** Authorization, filtering, sorting, pagination and exposure checks.
+
 **Human review:** `Pending`
 
 ### Workstream D: Customer Profile and Account Management
@@ -539,9 +533,10 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return HTTP 403 for cross-customer access or mutation.
 - Apply explicit administrative permission checks rather than unconditional role bypass.
 - Support required sensitive-access audit events.
-- Provide focused tests proving middleware bypass cannot bypass service ownership checks.
+- Provide focused verification proving middleware bypass cannot bypass service ownership checks.
 
-**Additional verification:** Service and route integration tests for owner, non-owner and administrative access.  
+**Additional verification:** Service and route checks for owner, non-owner and administrative access.
+
 **Human review:** `Pending`
 
 #### P2-T023: Implement Authorized Customer Profile Retrieval
@@ -557,7 +552,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return only permitted profile fields through the shared response contract.
 - Handle order and inquiry summaries only according to the approved resolution of `P2-B008`.
 
-**Additional verification:** Owner, cross-owner, administrator, not-found and field-exposure tests.  
+**Additional verification:** Owner, cross-owner, administrator, not-found and field-exposure checks.
+
 **Human review:** `Pending`
 
 #### P2-T024: Implement Customer Profile and Email Updates
@@ -573,7 +569,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Change email only through the approved account flow with validation, uniqueness and correct verification-state reset.
 - Enforce ownership, return required errors and cover the approved avatar resolution from `P2-B007`.
 
-**Additional verification:** Ownership, field allow-list, duplicate-email, verification-state and avatar tests.  
+**Additional verification:** Ownership, field allow-list, duplicate-email, verification-state and avatar checks.
+
 **Human review:** `Pending`
 
 #### P2-T025: Implement the Authorized Customer-List Operation
@@ -589,7 +586,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Exclude soft-deleted accounts from normal results and return approved pagination metadata.
 - Prevent unsafe query fields and unnecessary personal-data exposure.
 
-**Additional verification:** Role, query, pagination, date-range and exposure tests.  
+**Additional verification:** Role, query, pagination, date-range and exposure checks.
+
 **Human review:** `Pending`
 
 #### P2-T026: Implement Customer Account Lifecycle Management
@@ -605,7 +603,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve business records and exclude soft-deleted Customers from normal active operations.
 - Apply each status change atomically with actor, target, before/after state, action and timestamp audit data.
 
-**Additional verification:** Permission, transition, revocation, soft-delete and transaction/audit tests.  
+**Additional verification:** Permission, transition, revocation, soft-delete and transaction/audit checks.
+
 **Human review:** `Pending`
 
 ### Workstream E: Phase Verification
@@ -618,31 +617,32 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 **Acceptance Criteria:**
 
 - Demonstrate traceability from every approved Phase 2 FR and sub-requirement to passing behavior or an explicitly approved deferral.
-- Run the full build, lint and Jest suites, including authentication, authorization, ownership, status, audit and data-exposure failures.
+- Run the full build and lint checks, and complete the approved Phase 2 authentication, authorization, ownership, status, audit and data-exposure verification matrix.
 - Verify cookie, CSRF, rate-limit, session-revocation and live/staging provider-boundary behavior.
 - Verify migration/data integrity against the approved ERD and test database.
 - Confirm no raw stack, Prisma/provider internals, secrets, passwords or session tokens are exposed or logged.
 - Update review evidence only; do not conceal failures or add unrelated implementation.
 
-**Additional verification:** Full Phase 2 test suite, migration checks, provider verification and manual security acceptance review.  
+**Additional verification:** Full Phase 2 verification matrix, migration checks, provider verification and manual security acceptance review.
+
 **Human review:** `Pending`
 
 ---
 
 ## 10. Blockers and Open Decisions
 
-| ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status |
-| --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths, methods and operation names                                                                                                 | `OPEN` |
-| `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Approve session lifetime, renewal, `SameSite`, CSRF and production-cookie policy                                                                         | `OPEN` |
-| `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy                                                                                      | `OPEN` |
-| `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN` |
-| `P2-B005` | `TASK`     | Security          | `P2-T011` through `P2-T013` | Approve recent-authentication and post-password-change session policy                                                                                    | `OPEN` |
-| `P2-B006` | `PHASE`    | Data              | `P2-T001`, phase readiness  | Legacy schema and migrations confirmed as disposable test artifacts; database reset and clean-baseline strategy approved under `DEC-011`                  | `RESOLVED` |
-| `P2-B007` | `TASK`     | External Provider | `P2-T024`                   | Approve avatar input, storage ownership and media-boundary contract                                                                                      | `OPEN` |
-| `P2-B008` | `TASK`     | Scope             | `P2-T023`                   | Resolve order/inquiry summaries without implementing unapproved future modules                                                                           | `OPEN` |
-| `P2-B009` | `TASK`     | Dependency        | `P2-T002` through `P2-T005` | Explicitly approve exact packages before installation                                                                                                    | `OPEN` |
-| `P2-B010` | `EXTERNAL` | Provider Evidence | `P2-T027`                   | Provide an approved test environment or evidence for Google OAuth and SMTP flows before final phase closure (individual tasks close with approved mocks) | `OPEN` |
+| ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status     |
+| --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths, methods and operation names                                                                                                 | `OPEN`     |
+| `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Approve session lifetime, renewal, `SameSite`, CSRF and production-cookie policy                                                                         | `OPEN`     |
+| `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy                                                                                      | `OPEN`     |
+| `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN`     |
+| `P2-B005` | `TASK`     | Security          | `P2-T011` through `P2-T013` | Approve recent-authentication and post-password-change session policy                                                                                    | `OPEN`     |
+| `P2-B006` | `PHASE`    | Data              | `P2-T001`, phase readiness  | Legacy schema and migrations confirmed as disposable test artifacts; database reset and clean-baseline strategy approved under `DEC-011`                 | `RESOLVED` |
+| `P2-B007` | `TASK`     | External Provider | `P2-T024`                   | Approve avatar input, storage ownership and media-boundary contract                                                                                      | `OPEN`     |
+| `P2-B008` | `TASK`     | Scope             | `P2-T023`                   | Resolve order/inquiry summaries without implementing unapproved future modules                                                                           | `OPEN`     |
+| `P2-B009` | `TASK`     | Dependency        | `P2-T005`                   | Explicitly approve exact runtime packages before installation (`zod@^4.5.4` approved for `P2-T002`; Better Auth packages pending `P2-T005`)              | `OPEN`     |
+| `P2-B010` | `EXTERNAL` | Provider Evidence | `P2-T027`                   | Provide an approved test environment or evidence for Google OAuth and SMTP flows before final phase closure (individual tasks close with approved mocks) | `OPEN`     |
 
 Approved mocks allow affected feature tasks to reach review before `P2-B010` is resolved. Live-provider evidence remains mandatory for `P2-T027` and phase completion.
 
@@ -654,19 +654,19 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 
 ## 11. Phase Completion
 
-- [ ] Every required task through `P2-T027` is `✅`.
+- [ ] Every non-deferred Phase 2 task in the Task Index is `✅`.
 - [ ] Every approved FR and sub-requirement is traceable to verified behavior or an explicitly approved deferral.
-- [ ] Required build, lint, test, security, migration and data-integrity checks pass.
+- [ ] Required build, lint, security, migration, data-integrity and approved task-verification checks pass.
 - [ ] All blockers are resolved and approved deferred work is documented.
 - [ ] This file, [MEMORY.md](../MEMORY.md), [DECISIONS.md](../DECISIONS.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are consistent.
 - [ ] Explicit human approval for phase completion is recorded.
 
-| Approval Field | Value                          |
-| -------------- | ------------------------------ |
-| Outcome        | `Pending`                      |
-| Approved by    | `Pending`                      |
-| Approved on    | `Pending`                      |
-| Notes          | Phase remains `ACTIVE/READY`   |
+| Approval Field | Value                                                  |
+| -------------- | ------------------------------------------------------ |
+| Outcome        | `Pending`                                              |
+| Approved by    | `Pending`                                              |
+| Approved on    | `Pending`                                              |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T002` is `🔄 In progress` |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
