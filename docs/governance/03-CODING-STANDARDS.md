@@ -247,9 +247,11 @@ already define them.
 
 ## 15. Comments and Documentation
 
-Comments should explain intent, constraints or non-obvious reasoning.
+Comments should explain intent, constraints or non-obvious reasoning with a clean, senior-level aesthetic.
 
-- Prefer self-explanatory code.
+- Use concise, single-line header comments before top-level declarations (models, interfaces, core functions/utilities) to clarify purpose and boundary responsibility.
+- Prefer self-explanatory code. Avoid mechanical line-by-line narration (e.g., do not add comments that merely narrate variable destructuring or return statements).
+- Add inline comments only when documenting non-obvious logic, business edge cases, external workarounds, or security constraints.
 - Do not leave commented-out code.
 - Do not use decorative banner comments.
 - Do not add AI/meta comments.
@@ -259,6 +261,9 @@ Comments should explain intent, constraints or non-obvious reasoning.
 Example:
 
 ```ts
+// Standardized HTTP success response helper
+export const sendResponse = <T>(res: Response, options: SendResponseOptions<T>) => { ... };
+
 // TODO(phase-2): Add audit event after the approved audit contract is implemented.
 ```
 
