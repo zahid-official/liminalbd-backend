@@ -1,14 +1,15 @@
-// Global error source interface
-export interface ErrorSource {
-  path: string;
+import type { PublicErrorCode } from "../errors/errorCodes.js";
+
+// Standard field-level error detail interface
+export interface ErrorDetail {
+  field: string;
   message: string;
 }
 
-// Global error response interface
+// Standard application error response interface
 export interface ErrorResponse {
   success: false;
   message: string;
-  errorSources: ErrorSource[];
-  error?: unknown;
-  stack?: string[] | undefined;
+  code: PublicErrorCode;
+  errors?: ErrorDetail[];
 }
