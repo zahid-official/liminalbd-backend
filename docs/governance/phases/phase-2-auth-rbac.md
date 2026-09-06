@@ -9,8 +9,8 @@
 | ------------ | ------------ |
 | Phase        | `Phase 2`    |
 | Status       | `ACTIVE`     |
-| Readiness    | `BLOCKED`    |
-| Last updated | `2026-09-05` |
+| Readiness    | `READY`      |
+| Last updated | `2026-09-06` |
 
 These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
@@ -20,7 +20,7 @@ These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
 - Follow [AGENTS.md](../../../AGENTS.md) and [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md).
 - Do not modify code without active task authorization.
-- The active status is `ACTIVE / BLOCKED`. Implementation is blocked until phase-level blockers are resolved.
+- The active status is `ACTIVE / READY`. Implementation may proceed only through the next eligible task after its JIT plan is human-approved.
 - Work on exactly one task at a time and obtain human approval before starting the next.
 - Git operations remain under explicit human direction. Propose commit messages; do not commit or push autonomously.
 - Progressive future-scope integration follows `DEC-008`; it does not expand Phase 2 implementation scope.
@@ -111,9 +111,9 @@ Every listed top-level FR includes all of its approved sub-requirements unless a
 - [x] Tasks are ordered and independently reviewable.
 - [x] Every task has requirement references, dependencies and acceptance criteria.
 - [x] Out-of-scope boundaries are explicit.
-- [ ] Every phase-level blocker is resolved.
+- [x] Every phase-level blocker is resolved.
 - [x] The complete task breakdown is human-approved.
-- [ ] [MEMORY.md](../MEMORY.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are updated consistently to `ACTIVE/READY`.
+- [x] [MEMORY.md](../MEMORY.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are updated consistently to `ACTIVE/READY`.
 
 Implementation must not begin until every readiness item is satisfied and the selected task has no unresolved task-level blocker.
 
@@ -140,7 +140,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 
 | Order | Workstream | Task ID   | Task                                                                     | Status | Depends On                      | Blocked By                                   |
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
-| 1     | A          | `P2-T001` | Reconcile the Phase 2 Prisma schema and migration baseline               | `🔲`   | None                            | `P2-B006`                                    |
+| 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `🔲`   | None                            | None                                         |
 | 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `🔲`   | `P2-T001`                       | `P2-B009`                                    |
 | 3     | A          | `P2-T003` | Establish Winston logging                                                | `🔲`   | `P2-T002`                       | `P2-B009`                                    |
 | 4     | A          | `P2-T004` | Establish the Jest test foundation                                       | `🔲`   | `P2-T002`                       | `P2-B009`                                    |
@@ -180,18 +180,24 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 ### Workstream A: Phase Prerequisites
 
-#### P2-T001: Reconcile the Phase 2 Prisma Schema and Migration Baseline
+#### P2-T001: Establish the Phase 2 Prisma Schema and Initial Migration Baseline
 
-**Requirements:** Phase 2 ERD; `FR-RBAC-001`, `FR-RBAC-006`  
-**Objective:** Replace the empty/legacy model state with an approved Prisma representation of the Phase 2 entities, relationships and enums.
+**Requirements:** Phase 2 ERD; `FR-RBAC-001`, `FR-RBAC-006`; `DEC-011`
+
+**Precondition:** `P2-B006` is resolved under `DEC-011`. The disposable test database used during baseline verification was reset once on 2026-09-06, and no legacy test migration belongs to the canonical repository history. Do not automatically reset another developer, shared, staging or production database. Each developer must use a clean isolated development database or explicitly approve resetting their own disposable database.
+
+**Objective:** Implement the approved Phase 2 data model in Prisma and create the first canonical migration against the clean development database baseline.
 
 **Acceptance Criteria:**
 
-- Confirm whether the existing migration has been applied before choosing the migration strategy.
 - Model every approved ERD entity, field, relationship, enum, uniqueness rule, timestamp and soft-delete field required by Phase 2.
-- Remove the legacy `Post` model from the target design without rewriting applied migration history.
+- Include the database structures required by the approved Better Auth integration without implementing parallel authentication mechanics.
+- Exclude all legacy test-only models and migration artifacts from the canonical baseline.
+- Format and validate the Prisma schema successfully.
+- Create and apply the first canonical Phase 2 migration against the clean development database.
 - Generate Prisma Client successfully at `src/generated/prisma`.
-- Validate the resulting migration and data-integrity impact using the approved workflow.
+- Verify the resulting tables, constraints, relationships and migration status against the approved ERD.
+- Do not manually edit generated Prisma output or generated migration SQL.
 
 **Additional verification:** Prisma format/validate/generate and applicable migration checks.  
 **Human review:** `Pending`
@@ -632,13 +638,15 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 | `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy                                                                                      | `OPEN` |
 | `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN` |
 | `P2-B005` | `TASK`     | Security          | `P2-T011` through `P2-T013` | Approve recent-authentication and post-password-change session policy                                                                                    | `OPEN` |
-| `P2-B006` | `PHASE`    | Data              | `P2-T001`, phase readiness  | Inspect the target database and approve the legacy-migration reconciliation strategy                                                                     | `OPEN` |
+| `P2-B006` | `PHASE`    | Data              | `P2-T001`, phase readiness  | Legacy schema and migrations confirmed as disposable test artifacts; database reset and clean-baseline strategy approved under `DEC-011`                  | `RESOLVED` |
 | `P2-B007` | `TASK`     | External Provider | `P2-T024`                   | Approve avatar input, storage ownership and media-boundary contract                                                                                      | `OPEN` |
 | `P2-B008` | `TASK`     | Scope             | `P2-T023`                   | Resolve order/inquiry summaries without implementing unapproved future modules                                                                           | `OPEN` |
 | `P2-B009` | `TASK`     | Dependency        | `P2-T002` through `P2-T005` | Explicitly approve exact packages before installation                                                                                                    | `OPEN` |
 | `P2-B010` | `EXTERNAL` | Provider Evidence | `P2-T027`                   | Provide an approved test environment or evidence for Google OAuth and SMTP flows before final phase closure (individual tasks close with approved mocks) | `OPEN` |
 
 Approved mocks allow affected feature tasks to reach review before `P2-B010` is resolved. Live-provider evidence remains mandatory for `P2-T027` and phase completion.
+
+`P2-B006` was resolved on 2026-09-06. The disposable test database was reset successfully, its migration history is empty, and `P2-T001` will create the first approved Phase 2 schema and migration baseline.
 
 Do not invent a resolution. Record each approved outcome in the affected task contract and in [DECISIONS.md](../DECISIONS.md) when it creates a durable rule.
 

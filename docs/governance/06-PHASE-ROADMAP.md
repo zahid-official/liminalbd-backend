@@ -29,13 +29,13 @@
 | Phase   | Name                  | Status         | Readiness | Phase File                                     | Requirement Coverage                                                    |
 | ------- | --------------------- | -------------- | --------- | ---------------------------------------------- | ----------------------------------------------------------------------- |
 | Phase 1 | Foundation            | `COMPLETE`     | `N/A`     | `docs/governance/phases/phase-1-foundation.md` | Approved foundation, architecture and infrastructure scope              |
-| Phase 2 | Authentication & RBAC | `ACTIVE`       | `BLOCKED` | `docs/governance/phases/phase-2-auth-rbac.md`  | [PRD](../product/PRD.md) Sections 2.1 through 2.3 and related ERD model |
+| Phase 2 | Authentication & RBAC | `ACTIVE`       | `READY`   | `docs/governance/phases/phase-2-auth-rbac.md`  | [PRD](../product/PRD.md) Sections 2.1 through 2.3 and related ERD model |
 | Future  | Undefined scope       | `NOT APPROVED` | `N/A`     | None                                           | No approved PRD, ERD impact or phase plan                               |
 
 ### Current State
 
 - `docs/governance/phases/phase-1-foundation.md` is established as a concise retrospective record of the completed foundation.
-- `docs/governance/phases/phase-2-auth-rbac.md` is created and human-approved with 27 atomic tasks. Phase 2 remains `ACTIVE / BLOCKED` pending resolution of phase-level blocker `P2-B006` (Prisma/database migration baseline).
+- `docs/governance/phases/phase-2-auth-rbac.md` is created and human-approved with 27 atomic tasks. Phase 2 is `ACTIVE / READY`; phase-level blocker `P2-B006` was resolved under `DEC-011` after the disposable test database and legacy migration state were reset.
 - Do not begin Phase 2 implementation from this roadmap alone. Follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md) and [phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md).
 
 ## 4. Phase 2 Requirement Coverage

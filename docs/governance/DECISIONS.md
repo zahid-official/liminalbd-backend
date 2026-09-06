@@ -20,6 +20,17 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-011: Discard Disposable Test Migrations and Establish a Clean Phase 2 Baseline
+
+**Recorded:** 2026-09-06
+**Status:** `ACCEPTED`
+
+**Decision:** Treat the legacy Prisma migrations and their target database state as disposable test artifacts. Remove the legacy migration files, reset the confirmed test-only database, and let `P2-T001` establish the first canonical Prisma schema and initial migration baseline for Phase 2. This decision does not authorize resetting any shared, staging or production database.
+
+**Why:** The legacy `User` and `Post` migration was created only for testing, the approved application model has not yet been implemented, and the inspected database contained no business tables. Preserving the legacy history would add false implementation history and complicate the approved Phase 2 baseline.
+
+**Consequences:** `P2-B006` is resolved and Phase 2 may move to `ACTIVE/READY`. The disposable test database has zero migration records and no business tables. This was a one-time reset of the inspected disposable test database, not a repeatable setup instruction. Never reset another developer, shared, staging or production database automatically. Each developer must use a clean isolated development database or explicitly approve resetting their own disposable database. `P2-T001` remains `🔲` until its persistent JIT plan is human-approved, after which it will create the canonical Phase 2 schema and migration.
+
 ### DEC-010: Persistent Just-In-Time (JIT) Task Planning and Preparation Gate
 
 **Recorded:** 2026-09-05  

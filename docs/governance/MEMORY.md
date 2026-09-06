@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-05
+**Last verified:** 2026-09-06
 
 ## 1. Governance and Phase State
 
@@ -19,7 +19,7 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / BLOCKED` (execution plan approved and committed at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). Blocked by phase-level blocker `P2-B006` (Prisma/database migration baseline reconciliation).
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). Phase-level blocker `P2-B006` is resolved under `DEC-011`.
 - No future phase has approved implementation scope.
 - No approved phase task is currently recorded as `🔄` or `🕵️`.
 
@@ -40,8 +40,8 @@
 - No shared response helper is currently available.
 - Current error responses use `errorSources` and may expose raw error/stack data in development; this has not yet been reconciled with `03-CODING-STANDARDS.md`.
 - Server lifecycle logging currently uses `console.*` under a file-level ESLint disable.
-- `prisma/schema.prisma` currently defines no models or enums, while the initial migration creates legacy `User` and `Post` tables.
-- Whether the initial migration has been applied to a database is unverified.
+- `prisma/schema.prisma` currently defines no models or enums; `P2-T001` will establish the first canonical Phase 2 schema and initial migration baseline.
+- Legacy migrations were disposable test artifacts and have been removed. The inspected disposable test database was reset once on 2026-09-06 and contains no migration records or business tables. This is historical state, not an instruction to reset other databases; each developer must use a clean isolated development database or explicitly approve resetting their own disposable database.
 
 These are verified observations only. They do not authorize fixes outside an approved task.
 
@@ -74,13 +74,12 @@ These are verified observations only. They do not authorize fixes outside an app
 | `pnpm build`          | `PASS` on 2026-09-05                                               |
 | `pnpm lint`           | `PASS` on 2026-09-05                                               |
 | Automated tests       | `NOT RUN`: test script is a failing placeholder                    |
-| Database / migrations | `NOT RUN`: database environment and migration state are unverified |
+| Database / migrations | `PASS` on 2026-09-06: disposable test database reset; zero migration records and no business tables |
 
 ## 7. Next Action
 
-- Resolve phase-level blocker `P2-B006` (reconcile Prisma schema and migration baseline state).
-- Keep Phase 2 `ACTIVE/BLOCKED` until all phase-level blockers are resolved.
-- Once Phase 2 is `READY`, select exactly one eligible task and follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
+- Select `P2-T001` (Establish the Phase 2 Prisma Schema and Initial Migration Baseline) as the next planning candidate and create its persistent JIT task file from [tasks/_template.md](tasks/_template.md).
+- Keep `P2-T001` as `🔲` until its JIT plan is human-approved; then mark it `🔄` and implement only that task under [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
 - If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.
 
 ## 8. Maintenance Rule
