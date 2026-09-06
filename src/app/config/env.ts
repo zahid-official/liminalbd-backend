@@ -1,66 +1,41 @@
 import "dotenv/config";
+import { z } from "zod";
 import { ConfigurationError } from "../errors/ConfigurationError.js";
 
-// Interface for environment configuration
-interface EnvConfig {
-  NODE_ENV: "development" | "production";
-  PORT: number;
-  DATABASE_URL: string;
-  FRONTEND_URL: string;
-}
+// Zod schema for environment variables
+const envSchema = z.object({
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  PORT: z.coerce.number().int().min(1).max(65535).default(5000),
+  DATABASE_URL: z
+    .string({ error: "DATABASE_URL is required" })
+    .trim()
+    .min(1, { error: "DATABASE_URL cannot be empty" }),
+  FRONTEND_URL: z.url({
+    protocol: /^https?$/,
+    error: "FRONTEND_URL must be a valid HTTP or HTTPS URL",
+  }),
+});
 
-// Load and validate environment variables
+// Infer read-only TypeScript type directly from schema
+export type EnvConfig = Readonly<z.infer<typeof envSchema>>;
+
+// Validate and load environment variables
 const loadEnvConfig = (): EnvConfig => {
-  const requiredEnvVariables = [
-    "NODE_ENV",
-    "PORT",
-    "DATABASE_URL",
-    "FRONTEND_URL",
-  ] as const;
+  const result = envSchema.safeParse(process.env);
 
-  // Validate presence of required variables
-  for (const key of requiredEnvVariables) {
-    if (!process.env[key]) {
-      throw new ConfigurationError(
-        `Missing required environment variable: ${key}`,
-      );
-    }
-  }
+  if (!result.success) {
+    const errorDetails = result.error.issues
+      .map((issue) => `${issue.path.join(".") || "config"}: ${issue.message}`)
+      .join("; ");
 
-  // Validate NODE_ENV
-  const nodeEnv = process.env.NODE_ENV;
-  if (nodeEnv !== "development" && nodeEnv !== "production") {
     throw new ConfigurationError(
-      `Invalid NODE_ENV "${nodeEnv}". Expected "development" or "production".`,
+      `Environment configuration validation failed: ${errorDetails}`,
     );
   }
 
-  // Parse string values into numbers
-  const parseNumber = (field: string, value: string): number => {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
-      throw new ConfigurationError(
-        `Invalid ${field}: "${value}". Expected a valid number.`,
-      );
-    }
-
-    return parsed;
-  };
-
-  // Parse and validate the server port
-  const port = parseNumber("PORT", process.env.PORT as string);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new ConfigurationError(
-      `Invalid PORT: "${port}". Expected an integer between 1 and 65535.`,
-    );
-  }
-
-  return {
-    NODE_ENV: nodeEnv,
-    PORT: port,
-    DATABASE_URL: process.env.DATABASE_URL as string,
-    FRONTEND_URL: process.env.FRONTEND_URL as string,
-  };
+  return Object.freeze(result.data);
 };
 
 export const env = loadEnvConfig();
