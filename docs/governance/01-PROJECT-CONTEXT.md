@@ -32,11 +32,11 @@ The backend should be:
 
 The approved role model includes:
 
-| Role | Responsibility |
-|---|---|
+| Role          | Responsibility                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------- |
 | `SUPER_ADMIN` | Privileged administrative authority, including account and role management as defined by the PRD. |
-| `ADMIN` | Manages authorized business operations within defined RBAC boundaries. |
-| `CUSTOMER` | Manages permitted account data and accesses customer-owned resources and services. |
+| `ADMIN`       | Manages authorized business operations within defined RBAC boundaries.                            |
+| `CUSTOMER`    | Manages permitted account data and accesses customer-owned resources and services.                |
 
 Exact permissions, restrictions and ownership rules must follow the approved PRD and RBAC requirements.
 
@@ -59,7 +59,7 @@ The backend technology direction includes:
 - Jest
 - pnpm
 
-Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions.
+Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions. Docker, Winston and Jest remain part of the intended technology direction, but their implementation is deferred to project-completion tooling work under `DEC-013`.
 
 ## 5. Architecture Direction
 
@@ -102,14 +102,15 @@ The broader product vision includes additional capabilities such as project show
 
 These areas must not be designed or implemented from assumptions.
 
-A future module becomes implementation-ready only when its requirements are formally defined in the approved product documentation and represented in the governance and phase execution plan.
+A future module becomes implementation-ready only when its requirements are formally defined in the approved product documentation and represented in the governance and phase execution plan. When product teams finalize future modules, they are integrated following the PRD's _Phase-Wise Scope Evolution_ protocol and the _Requirement Changes_ procedure defined in [AGENTS.md](../../AGENTS.md).
 
 ## 8. Source Documents
 
 The authoritative product sources are:
 
-- `docs/product/PRD.md`: functional requirements, business rules and acceptance criteria.
-- `docs/product/ERD.drawio`: entity relationships and data-model intent.
+- [docs/product/PRD.md](../product/PRD.md): functional requirements, business rules, acceptance criteria, and phase-wise scope evolution.
+- [docs/product/ERD.drawio](../product/ERD.drawio): entity relationships and data-model intent.
+- [docs/governance/06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md): canonical roadmap and active phase status.
 
 This document is a condensed context layer.
 
