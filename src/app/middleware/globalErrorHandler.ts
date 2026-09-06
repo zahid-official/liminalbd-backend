@@ -1,56 +1,47 @@
 import type { ErrorRequestHandler } from "express";
 import status from "http-status";
-import { env } from "../config/env.js";
 import { AppError } from "../errors/AppError.js";
+import {
+  PUBLIC_ERROR_CODES,
+  type PublicErrorCode,
+} from "../errors/errorCodes.js";
 import type {
+  ErrorDetail,
   ErrorResponse,
-  ErrorSource,
 } from "../interfaces/error.interface.js";
 
-// globalErrorHandler Function
-const globalErrorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-  const devMode = env.NODE_ENV === "development";
+// Central global error handling middleware for safe error serialization
+const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+  // If response headers have already been sent, delegate to default Express error handler
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
 
-  // Default error response values
   let statusCode: number = status.INTERNAL_SERVER_ERROR;
-  let message = "Something went wrong!";
-  let errorSources: ErrorSource[] = [];
+  let code: PublicErrorCode = PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR;
+  let message = "An unexpected internal error occurred.";
+  let errors: ErrorDetail[] | undefined = undefined;
 
-  // Custom application error
+  // Handle known client-safe operational errors
   if (error instanceof AppError) {
     statusCode = error.statusCode;
+    code = error.code;
     message = error.message;
-    errorSources = [{ path: "", message: error.message }];
+    errors = error.errors;
   }
 
-  // Standard native JavaScript error
-  else if (error instanceof Error) {
-    message = error.message;
-    errorSources = [{ path: "", message: error.message }];
-  }
-
-  // Format stack trace in development mode
-  const stack: string[] | undefined =
-    devMode && error instanceof Error && error.stack
-      ? error.stack
-          .split("\n")
-          .map((line: string) => line.trim())
-          .filter((line: string) => line.startsWith("at"))
-      : undefined;
-
-  // Build the error response
-  const errorResponse: ErrorResponse = {
+  const responseBody: ErrorResponse = {
     success: false,
     message,
-    errorSources,
-    ...(devMode && {
-      error,
-      stack,
-    }),
+    code,
   };
 
-  // Send the error response
-  res.status(statusCode).json(errorResponse);
+  if (errors && errors.length > 0) {
+    responseBody.errors = errors;
+  }
+
+  res.status(statusCode).json(responseBody);
 };
 
 export { globalErrorHandler };
