@@ -1,18 +1,15 @@
 import type { RequestHandler } from "express";
 import status from "http-status";
+import { AppError } from "../errors/AppError.js";
+import { PUBLIC_ERROR_CODES } from "../errors/errorCodes.js";
 
-// notFoundErrorHandler Function
-const notFoundErrorHandler: RequestHandler = (req, res) => {
-  res.status(status.NOT_FOUND).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
-    errorSources: [
-      {
-        path: req.originalUrl,
-        message: "The requested route does not exist.",
-      },
-    ],
-  });
+// Catch-all middleware to forward unhandled routes as a typed 404 AppError
+export const notFoundErrorHandler: RequestHandler = (_req, _res, next) => {
+  next(
+    new AppError(
+      status.NOT_FOUND,
+      PUBLIC_ERROR_CODES.ROUTE_NOT_FOUND,
+      "The requested route was not found on this server.",
+    ),
+  );
 };
-
-export { notFoundErrorHandler };
