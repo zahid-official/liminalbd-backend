@@ -1,0 +1,31 @@
+enum AuditAction {
+  CREATE
+  UPDATE
+  ROLE_CHANGE
+  SUSPEND
+  DEACTIVATE
+  REACTIVATE
+  SOFT_DELETE
+  UNAUTHORIZED_ATTEMPT
+}
+
+enum AuditEntityType {
+  USER
+  ADMIN
+  CUSTOMER
+}
+
+// System audit trail linked to actor User
+model AuditLog {
+  id            String          @id @default(uuid())
+  actorId       String?
+  action        AuditAction
+  entityType    AuditEntityType
+  entityId      String?
+  previousValue Json?
+  newValue      Json?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}

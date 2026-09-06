@@ -7,6 +7,8 @@ This is the universal entry point for AI-assisted work in this repository. It is
 
 `AGENTS.md` is an **entry point and router**, not a duplicate of the entire project documentation. Read the linked governance documents only when required by the current task.
 
+All AI coding environments (e.g., Cursor, Windsurf, Copilot, Antigravity, Claude Code) and models must adhere strictly to this repository's governance. Environment-specific configurations must never override or contradict the rules defined here.
+
 ---
 
 ## 1. Operating Principle
@@ -33,19 +35,22 @@ Work on **exactly one task at a time**.
 
 For every task:
 
-1.  Select one eligible task.
-2.  Mark it `🔄 In progress`.
-3.  Read only the context required for that task.
-4.  Implement only that task.
-5.  Run the required checks and tests.
-6.  Self-review against the task requirements and project rules.
-7.  Mark it `🕵️ Awaiting human review`.
-8.  Stop and present the result.
-9.  Wait for explicit human approval.
-10. Only after approval:
+1.  Select the next planning candidate (`🔲`) from the active phase.
+2.  Perform read-only inspection of relevant repository code and dependencies.
+3.  Draft the JIT task plan using `docs/governance/tasks/_template.md`.
+4.  Submit the plan and wait for explicit human approval.
+5.  After plan approval and blocker clearance, confirm the phase is
+    `ACTIVE/READY` and mark the task `🔄 In progress`.
+6.  Implement only that task.
+7.  Run the required checks and tests.
+8.  Record actual implementation evidence in the JIT task file.
+9.  Self-review against the task requirements and project rules.
+10. Mark it `🕵️ Awaiting human review`.
+11. Stop, present the result and evidence, and wait for explicit human approval.
+12. Only after approval:
 
 - mark the task `✅ Done`;
-- update `MEMORY.md`;
+- finalize closure records across phase file, JIT task file, and `MEMORY.md`;
 - update `DECISIONS.md` when a durable decision was made;
 - update the roadmap when required.
 
@@ -121,6 +126,8 @@ These documents define the required conventions, boundaries and prohibited behav
 
 When AI preference conflicts with an established repository rule or approved decision, follow the repository source of truth.
 
+AI agents must never install new npm/pnpm packages or introduce unapproved third-party architectural libraries without explicit human approval.
+
 ---
 
 ## 6. Source-of-Truth Hierarchy
@@ -144,37 +151,20 @@ Never invent requirements, business rules, API behavior, database structure or s
 
 ## 7. Where Project Knowledge Lives
 
----
-
-Document Purpose
-
----
-
-`01-PROJECT-CONTEXT.md` Product meaning and approved scope
-
-`02-ARCHITECTURE.md` Architecture and technical
-boundaries
-
-`03-CODING-STANDARDS.md` Code style and implementation
-conventions
-
-`04-RULES.md` Hard rules and prohibited behavior
-
-`05-TASK-WORKFLOW.md` Task execution, review, approval,
-and update process
-
-`06-PHASE-ROADMAP.md` Phase status and active phase
-
-`MEMORY.md` Condensed current state of the
-codebase
-
-`DECISIONS.md` Durable decisions and rationale
-
-`phases/` Task-level execution plans
-
-`docs/product/PRD.md` Full functional requirements
-
-`docs/product/ERD.drawio` Entity and data-model design
+| Document                  | Purpose                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `01-PROJECT-CONTEXT.md`   | Product meaning and approved scope                   |
+| `02-ARCHITECTURE.md`      | Architecture and technical boundaries                |
+| `03-CODING-STANDARDS.md`  | Code style and implementation conventions            |
+| `04-RULES.md`             | Hard rules and prohibited behavior                   |
+| `05-TASK-WORKFLOW.md`     | Task execution, review, approval, and update process |
+| `06-PHASE-ROADMAP.md`     | Phase status and active phase                        |
+| `MEMORY.md`               | Condensed current state of the codebase              |
+| `DECISIONS.md`            | Durable decisions and rationale                      |
+| `docs/governance/phases/` | Phase-level execution plans, scope, and status       |
+| `docs/governance/tasks/`  | Persistent JIT task implementation plans & evidence  |
+| `docs/product/PRD.md`     | Full functional requirements                         |
+| `docs/product/ERD.drawio` | Entity and data-model design                         |
 
 ---
 
@@ -190,16 +180,18 @@ At the beginning of every new AI session:
 2.  Read `docs/governance/MEMORY.md`.
 3.  Read `docs/governance/06-PHASE-ROADMAP.md`.
 4.  Identify the single `ACTIVE` phase.
-5.  Open its phase file.
+5.  Open its phase file and read its global boundaries and task status.
 6.  Check whether a task is already `🔄 In progress` or
     `🕵️ Awaiting human review`.
-    - If yes, continue or resolve that task.
+    - If yes, open its persistent task file (`docs/governance/tasks/...`), resume or resolve that task.
     - Do not start another task.
-7.  Select the next eligible task.
-8.  Read task-specific requirements only when the phase file is insufficient.
-9.  Read `03-CODING-STANDARDS.md` and `04-RULES.md`.
-10. Inspect only the relevant code and dependencies.
-11. Follow the one-task workflow.
+7.  If no task is in progress, select the next planning candidate (`🔲`).
+8.  Perform read-only inspection of relevant repository code and dependencies.
+9.  Create/draft the JIT task file using `docs/governance/tasks/_template.md`.
+10. Submit the plan for human review. Mark `🔄` only after approval, required
+    blocker clearance and confirmation that the phase is `ACTIVE/READY`.
+11. Read `03-CODING-STANDARDS.md` and `04-RULES.md` before writing code.
+12. Follow the one-task workflow in `05-TASK-WORKFLOW.md`.
 
 Do not automatically read the entire PRD, ERD or repository.
 
@@ -209,15 +201,15 @@ Read additional context only when required by the current task.
 
 ## 9. Requirement Changes
 
-When the PRD or ERD changes:
+When the PRD or ERD changes (e.g., when new phase modules are finalized):
 
-1.  Do not immediately implement the change.
-2.  Identify the affected phase.
-3.  Update the relevant phase execution plan.
+1.  Do not immediately implement code changes.
+2.  Identify the affected phase and verify alignment with `docs/product/PRD.md` (Phase-Wise Scope Evolution).
+3.  Update the relevant phase execution plan (`phases/phase-X-...md`).
 4.  Update governance documents only where the change affects their purpose.
 5.  Record durable decisions in `DECISIONS.md`.
-6.  Update the roadmap when phase status or scope changes.
-7.  Obtain human approval for the updated task breakdown.
+6.  Update `docs/governance/06-PHASE-ROADMAP.md` when phase status or scope changes.
+7.  Obtain explicit human approval for the updated task breakdown.
 8.  Begin implementation only after approval.
 
 ---
@@ -245,7 +237,7 @@ A task is **not complete merely because the code compiles**.
 A task may be marked `🕵️ Awaiting human review` only after:
 
 - acceptance criteria have been checked;
-- required validation and tests have been performed;
+- required validation and approved task-specific verification have been performed;
 - relevant architecture and coding rules have been reviewed.
 
 A task becomes `✅ Done` only after:
