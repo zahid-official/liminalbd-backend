@@ -23,8 +23,11 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   let message = "An unexpected internal error occurred.";
   let errors: ErrorDetail[] | undefined = undefined;
 
-  // Handle known client-safe operational errors
-  if (error instanceof AppError) {
+  // Handle known client-safe operational errors (excluding reserved internal server errors)
+  if (
+    error instanceof AppError &&
+    error.code !== PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR
+  ) {
     statusCode = error.statusCode;
     code = error.code;
     message = error.message;
