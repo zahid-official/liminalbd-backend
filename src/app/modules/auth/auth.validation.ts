@@ -4,25 +4,45 @@ import { z } from "zod";
 const registerValidationSchema = {
   body: z.object({
     name: z
-      .string({ error: "Name is required" })
+      .string({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Full name is required"
+            : "Name must be a valid text string",
+      })
       .trim()
-      .min(2, { error: "Name must be at least 2 characters long" })
-      .max(100, { error: "Name must not exceed 100 characters" }),
-    email: z.email({ error: "Valid email is required" }).trim().toLowerCase(),
+      .min(2, { error: "Name must be at least 2 characters" })
+      .max(100, { error: "Name cannot exceed 100 characters" }),
+
+    email: z
+      .email({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Email address is required"
+            : "Please provide a valid email address",
+      })
+      .trim()
+      .toLowerCase(),
+
     password: z
-      .string({ error: "Password is required" })
-      .min(8, { error: "Password must be at least 8 characters long" })
+      .string({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Password is required"
+            : "Password must be a valid text string",
+      })
+      .min(8, { error: "Password must be at least 8 characters" })
       .regex(/[A-Z]/, {
-        error: "Password must contain at least one uppercase letter",
+        error: "Password must include at least one uppercase letter (A-Z)",
       })
       .regex(/[a-z]/, {
-        error: "Password must contain at least one lowercase letter",
+        error: "Password must include at least one lowercase letter (a-z)",
       })
       .regex(/\d/, {
-        error: "Password must contain at least one number",
+        error: "Password must include at least one number (0-9)",
       })
       .regex(/[^A-Za-z0-9]/, {
-        error: "Password must contain at least one special character",
+        error: "Password must include at least one symbol (!@#$%^&*)",
       }),
   }),
 };

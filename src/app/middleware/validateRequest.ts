@@ -11,16 +11,16 @@ import type {
 
 type RequestSource = "body" | "params" | "query";
 
-// Format Zod issues into standardized error details with source-qualified field paths
+// Format Zod issues into standardized error details with separated source and clean field names
 const formatZodIssues = (
   source: RequestSource,
   zodError: ZodError,
 ): ErrorDetail[] => {
   return zodError.issues.map((issue) => {
-    const subPath = issue.path.join(".");
-    const field = subPath ? `${source}.${subPath}` : source;
+    const field = issue.path.join(".") || "root";
 
     return {
+      source,
       field,
       message: issue.message,
     };

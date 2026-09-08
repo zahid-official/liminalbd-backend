@@ -2,6 +2,7 @@ import type { PublicErrorCode } from "../errors/errorCodes.js";
 
 // Standard field-level error detail interface
 export interface ErrorDetail {
+  source?: string;
   field: string;
   message: string;
 }
