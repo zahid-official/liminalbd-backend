@@ -8,10 +8,7 @@ const registerValidationSchema = {
       .trim()
       .min(2, { error: "Name must be at least 2 characters long" })
       .max(100, { error: "Name must not exceed 100 characters" }),
-    email: z
-      .email({ error: "Valid email is required" })
-      .trim()
-      .toLowerCase(),
+    email: z.email({ error: "Valid email is required" }).trim().toLowerCase(),
     password: z
       .string({ error: "Password is required" })
       .min(8, { error: "Password must be at least 8 characters long" })
@@ -27,11 +24,15 @@ const registerValidationSchema = {
       .regex(/[^A-Za-z0-9]/, {
         error: "Password must contain at least one special character",
       }),
-    contactNumber: z.string().trim().optional(),
-    address: z.string().trim().optional(),
   }),
 };
 
+// Inferred input types from validation schemas
+export type RegisterCustomerInput = z.infer<
+  typeof registerValidationSchema.body
+>;
+
+// Export the validation schemas
 export const AuthValidation = {
   registerValidationSchema,
 };
