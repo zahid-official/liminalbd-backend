@@ -20,6 +20,28 @@ const envSchema = z.object({
     protocol: /^https?$/,
     error: "FRONTEND_URL must be a valid HTTP or HTTPS URL",
   }),
+
+  // Better Auth Configuration
+  BETTER_AUTH_SECRET: z
+    .string({ error: "BETTER_AUTH_SECRET is required" })
+    .min(32, {
+      error: "BETTER_AUTH_SECRET must be at least 32 characters long",
+    }),
+  BETTER_AUTH_URL: z.url({
+    protocol: /^https?$/,
+    error: "BETTER_AUTH_URL must be a valid HTTP or HTTPS URL",
+  }),
+
+  // Google OAuth configuration
+  GOOGLE_CLIENT_ID: z.string().trim().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().trim().optional(),
+
+  // SMTP configuration
+  SMTP_HOST: z.string().trim().optional(),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+  SMTP_USER: z.string().trim().optional(),
+  SMTP_PASS: z.string().trim().optional(),
+  SMTP_FROM: z.string().trim().optional(),
 });
 
 // Infer read-only TypeScript type directly from schema

@@ -142,8 +142,8 @@ Implementation must not begin until every readiness item is satisfied and the se
 | Order | Workstream | Task ID   | Task                                                                     | Status | Depends On                      | Blocked By                                   |
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
 | 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
-| 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `🔄`   | `P2-T001`                       | None                                         |
-| 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `🔲`   | `P2-T001`, `P2-T002`            | `P2-B002`, `P2-B009`                         |
+| 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
+| 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `🔄`   | `P2-T001`, `P2-T002`            | None                                         |
 | 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `🔲`   | `P2-T005`                       | `P2-B001`                                    |
 | 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `🔲`   | `P2-T006`                       | `P2-B001`                                    |
 | 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔲`   | `P2-T005`, `P2-T006`            | `P2-B001`                                    |
@@ -217,7 +217,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Build, lint and focused runtime contract verification.
 
-**Human review:** `Pending`
+**Human review:** `Approved`
 
 #### Deferred Tooling IDs
 
@@ -634,14 +634,14 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 | ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status     |
 | --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths, methods and operation names                                                                                                 | `OPEN`     |
-| `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Approve session lifetime, renewal, `SameSite`, CSRF and production-cookie policy                                                                         | `OPEN`     |
+| `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Session lifetime (7d), renewal (1d), `SameSite: "lax"`, CSRF and cookie policy approved under `P2-T005` on 2026-09-08                                    | `RESOLVED` |
 | `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy                                                                                      | `OPEN`     |
 | `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN`     |
 | `P2-B005` | `TASK`     | Security          | `P2-T011` through `P2-T013` | Approve recent-authentication and post-password-change session policy                                                                                    | `OPEN`     |
 | `P2-B006` | `PHASE`    | Data              | `P2-T001`, phase readiness  | Legacy schema and migrations confirmed as disposable test artifacts; database reset and clean-baseline strategy approved under `DEC-011`                 | `RESOLVED` |
 | `P2-B007` | `TASK`     | External Provider | `P2-T024`                   | Approve avatar input, storage ownership and media-boundary contract                                                                                      | `OPEN`     |
 | `P2-B008` | `TASK`     | Scope             | `P2-T023`                   | Resolve order/inquiry summaries without implementing unapproved future modules                                                                           | `OPEN`     |
-| `P2-B009` | `TASK`     | Dependency        | `P2-T005`                   | Explicitly approve exact runtime packages before installation (`zod@^4.5.4` approved for `P2-T002`; Better Auth packages pending `P2-T005`)              | `OPEN`     |
+| `P2-B009` | `TASK`     | Dependency        | `P2-T005`                   | Approved `better-auth@^1.7.3` for `P2-T005` on 2026-09-08 (`zod@^4.5.4` approved under `P2-T002`)                                                        | `RESOLVED` |
 | `P2-B010` | `EXTERNAL` | Provider Evidence | `P2-T027`                   | Provide an approved test environment or evidence for Google OAuth and SMTP flows before final phase closure (individual tasks close with approved mocks) | `OPEN`     |
 
 Approved mocks allow affected feature tasks to reach review before `P2-B010` is resolved. Live-provider evidence remains mandatory for `P2-T027` and phase completion.

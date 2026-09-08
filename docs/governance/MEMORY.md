@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-06
+**Last verified:** 2026-09-08
 
 ## 1. Governance and Phase State
 
@@ -19,15 +19,17 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-B009` resolved for Zod (`zod@^4.5.4` approved); `P2-T002` is `🔄 In progress`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001` and `P2-T002` are `✅ Done`. Active task is `P2-T005` (`🔄 In progress`).
 - No future phase has approved implementation scope.
-- Active task: `P2-T002` (`🔄 In progress`).
+- Active task: `P2-T005` (`🔄 In progress` - Configure Better Auth, secure sessions and provider boundaries).
 
 ## 2. Current Codebase State
 
 - Backend uses Express 5, TypeScript 6, Prisma 7, PostgreSQL and pnpm with ESM and NodeNext resolution.
-- Application includes CORS, body/cookie parsing, a root health endpoint, `/api/v1` routing, not-found handling and global error handling.
-- Environment loading requires `NODE_ENV`, `PORT`, `DATABASE_URL` and `FRONTEND_URL`.
+- Application includes CORS, body/cookie parsing, standardized root health endpoint (`sendResponse`), `/api/v1` routing, not-found handling (`notFoundErrorHandler`) and sanitized centralized error handling (`globalErrorHandler`).
+- Shared response helper `sendResponse` and async controller wrapper `catchAsync` are established under `src/app/utils/`.
+- Typed error system (`AppError`, `ConfigurationError`, public error codes) and source-qualified Zod validation middleware (`validateRequest`, `res.locals.validated`) are established under `src/app/errors/` and `src/app/middleware/`.
+- Environment loading enforces strict validation via Zod under `src/app/config/env.ts` requiring `NODE_ENV`, `PORT`, `DATABASE_URL` and `FRONTEND_URL`.
 - Prisma Client uses the PostgreSQL adapter.
 - Server lifecycle handling includes startup errors, shutdown signals, unhandled rejections and uncaught exceptions.
 - `/api/v1/auth` is mounted, but it currently has no endpoints; its controller and service are empty.
@@ -39,8 +41,6 @@
 - Docker, Jest and Winston are intentionally deferred to project-completion tooling work under `DEC-013`; former Phase 2 IDs `P2-T003` and `P2-T004` are retired.
 - Authentication, sessions, RBAC, ownership and account-status enforcement are not implemented.
 - The test script is an approved temporary failing placeholder under `DEC-013`; current tasks use documented executable/manual verification.
-- No shared response helper is currently available.
-- Current error responses use `errorSources` and may expose raw error/stack data in development; this has not yet been reconciled with `03-CODING-STANDARDS.md`.
 - Server lifecycle logging currently uses `console.*` under a file-level ESLint disable as the temporary baseline accepted by `DEC-013`.
 - `prisma.config.ts` uses the directory-based `prisma/schema` root with models partitioned across `schema.prisma`, `auth.prisma`, `profiles.prisma` and `audit.prisma`.
 - First canonical Phase 2 migration `20260906064109_init_phase_2` is applied and verified under `P2-T001`. Generated Prisma Client is created at `src/generated/prisma` and intentionally ignored by Git.
