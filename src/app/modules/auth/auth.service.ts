@@ -48,7 +48,7 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
     });
 
     // 4. Return sanitized public customer response
-    return {
+    const result = {
       id: authResult.user.id,
       name: authResult.user.name,
       email: authResult.user.email,
@@ -59,8 +59,10 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
       address: customerProfile.address,
       createdAt: customerProfile.createdAt,
     };
+
+    return result;
   } catch (error) {
-    // Compensating action: remove orphan User & Account if customer profile fails
+    // Compensating action: remove orphan User & credentials if customer profile creation fails
     await prisma.user.delete({
       where: {
         id: authResult.user.id,
