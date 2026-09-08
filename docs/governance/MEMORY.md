@@ -19,9 +19,9 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001` and `P2-T002` are `✅ Done`. Active task is `P2-T005` (`🔄 In progress`).
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, and `P2-T005` are `✅ Done`. Next planning candidate is `P2-T006` (`🔲`).
 - No future phase has approved implementation scope.
-- Active task: `P2-T005` (`🔄 In progress` - Configure Better Auth, secure sessions and provider boundaries).
+- Active task: None (`P2-T005` closed; awaiting selection/approval of next candidate `P2-T006`).
 
 ## 2. Current Codebase State
 

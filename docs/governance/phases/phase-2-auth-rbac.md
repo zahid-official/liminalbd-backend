@@ -143,7 +143,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
 | 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
 | 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
-| 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `🔄`   | `P2-T001`, `P2-T002`            | None                                         |
+| 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
 | 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `🔲`   | `P2-T005`                       | `P2-B001`                                    |
 | 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `🔲`   | `P2-T006`                       | `P2-B001`                                    |
 | 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔲`   | `P2-T005`, `P2-T006`            | `P2-B001`                                    |
@@ -240,7 +240,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Configuration, cookie and CSRF contract checks; provider flows may use approved mocks.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-08)
 
 ### Workstream B: Authentication and Sessions
 
