@@ -144,7 +144,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
 | 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
 | 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
-| 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `🔲`   | `P2-T005`                       | `P2-B001`                                    |
+| 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `🔄`   | `P2-T005`                       | None                                         |
 | 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `🔲`   | `P2-T006`                       | `P2-B001`                                    |
 | 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔲`   | `P2-T005`, `P2-T006`            | `P2-B001`                                    |
 | 7     | B          | `P2-T009` | Implement Google sign-in and sign-up                                     | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
@@ -633,7 +633,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 | ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status     |
 | --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths, methods and operation names                                                                                                 | `OPEN`     |
+| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/auth/register` approved under `P2-T006` on 2026-09-08; subsequent endpoints pending)             | `OPEN`     |
 | `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Session lifetime (7d), renewal (1d), `SameSite: "lax"`, CSRF and cookie policy approved under `P2-T005` on 2026-09-08                                    | `RESOLVED` |
 | `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy                                                                                      | `OPEN`     |
 | `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN`     |
