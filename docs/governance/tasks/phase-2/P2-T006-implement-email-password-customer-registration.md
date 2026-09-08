@@ -1,7 +1,7 @@
 # Task: P2-T006 - Implement Email/Password Customer Registration
 
-> **Canonical Status:** `🔄` (tracked authoritatively in parent phase file)  
-> **Planning Gate:** Plan Approved -> Blockers Cleared (`P2-B001` for registration) -> `🔄 In Progress`
+> **Canonical Status:** `✅` (tracked authoritatively in parent phase file)  
+> **Closure Date:** 2026-09-08
 
 ---
 
@@ -135,13 +135,13 @@
 
 | Check | Required | Command or Method | Result |
 | :---- | :------- | :---------------- | :----- |
-| Acceptance criteria | `Yes` | Section 2 mapping and diff inspection | `NOT RUN` |
-| Type check / build | `Yes` | `pnpm build` | `NOT RUN` |
-| Lint | `Yes` | `pnpm lint` | `NOT RUN` |
-| Input validation check | `Yes` | Reject invalid email & short password | `NOT RUN` |
-| Duplicate email check | `Yes` | Reject duplicate email with HTTP 409 | `NOT RUN` |
-| Privilege escalation check | `Yes` | Confirm injected `role: "ADMIN"` is ignored/rejected | `NOT RUN` |
-| End-to-end registration | `Yes` | Verify User & Customer database creation and HTTP 201 response | `NOT RUN` |
+| Acceptance criteria | `Yes` | Section 2 mapping and diff inspection | `PASS` |
+| Type check / build | `Yes` | `pnpm build` | `PASS` |
+| Lint | `Yes` | `pnpm lint` | `PASS` |
+| Input validation check | `Yes` | Reject invalid email & short password | `PASS` |
+| Duplicate email check | `Yes` | Reject duplicate email with HTTP 409 | `PASS` |
+| Privilege escalation check | `Yes` | Confirm injected `role: "ADMIN"` is ignored/rejected | `PASS` |
+| End-to-end registration | `Yes` | Verify User & Customer database creation and HTTP 201 response | `PASS` |
 
 ---
 
@@ -149,9 +149,10 @@
  
 - **Active Blockers:** None (Cleared: `P2-B001` approved `POST /api/v1/auth/register` on 2026-09-08).
 - **Design Assumptions:**
-  - Password minimum length is 8 characters with at least one letter and one number.
+  - Password minimum length is 8 characters with at least one lowercase, one uppercase, one number, and one special character.
   - Name minimum length is 2 characters, maximum 100 characters.
   - Response status is HTTP 201 with public user/customer profile data.
+  - Optional profile fields (`contactNumber`, `address`) deferred to profile management task `P2-T024`.
 
 ---
 
@@ -168,10 +169,23 @@
 
 ## 10. Implementation Evidence
 
-_To be completed after code execution and before marking awaiting human review:_
+- **Changed Files:**
+  - `src/app/interfaces/error.interface.ts` (added optional `source` field for validation errors)
+  - `src/app/middleware/validateRequest.ts` (split validation paths into `source` and `field` with `"root"` fallback)
+  - `src/app/modules/auth/auth.validation.ts` (created strict customer registration schema and exported `RegisterCustomerInput`)
+  - `src/app/modules/auth/auth.service.ts` (orchestrated duplicate check, Better Auth `signUpEmail`, and `Customer` record creation with rollback)
+  - `src/app/modules/auth/auth.controller.ts` (handler with `catchAsync`, HTTP 201 response)
+  - `src/app/modules/auth/auth.routes.ts` (mounted `POST /register` with `validateRequest`)
+- **Migration Created:** None (uses existing Prisma schema from Phase 1).
+- **Test / Verification Output:**
+  - `pnpm lint`: Passed (0 errors, 0 warnings).
+  - `pnpm build`: Passed (clean `tsc` output).
+  - Contract check output:
+    - Check 1 - Validation Gate: PASS (400 Bad Request with `{ source: "body", field: "...", message: "..." }`)
+    - Check 2 - Happy Path (201 Created): PASS (User created with `role: "CUSTOMER"`, `status: "ACTIVE"`, `Customer` profile linked)
+    - Check 3 - Duplicate Email Gate (409 Conflict): PASS (`USER_ALREADY_EXISTS` with clear conflict message)
+    - Check 4 - Privilege Escalation Guard: PASS (Payload `{ role: "ADMIN" }` discarded, user registered strictly as `CUSTOMER`)
+- **Deviations from Original Plan:**
+  - Standardized error format in `validateRequest` to `{ source, field, message }` instead of dot-notated string.
+- **Remaining Concerns / Follow-ups:** None. Ready for human review.
 
-- **Changed Files:** Pending
-- **Migration Created:** None expected
-- **Test / Verification Output:** Pending
-- **Deviations from Original Plan:** Pending
-- **Remaining Concerns / Follow-ups:** Pending

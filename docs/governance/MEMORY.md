@@ -19,9 +19,9 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, and `P2-T005` are `✅ Done`. Active task is `P2-T006` (`🔄 In progress`).
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, and `P2-T006` are `✅ Done`.
 - No future phase has approved implementation scope.
-- Active task: `P2-T006` (`🔄 In progress` - Implement Email/Password Customer Registration).
+- Active task: None (Next planning candidate: `P2-T007` - Implement Email Verification and Resend Flow).
 
 ## 2. Current Codebase State
 
@@ -32,12 +32,12 @@
 - Environment loading enforces strict validation via Zod under `src/app/config/env.ts` requiring `NODE_ENV`, `PORT`, `DATABASE_URL` and `FRONTEND_URL`.
 - Prisma Client uses the PostgreSQL adapter.
 - Server lifecycle handling includes startup errors, shutdown signals, unhandled rejections and uncaught exceptions.
-- `/api/v1/auth` is mounted, but it currently has no endpoints; its controller and service are empty.
+- Better Auth is configured behind internal application boundary (`src/app/lib/auth.ts`) with custom database adapter and secure session configuration (`P2-T005`).
+- Public customer registration is implemented at `POST /api/v1/auth/register` (`P2-T006`) with strict Zod validation, Better Auth user creation, atomic/compensated `Customer` record linkage, duplicate check, and privilege escalation prevention.
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
 
-- Better Auth is not configured; dependencies remain subject to `P2-B009` under `P2-T005`.
 - Docker, Jest and Winston are intentionally deferred to project-completion tooling work under `DEC-013`; former Phase 2 IDs `P2-T003` and `P2-T004` are retired.
 - Authentication, sessions, RBAC, ownership and account-status enforcement are not implemented.
 - The test script is an approved temporary failing placeholder under `DEC-013`; current tasks use documented executable/manual verification.
