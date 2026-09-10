@@ -71,11 +71,12 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
               </Text>
 
               <Text className="text-[15px] leading-relaxed text-[#404040] mb-6">
-                Thank you for beginning your journey with Liminal Studio. Use the
-                one-time verification code below to complete your email verification.
+                Thank you for beginning your journey with Liminal Studio. Use
+                the one-time verification code below to complete your email
+                verification.
               </Text>
 
-              {/* Architectural OTP Display Box */}
+              {/* OTP Display Box */}
               <Section className="text-center my-8 bg-[#f6f7f4] border border-[#e2e8dc] rounded-lg py-7 px-4">
                 <Text className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#556b2f] m-0 mb-2">
                   Verification Code
@@ -96,7 +97,7 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
               </Text>
             </Section>
 
-            {/* Architectural Footer */}
+            {/* Studio Footer */}
             <Section className="border-t border-[#f0f0f0] mt-10 pt-6 text-center">
               <Text className="text-[12px] italic font-serif text-[#737373] mb-4">
                 &ldquo;We don&rsquo;t decorate rooms. We compose environments
