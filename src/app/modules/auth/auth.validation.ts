@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-// Validation schema for public customer registration
-const registerValidationSchema = {
+// Schema for public customer registration
+const registerCustomerSchema = {
   body: z.object({
     name: z
       .string({
@@ -47,12 +47,58 @@ const registerValidationSchema = {
   }),
 };
 
-// Inferred input types from validation schemas
-export type RegisterCustomerInput = z.infer<
-  typeof registerValidationSchema.body
->;
+// Schema for requesting customer account verification OTP
+const sendVerificationOtpSchema = {
+  body: z.object({
+    email: z
+      .email({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Email address is required"
+            : "Please provide a valid email address",
+      })
+      .trim()
+      .toLowerCase(),
+  }),
+};
 
-// Export the validation schemas
+// Schema for verifying customer email using 6-digit OTP
+const verifyEmailOtpSchema = {
+  body: z.object({
+    email: z
+      .email({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Email address is required"
+            : "Please provide a valid email address",
+      })
+      .trim()
+      .toLowerCase(),
+
+    otp: z
+      .string({
+        error: (issue) =>
+          issue.input === undefined
+            ? "OTP code is required"
+            : "OTP code must be a valid string",
+      })
+      .trim()
+      .regex(/^\d{6}$/, {
+        error: "Verification code must be exactly 6 digits",
+      }),
+  }),
+};
+
+// Inferred input types from validation schemas
+export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
+export type SendVerificationOtpInput = z.infer<
+  typeof sendVerificationOtpSchema.body
+>;
+export type VerifyEmailOtpInput = z.infer<typeof verifyEmailOtpSchema.body>;
+
+// Export validation schemas
 export const AuthValidation = {
-  registerValidationSchema,
+  registerCustomerSchema,
+  sendVerificationOtpSchema,
+  verifyEmailOtpSchema,
 };

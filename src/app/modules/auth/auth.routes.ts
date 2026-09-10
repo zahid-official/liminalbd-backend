@@ -8,7 +8,7 @@ const router: Router = Router();
 // Customer registration endpoint
 router.post(
   "/register",
-  validateRequest(AuthValidation.registerValidationSchema),
+  validateRequest(AuthValidation.registerCustomerSchema),
   AuthController.registerCustomer,
 );
 
