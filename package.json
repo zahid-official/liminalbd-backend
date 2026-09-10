@@ -30,6 +30,9 @@
     "http-status": "^2.1.0",
     "nodemailer": "^10.0.1",
     "pg": "^8.23.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-email": "^6.9.5",
     "zod": "^4.5.4"
   },
   "devDependencies": {
@@ -40,6 +43,8 @@
     "@types/node": "^26.2.0",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.23.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
     "eslint": "^10.9.0",
     "prisma": "^7.9.1",
     "tsx": "^4.23.12",

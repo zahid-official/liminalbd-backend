@@ -23,8 +23,11 @@
     "moduleDetection": "force",
 
     // Dependency Type Checking
-    "skipLibCheck": true
+    "skipLibCheck": true,
+
+    // JSX Support for React Email Templates
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }
