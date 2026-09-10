@@ -16,6 +16,10 @@ const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day sliding renewal
+    cookieCache: {
+      enabled: true,
+      maxAge: 15 * 60, // 15 minutes in seconds
+    },
   },
 
   advanced: {
@@ -41,10 +45,17 @@ const auth = betterAuth({
     requireEmailVerification: true,
   },
 
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+  },
+
   plugins: [
     emailOTP({
+      overrideDefaultEmailVerification: true,
       otpLength: 6,
       expiresIn: 5 * 60, // 5 minutes in seconds
+      sendVerificationOnSignUp: true,
       async sendVerificationOTP({ email, otp, type }) {
         // Dispatch branded OTP email for unverified user accounts
         if (type === "email-verification") {

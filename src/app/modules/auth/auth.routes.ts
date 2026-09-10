@@ -5,11 +5,27 @@ import { AuthValidation } from "./auth.validation.js";
 
 const router: Router = Router();
 
-// Customer registration endpoint
+// Register customer account
 router.post(
   "/register",
   validateRequest(AuthValidation.registerCustomerSchema),
   AuthController.registerCustomer,
 );
 
-export const AuthRoutes = router;
+// Send verification OTP
+router.post(
+  "/send-verification-otp",
+  validateRequest(AuthValidation.sendVerificationOtpSchema),
+  AuthController.sendVerificationOtp,
+);
+
+// Verify email with OTP
+router.post(
+  "/verify-email-otp",
+  validateRequest(AuthValidation.verifyEmailOtpSchema),
+  AuthController.verifyEmailOtp,
+);
+
+const AuthRoutes = router;
+
+export { AuthRoutes };
