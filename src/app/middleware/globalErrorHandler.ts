@@ -7,6 +7,10 @@ import {
   type PublicErrorCode,
 } from "../errors/errorCodes.js";
 import { handleBetterAuthError } from "../errors/handleBetterAuthError.js";
+import {
+  handlePrismaError,
+  isPrismaError,
+} from "../errors/handlePrismaError.js";
 import type {
   ErrorDetail,
   ErrorResponse,
@@ -25,7 +29,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   let message = "An unexpected internal error occurred.";
   let errors: ErrorDetail[] | undefined = undefined;
 
-  // Application-defined operational errors
+  // 1. Application-defined operational errors
   if (
     error instanceof AppError &&
     error.code !== PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR
@@ -36,12 +40,21 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
     errors = error.errors;
   }
 
-  // Better Auth API errors
+  // 2. Better Auth API errors
   else if (isAPIError(error)) {
     const authError = handleBetterAuthError(error);
     statusCode = authError.statusCode;
     code = authError.code;
     message = authError.message;
+  }
+
+  // 3. Prisma database errors
+  else if (isPrismaError(error)) {
+    const dbError = handlePrismaError(error);
+    statusCode = dbError.statusCode;
+    code = dbError.code;
+    message = dbError.message;
+    errors = dbError.errors;
   }
 
   // Unexpected runtime errors

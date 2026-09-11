@@ -141,6 +141,16 @@ Application services must enforce account status rules **before and after** dele
 - **Boundary Rule:** Prisma must only be accessed through repository boundaries (`*.repository.ts`) or approved application infrastructure. Controllers and business services must not import `prisma` directly.
 - **Enum Rule:** Always import and compare generated Prisma enum constants (e.g. `UserStatus.SUSPENDED`, `UserRole.CUSTOMER`) rather than raw string literals.
 - **Output Rule:** Generated Prisma files in `src/generated/` are read-only and must never be edited by hand.
+- **Error Resolution (`handlePrismaError.ts`):** Prisma ORM errors are caught at `globalErrorHandler` and transformed into standard `AppError` instances without leaking internal database, table, or query details:
+  - `PrismaClientKnownRequestError`:
+    - `P2002` (Unique constraint violation) -> `409 CONFLICT` ("A record with this identifier already exists")
+    - `P2003` (Foreign key constraint violation) -> `400 VALIDATION_ERROR` ("Referenced relationship does not exist")
+    - `P2004` (Database constraint condition failed) -> `400 VALIDATION_ERROR` ("Database constraint condition failed")
+    - `P2006` (Invalid value for field type) -> `400 VALIDATION_ERROR` ("Provided value is invalid for database field")
+    - `P2025` (Record not found for operation) -> `404 ROUTE_NOT_FOUND` ("The requested record was not found")
+    - Unmapped query constraint codes -> `400 VALIDATION_ERROR` ("Database request constraint violation")
+  - `PrismaClientValidationError` -> `400 VALIDATION_ERROR` ("Invalid query arguments provided to database")
+  - `PrismaClientInitializationError` -> `500 INTERNAL_SERVER_ERROR` ("Database connectivity error")
 
 ---
 
