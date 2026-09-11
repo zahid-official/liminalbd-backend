@@ -158,8 +158,9 @@ Never invent requirements, business rules, API behavior, database structure or s
 | `03-CODING-STANDARDS.md`  | Code style and implementation conventions            |
 | `04-RULES.md`             | Hard rules and prohibited behavior                   |
 | `05-TASK-WORKFLOW.md`     | Task execution, review, approval, and update process |
-| `06-PHASE-ROADMAP.md`     | Phase status and active phase                        |
-| `MEMORY.md`               | Condensed current state of the codebase              |
+| `06-PHASE-ROADMAP.md`                  | Phase status and active phase                        |
+| `07-TECHNOLOGY-INTEGRATIONS-GUIDE.md` | Core tech & provider integration standards (Better Auth, Prisma, etc.) |
+| `MEMORY.md`                            | Condensed current state of the codebase              |
 | `DECISIONS.md`            | Durable decisions and rationale                      |
 | `docs/governance/phases/` | Phase-level execution plans, scope, and status       |
 | `docs/governance/tasks/`  | Persistent JIT task implementation plans & evidence  |
