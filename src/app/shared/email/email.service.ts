@@ -41,13 +41,14 @@ const sendEmail = async ({
 }: SendEmailOptions): Promise<void> => {
   try {
     const emailHtml = await render(template);
+    const plainText = text || (await render(template, { plainText: true }));
 
     const mailOptions = {
       from: `Liminal Studio <${env.SMTP_FROM || env.SMTP_USER || "noreply@liminalstudio.com"}>`,
       to,
       subject,
       html: emailHtml,
-      ...(text ? { text } : {}),
+      text: plainText,
       ...(attachments && attachments.length > 0 ? { attachments } : {}),
     };
 
