@@ -42,13 +42,20 @@ const sendEmail = async ({
   try {
     const emailHtml = await render(template);
     const plainText = text || (await render(template, { plainText: true }));
+    const senderEmail = env.SMTP_FROM || env.SMTP_USER || "noreply@liminalstudio.com";
 
     const mailOptions = {
-      from: `Liminal Studio <${env.SMTP_FROM || env.SMTP_USER || "noreply@liminalstudio.com"}>`,
+      from: `Liminal Studio <${senderEmail}>`,
       to,
+      replyTo: senderEmail,
       subject,
       html: emailHtml,
       text: plainText,
+      headers: {
+        "X-Priority": "1", // High priority transactional OTP
+        "X-MSMail-Priority": "High",
+        Importance: "High",
+      },
       ...(attachments && attachments.length > 0 ? { attachments } : {}),
     };
 

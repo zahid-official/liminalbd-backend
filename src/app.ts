@@ -47,6 +47,31 @@ app.get("/", (_req: Request, res: Response) => {
 // Application Routes
 app.use("/api/v1", RootRouter);
 
+// Development Only: Live Email Preview Route (Zero sending, instant browser HMR)
+if (env.NODE_ENV === "development") {
+  app.get("/dev/email-preview", async (_req: Request, res: Response) => {
+    try {
+      const { render } = await import("react-email");
+      const React = (await import("react")).default;
+      const { VerificationEmail } = await import(
+        "./app/shared/email/templates/VerificationEmail.js"
+      );
+
+      const html = await render(
+        React.createElement(VerificationEmail, {
+          name: "Zahidul Islam",
+          otp: "379828",
+        }),
+      );
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch (error) {
+      res.status(500).send(`<h3>Failed to render email preview:</h3><pre>${String(error)}</pre>`);
+    }
+  });
+}
+
 // Not Found Handler
 app.use(notFoundErrorHandler);
 
