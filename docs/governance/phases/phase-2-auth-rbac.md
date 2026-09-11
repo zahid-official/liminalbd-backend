@@ -145,7 +145,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
 | 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
 | 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `✅`   | `P2-T005`                       | None                                         |
-| 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `🔲`   | `P2-T006`                       | `P2-B001`                                    |
+| 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `✅`   | `P2-T006`                       | None                                         |
 | 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔲`   | `P2-T005`, `P2-T006`            | `P2-B001`                                    |
 | 7     | B          | `P2-T009` | Implement Google sign-in and sign-up                                     | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
 | 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔲`   | `P2-T005`, `P2-T008`            | None                                         |
@@ -276,7 +276,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Provider-mocked flow and token/error mapping checks.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-11)
 
 #### P2-T008: Implement Login with Account-Status and Rate-Limit Enforcement
 

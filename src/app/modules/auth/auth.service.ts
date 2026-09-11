@@ -24,7 +24,7 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
       "User with this email already exists",
     );
   }
-  
+
   const authResult = await auth.api.signUpEmail({
     body: {
       name,
@@ -115,6 +115,25 @@ const sendVerificationOtp = async (payload: SendVerificationOtpInput) => {
 const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
   const { email, otp } = payload;
 
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, emailVerified: true },
+  });
+  if (!existingUser) {
+    throw new AppError(
+      status.NOT_FOUND,
+      PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+      "No account found with this email address",
+    );
+  }
+  if (existingUser.emailVerified) {
+    throw new AppError(
+      status.BAD_REQUEST,
+      PUBLIC_ERROR_CODES.ALREADY_VERIFIED,
+      "Your account is already verified. Please sign in.",
+    );
+  }
+
   // Verify OTP with Better Auth emailOTP plugin
   try {
     const result = await auth.api.verifyEmailOTP({
@@ -135,6 +154,8 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
     if (error instanceof AppError) {
       throw error;
     }
+
+    // Map Better Auth plugin validation failure to standardized application error
     throw new AppError(
       status.BAD_REQUEST,
       PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,

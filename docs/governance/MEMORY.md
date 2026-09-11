@@ -19,9 +19,9 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, and `P2-T006` are `✅ Done`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, and `P2-T007` are `✅ Done`.
 - No future phase has approved implementation scope.
-- Active task: None (Next planning candidate: `P2-T007` - Implement Email Verification and Resend Flow).
+- Active task: None (Next planning candidate: `P2-T008` - Implement Login with Account-Status and Rate-Limit Enforcement).
 
 ## 2. Current Codebase State
 
@@ -32,8 +32,9 @@
 - Environment loading enforces strict validation via Zod under `src/app/config/env.ts` requiring `NODE_ENV`, `PORT`, `DATABASE_URL` and `FRONTEND_URL`.
 - Prisma Client uses the PostgreSQL adapter.
 - Server lifecycle handling includes startup errors, shutdown signals, unhandled rejections and uncaught exceptions.
-- Better Auth is configured behind internal application boundary (`src/app/lib/auth.ts`) with custom database adapter and secure session configuration (`P2-T005`).
+- Better Auth is configured behind internal application boundary (`src/app/config/auth.ts`) with custom database adapter, secure session configuration (`P2-T005`), and `emailOTP` plugin with 15-minute `cookieCache` (`P2-T007`).
 - Public customer registration is implemented at `POST /api/v1/auth/register` (`P2-T006`) with strict Zod validation, Better Auth user creation, atomic/compensated `Customer` record linkage, duplicate check, and privilege escalation prevention.
+- Email verification and OTP subsystem is established (`P2-T007`): standalone universal transport `sendEmail` (`src/app/shared/email/email.service.ts`), branded React Email OTP template `VerificationEmail.tsx`, dedicated `AuthMailer` (`src/app/shared/email/mailers/auth.mailer.ts`), and endpoints `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp`.
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
