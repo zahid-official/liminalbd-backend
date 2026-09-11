@@ -89,16 +89,42 @@ const verifyEmailOtpSchema = {
   }),
 };
 
+// Schema for customer authentication login
+const loginSchema = {
+  body: z.object({
+    email: z
+      .email({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Email address is required"
+            : "Please provide a valid email address",
+      })
+      .trim()
+      .toLowerCase(),
+
+    password: z
+      .string({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Password is required"
+            : "Password must be a valid text string",
+      })
+      .min(1, { error: "Password cannot be empty" }),
+  }),
+};
+
 // Inferred input types from validation schemas
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
 export type SendVerificationOtpInput = z.infer<
   typeof sendVerificationOtpSchema.body
 >;
 export type VerifyEmailOtpInput = z.infer<typeof verifyEmailOtpSchema.body>;
+export type LoginInput = z.infer<typeof loginSchema.body>;
 
 // Export validation schemas
 export const AuthValidation = {
   registerCustomerSchema,
   sendVerificationOtpSchema,
   verifyEmailOtpSchema,
+  loginSchema,
 };
