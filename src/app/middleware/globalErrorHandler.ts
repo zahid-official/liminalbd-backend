@@ -1,3 +1,4 @@
+import { isAPIError } from "better-auth/api";
 import type { ErrorRequestHandler } from "express";
 import status from "http-status";
 import { AppError } from "../errors/AppError.js";
@@ -5,6 +6,7 @@ import {
   PUBLIC_ERROR_CODES,
   type PublicErrorCode,
 } from "../errors/errorCodes.js";
+import { handleBetterAuthError } from "../errors/handleBetterAuthError.js";
 import type {
   ErrorDetail,
   ErrorResponse,
@@ -23,7 +25,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   let message = "An unexpected internal error occurred.";
   let errors: ErrorDetail[] | undefined = undefined;
 
-  // Handle known client-safe operational errors (excluding reserved internal server errors)
+  // Application-defined operational errors
   if (
     error instanceof AppError &&
     error.code !== PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR
@@ -34,6 +36,21 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
     errors = error.errors;
   }
 
+  // Better Auth API errors
+  else if (isAPIError(error)) {
+    const authError = handleBetterAuthError(error);
+    statusCode = authError.statusCode;
+    code = authError.code;
+    message = authError.message;
+  }
+
+  // Unexpected runtime errors
+  else {
+    // eslint-disable-next-line no-console
+    console.error("Unhandled runtime error:", error);
+  }
+
+  // Final unified response format
   const responseBody: ErrorResponse = {
     success: false,
     message,

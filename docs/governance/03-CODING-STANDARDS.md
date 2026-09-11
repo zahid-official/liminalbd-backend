@@ -21,7 +21,7 @@
 - Prefer `unknown` for untrusted values, then narrow safely.
 - Use `type` or `interface` according to actual responsibility.
 - Do not add an `I` prefix to interface names.
-- Reuse Prisma-generated types, inputs and enums when they already provide the required contract.
+- Reuse Prisma-generated types, inputs and enums when they already provide the required contract. Across all application modules and domain entities (e.g., status, role, audit actions, order statuses, product states), always import and use Prisma enum objects/constants (e.g., `UserStatus.SUSPENDED`, `UserRole.CUSTOMER`) rather than raw magic string literals whenever comparing, filtering, or assigning enum field values.
 - Create module-specific interfaces or types only when they add a real application-level contract.
 - Avoid duplicating Prisma model types without a clear reason.
 

@@ -1,15 +1,17 @@
 import status from "http-status";
+import { UserStatus } from "../../../generated/prisma/enums.js";
 import { auth } from "../../config/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import type {
+  LoginInput,
   RegisterCustomerInput,
   SendVerificationOtpInput,
   VerifyEmailOtpInput,
 } from "./auth.validation.js";
 
-// Register public customer account and persist associated customer profile
+// Register customer account
 const registerCustomer = async (payload: RegisterCustomerInput) => {
   const { name, email, password } = payload;
 
@@ -41,7 +43,7 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
     );
   }
 
-  // Create Customer profile with compensating rollback if profile creation fails
+  // Create Customer profile with compensating rollback
   try {
     const customerProfile = await prisma.customer.create({
       data: {
@@ -74,7 +76,7 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
   }
 };
 
-// Generate and dispatch a fresh 6-digit email verification OTP
+// Send verification OTP to user's email
 const sendVerificationOtp = async (payload: SendVerificationOtpInput) => {
   const { email } = payload;
 
@@ -111,7 +113,7 @@ const sendVerificationOtp = async (payload: SendVerificationOtpInput) => {
   };
 };
 
-// Verify 6-digit OTP and activate user account
+// Verify email OTP
 const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
   const { email, otp } = payload;
 
@@ -119,6 +121,7 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
     where: { email },
     select: { id: true, emailVerified: true },
   });
+
   if (!existingUser) {
     throw new AppError(
       status.NOT_FOUND,
@@ -126,6 +129,7 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
       "No account found with this email address",
     );
   }
+
   if (existingUser.emailVerified) {
     throw new AppError(
       status.BAD_REQUEST,
@@ -134,34 +138,12 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
     );
   }
 
-  // Verify OTP with Better Auth emailOTP plugin
-  try {
-    const result = await auth.api.verifyEmailOTP({
-      body: {
-        email,
-        otp,
-      },
-    });
-
-    if (!result?.status) {
-      throw new AppError(
-        status.BAD_REQUEST,
-        PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,
-        "Invalid or expired verification code",
-      );
-    }
-  } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    // Map Better Auth plugin validation failure to standardized application error
-    throw new AppError(
-      status.BAD_REQUEST,
-      PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,
-      "Invalid or expired verification code",
-    );
-  }
+  await auth.api.verifyEmailOTP({
+    body: {
+      email,
+      otp,
+    },
+  });
 
   // Synchronize database state ensuring emailVerified is set to true
   const updatedUser = await prisma.user.update({
@@ -182,10 +164,84 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
   return updatedUser;
 };
 
+// Login user account
+const login = async (payload: LoginInput, headers: Headers) => {
+  const { email, password } = payload;
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      emailVerified: true,
+      status: true,
+      deletedAt: true,
+    },
+  });
+
+  // Prevent email enumeration for missing or soft-deleted accounts
+  if (!existingUser || existingUser.deletedAt !== null) {
+    throw new AppError(
+      status.UNAUTHORIZED,
+      PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
+      "Invalid email or password",
+    );
+  }
+
+  if (!existingUser.emailVerified) {
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED,
+      "Please verify your email before logging in",
+    );
+  }
+
+  if (existingUser.status === UserStatus.SUSPENDED) {
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,
+      "Your account has been suspended. Please contact support.",
+    );
+  }
+
+  if (existingUser.status === UserStatus.DEACTIVATED) {
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
+      "Your account is deactivated. Please contact support.",
+    );
+  }
+
+  const { headers: authHeaders, response: authResult } =
+    await auth.api.signInEmail({
+      body: {
+        email,
+        password,
+      },
+      headers,
+      returnHeaders: true,
+    });
+
+  const setCookie = authHeaders.get("set-cookie");
+
+  return {
+    user: {
+      id: authResult.user.id,
+      name: authResult.user.name,
+      email: authResult.user.email,
+      emailVerified: authResult.user.emailVerified,
+      role: authResult.user.role,
+      status: authResult.user.status,
+    },
+    setCookie,
+  };
+};
+
 const AuthService = {
   registerCustomer,
   sendVerificationOtp,
   verifyEmailOtp,
+  login,
 };
 
 export { AuthService };
