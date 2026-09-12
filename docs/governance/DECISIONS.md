@@ -20,6 +20,18 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-016: Structured Validation Error Detail Contract with Explicit Source and Field Separation
+
+**Recorded:** 2026-09-12
+**Status:** `ACCEPTED`
+**Supersedes:** `DEC-014` (partially: supersedes the dot-notated validation issue path string convention)
+
+**Decision:** Structure validation error details within the public error envelope's `errors` array as discrete objects containing `source` (`"body" | "params" | "query"`), `field` (string identifying the specific target property, e.g. `"email"`, or `"root"` for schema-level issues), and `message` (string). For non-validation error details (such as database unique constraint conflicts), `source` remains optional (`source?: string`).
+
+**Why:** The previous dot-concatenated convention (`"body.<path>"`, `"params.<path>"`) forced frontend consumers to parse or strip transport source prefixes before binding errors to UI form inputs. Separating `source` and `field` cleanly provides structured metadata for API clients while maintaining consistency with database error representations where no transport source exists.
+
+**Consequences:** `ErrorDetail` provides `source?: string`, `field: string`, and `message: string`. Zod validation middleware emits structured objects with explicit `source` and `field`. `03-CODING-STANDARDS.md` is updated to reflect this structured format. The core error envelope (`success`, `message`, `code`, `errors`) and `res.locals.validated` contract established by `DEC-014` remain fully in force.
+
 ### DEC-015: Squash Phase 2 Pre-Production Migrations into Unified Canonical Baseline
 
 **Recorded:** 2026-09-12
@@ -34,9 +46,9 @@ Statuses:
 ### DEC-014: Standardize Public Error Envelope, Stable Application Error Codes, and Typed Validated-Input Locals Contract
 
 **Recorded:** 2026-09-06
-**Status:** `ACCEPTED`
+**Status:** `ACCEPTED` (partially superseded by `DEC-016` regarding validation issue path formatting)
 
-**Decision:** Standardize the public error JSON envelope across the backend to require `success` (false), `message` (string), and `code` (string), with an optional `errors` array of field-level details (`field`, `message`). Establish an initial public error-code registry containing `VALIDATION_ERROR`, `ROUTE_NOT_FOUND`, and `INTERNAL_SERVER_ERROR`. Keep startup configuration errors typed internally (`CONFIGURATION_ERROR`) without public HTTP exposure. Validate request inputs at the middleware layer using Zod, and pass parsed/normalized data to controllers exclusively via a typed Express response locals contract (`res.locals.validated` / `ValidatedLocals<T>`) rather than mutating `req.body`, `req.params`, or `req.query`. Deterministically qualify validation issue paths by their request source (`body.<path>`, `params.<path>`, `query.<path>`).
+**Decision:** Standardize the public error JSON envelope across the backend to require `success` (false), `message` (string), and `code` (string), with an optional `errors` array of field-level details (`field`, `message`). Establish an initial public error-code registry containing `VALIDATION_ERROR`, `ROUTE_NOT_FOUND`, and `INTERNAL_SERVER_ERROR`. Keep startup configuration errors typed internally (`CONFIGURATION_ERROR`) without public HTTP exposure. Validate request inputs at the middleware layer using Zod, and pass parsed/normalized data to controllers exclusively via a typed Express response locals contract (`res.locals.validated` / `ValidatedLocals<T>`) rather than mutating `req.body`, `req.params`, or `req.query`. Deterministically qualify validation issue paths by their request source (`body.<path>`, `params.<path>`, `query.<path>`). Note: Validation issue path formatting is superseded by `DEC-016` to provide discrete `source` and `field` attributes.
 
 **Why:** The previous error response structure allowed inconsistent field names and dev-mode stack trace leakage, violating security and contract stability standards. Passing validated input through `res.locals.validated` guarantees that controllers operate on sanitized and schema-coerced data while leaving Express request objects untouched.
 

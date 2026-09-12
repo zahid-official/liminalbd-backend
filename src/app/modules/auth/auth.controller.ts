@@ -4,10 +4,16 @@ import status from "http-status";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { AuthService } from "./auth.service.js";
+import type {
+  LoginInput,
+  RegisterCustomerInput,
+  SendVerificationOtpInput,
+  VerifyEmailOtpInput,
+} from "./auth.validation.js";
 
 // Register customer account
 const registerCustomer = catchAsync(async (_req: Request, res: Response) => {
-  const payload = res.locals.validated.body;
+  const payload = res.locals.validated?.body as RegisterCustomerInput;
   const result = await AuthService.registerCustomer(payload);
 
   sendResponse(res, {
@@ -19,7 +25,7 @@ const registerCustomer = catchAsync(async (_req: Request, res: Response) => {
 
 // Send verification OTP
 const sendVerificationOtp = catchAsync(async (_req: Request, res: Response) => {
-  const payload = res.locals.validated.body;
+  const payload = res.locals.validated?.body as SendVerificationOtpInput;
   const result = await AuthService.sendVerificationOtp(payload);
 
   sendResponse(res, {
@@ -31,7 +37,7 @@ const sendVerificationOtp = catchAsync(async (_req: Request, res: Response) => {
 
 // Verify email using provided OTP
 const verifyEmailOtp = catchAsync(async (_req: Request, res: Response) => {
-  const payload = res.locals.validated.body;
+  const payload = res.locals.validated?.body as VerifyEmailOtpInput;
   const result = await AuthService.verifyEmailOtp(payload);
 
   sendResponse(res, {
@@ -43,7 +49,7 @@ const verifyEmailOtp = catchAsync(async (_req: Request, res: Response) => {
 
 // Login with email and password credentials
 const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated.body;
+  const payload = res.locals.validated?.body as LoginInput;
   const headers = fromNodeHeaders(req.headers);
   const result = await AuthService.loginWithCredentials(payload, headers);
 
@@ -58,12 +64,10 @@ const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const AuthController = {
+// Export auth controller
+export const AuthController = {
   registerCustomer,
   sendVerificationOtp,
   verifyEmailOtp,
   loginWithCredentials,
 };
-
-export { AuthController };
-

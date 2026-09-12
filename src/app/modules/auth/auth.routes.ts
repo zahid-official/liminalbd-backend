@@ -33,5 +33,5 @@ router.post(
   AuthController.loginWithCredentials,
 );
 
-const AuthRoutes = router;
-export { AuthRoutes };
+// Export auth routes
+export const AuthRoutes = router;

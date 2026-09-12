@@ -6,9 +6,9 @@ import type {
 
 // Standardized HTTP success response helper
 const sendResponse = <T>(
-  res: Response,
+  res: Response<SuccessResponse<T>>,
   options: SendResponseOptions<T>,
-): Response<SuccessResponse<T>> => {
+) => {
   const { statusCode, message, data, meta } = options;
 
   const responseBody: SuccessResponse<T> = {
@@ -21,9 +21,7 @@ const sendResponse = <T>(
     responseBody.meta = meta;
   }
 
-  return res.status(statusCode).json(responseBody) as Response<
-    SuccessResponse<T>
-  >;
+  return res.status(statusCode).json(responseBody);
 };
 
 export { sendResponse };

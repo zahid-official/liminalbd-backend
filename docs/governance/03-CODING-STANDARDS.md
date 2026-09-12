@@ -93,7 +93,10 @@ Separate groups with one blank line.
 
 Also:
 
-- Prefer named exports for controllers, services and repositories.
+- Prefer named exports across all files. Follow the approved 3-tier export conventions:
+  1. **Modular files (`.service.ts`, `.controller.ts`, `.routes.ts`, `.repository.ts`):** Export directly inline at declaration time (e.g., `export const AuthService = { ... };`, `export const AuthRoutes = router;`).
+  2. **Helper / Utility / Mailer files (`sendResponse.ts`, `catchAsync.ts`, `auth.mailer.ts`):** Declare first and export via bottom named export block (e.g., `const sendResponse = ...; export { sendResponse };`, `const AuthMailer = ...; export { AuthMailer };`).
+  3. **Constants, Types & Interfaces:** Export directly inline at declaration time (e.g., `export const PUBLIC_ERROR_CODES = ... as const;`, `export type PublicErrorCode = ...;`, `export interface SendVerificationOtpParams { ... }`).
 - Remove unused imports and dead dependencies.
 - Use explicit `.js` extensions for relative TypeScript/ESM imports (e.g., `import { env } from "./config/env.js";`, `import { AuthService } from "./auth.service.js";`) in compliance with Node.js native ESM (`"type": "module"`).
 - Respect the dependency direction in `02-ARCHITECTURE.md`.
@@ -106,8 +109,8 @@ Also:
 
 - Validate all externally supplied body, params, query and relevant external payloads at the application boundary.
 - Use Zod and the shared validation mechanism.
-- Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers must read from `res.locals.validated` rather than unvalidated raw input.
-- Format validation issue fields with source-qualified paths (e.g., `body.email`, `params.id`, `query.page`).
+- Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers read typed input using typed response locals (e.g., `res.locals.validated?.body as InputType`) rather than unvalidated raw input.
+- Structure validation issue details with separated source and clean field names (e.g., `source: "body"`, `field: "email"`), adhering to `DEC-016`.
 - Keep schemas aligned with approved requirements.
 - Do not duplicate the same validation rule across layers without a boundary-specific reason.
 - Never trust client-supplied role, ownership, account status or privileged flags.
@@ -205,7 +208,8 @@ Use the shared response helper (`sendResponse` from `src/app/utils/`). Do not re
   "code": "VALIDATION_ERROR",
   "errors": [
     {
-      "field": "body.email",
+      "source": "body",
+      "field": "email",
       "message": "Invalid email format"
     }
   ]
@@ -213,7 +217,7 @@ Use the shared response helper (`sendResponse` from `src/app/utils/`). Do not re
 ```
 
 - `code` is required and represents a stable application error code (adhering to `DEC-014`).
-- `errors` is optional and is included when field-level or multiple validation details are useful.
+- `errors` is optional and is included when field-level or multiple validation details are useful (containing `field`, `message`, and optional `source`, adhering to `DEC-016`).
 - Unexpected errors must serialize as HTTP 500 with `code: "INTERNAL_SERVER_ERROR"` and a generic message.
 - Do not expose stack traces, internal implementation details, or debug info through the response contract in any environment.
 

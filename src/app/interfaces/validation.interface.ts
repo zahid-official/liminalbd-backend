@@ -1,3 +1,4 @@
+import type { Response } from "express";
 import type { z } from "zod";
 
 // Schema definition for request validation supporting optional body, params, and query
@@ -18,3 +19,7 @@ export type ValidatedRequest<TSchema extends RequestValidationSchema> = {
 export interface ValidatedLocals<TSchema extends RequestValidationSchema> {
   validated: ValidatedRequest<TSchema>;
 }
+
+// Convenient typed Response alias for controllers binding directly to validation schemas
+export type ValidatedResponse<TSchema extends RequestValidationSchema> =
+  Response<unknown, ValidatedLocals<TSchema>>;

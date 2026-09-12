@@ -237,11 +237,10 @@ const loginWithCredentials = async (payload: LoginInput, headers: Headers) => {
   };
 };
 
-const AuthService = {
+// Export auth service
+export const AuthService = {
   registerCustomer,
   sendVerificationOtp,
   verifyEmailOtp,
   loginWithCredentials,
 };
-
-export { AuthService };
