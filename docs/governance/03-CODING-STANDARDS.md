@@ -109,7 +109,7 @@ Also:
 
 - Validate all externally supplied body, params, query and relevant external payloads at the application boundary.
 - Use Zod and the shared validation mechanism.
-- Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers read typed input using typed response locals (e.g., `res.locals.validated?.body as InputType`) rather than unvalidated raw input.
+- Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers read validated input using typed assertions (e.g., `res.locals.validated?.body as InputType`) rather than unvalidated raw input.
 - Structure validation issue details with separated source and clean field names (e.g., `source: "body"`, `field: "email"`), adhering to `DEC-016`.
 - Keep schemas aligned with approved requirements.
 - Do not duplicate the same validation rule across layers without a boundary-specific reason.

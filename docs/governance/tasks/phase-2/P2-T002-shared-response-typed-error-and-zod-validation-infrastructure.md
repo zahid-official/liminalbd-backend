@@ -1,7 +1,8 @@
 # Task: P2-T002 - Establish Shared Response, Typed-Error and Zod Validation Infrastructure
 
 > **Canonical Status:** `✅ Done` (tracked authoritatively in the parent phase file)  
-> **Planning Gate:** Draft Plan -> Human Approval -> Clear Blockers -> `🔄 In Progress` -> `🕵️ Awaiting Human Review` -> `✅ Done`
+> **Planning Gate:** Draft Plan -> Human Approval -> Clear Blockers -> `🔄 In Progress` -> `🕵️ Awaiting Human Review` -> `✅ Done`  
+> **Post-Closure Reconciliation Note (2026-09-12):** Under [DEC-016](../../DECISIONS.md#dec-016-structured-validation-error-detail-contract-with-explicit-source-and-field-separation) (partially superseding [DEC-014](../../DECISIONS.md#dec-014-standardize-public-error-envelope-stable-application-error-codes-and-typed-validated-input-locals-contract)), the validation issue path convention shown historically in this document (`"field": "body.email"`) was superseded by structured source/field separation: `{ "source": "body" | "params" | "query", "field": string, "message": string }`. The active runtime implementation and [03-CODING-STANDARDS.md](../../03-CODING-STANDARDS.md) reflect DEC-016.
 
 ---
 
@@ -359,4 +360,4 @@ Use only `PASS`, `FAIL` or `NOT RUN`, with a reason when an applicable check doe
   - `pnpm lint`: PASS (ESLint passes with 0 warnings/errors)
   - Runtime contract verification: Verified `sendResponse` data/meta structure, `catchAsync` promise rejection/sync throw forwarding, `validateRequest` source-qualified errors (`body.`, `params.`, `query.`) with `res.locals.validated` handoff, and `globalErrorHandler` safe sanitization of internal server errors.
 - **Deviations from Original Plan:** None.
-- **Remaining Concerns / Follow-ups:** None. P2-T005 will build upon these validation and error boundaries.
+- **Remaining Concerns / Follow-ups:** None for initial closure. Post-closure update: see DEC-016 for structured validation issue format refinement.
