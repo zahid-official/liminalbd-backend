@@ -1,7 +1,7 @@
 # Task: P2-T001 - Establish the Phase 2 Prisma Schema and Initial Migration Baseline
 
-> **Canonical Status:** `🔲` → `🔄` → `🕵️` → `✅` (tracked authoritatively in the parent phase file)
-> **Planning Gate:** Draft Plan → Human Approval → `🔄 In Progress`
+> **Canonical Status:** `✅ Done` (tracked authoritatively in the parent phase file)
+> **Planning Gate:** Draft Plan → Human Approval → `🔄 In progress` → Implementation & Verification Complete → `🕵️ Awaiting human review` → `✅ Done`
 
 ---
 
@@ -67,7 +67,7 @@ The following field contract is the approved implementation contract for this ta
 | `User` → `AuditLog` | One-to-many through optional `AuditLog.actorId` | `onDelete: SetNull`  |
 
 - `User`, `Account`, `Session` and `Verification` IDs have no Prisma database default. Better Auth supplies their IDs when its approved integration is implemented.
-- `AuditLog.id` uses the ERD-defined UUID database default.
+- `AuditLog.id` uses the ERD-defined Prisma Client-generated UUID default (`@default(uuid())`).
 - `Admin.userId` and `Customer.userId` are both primary and foreign keys.
 - Prisma model and field names follow the ERD. Do not add physical table or column mappings unless an approved requirement requires them.
 - Add only uniqueness rules explicitly required by the ERD: `User.email` and `Session.token`. Do not add speculative indexes in this baseline.
@@ -100,7 +100,7 @@ The following field contract is the approved implementation contract for this ta
 - `prisma/schema/schema.prisma` contains the PostgreSQL datasource and Prisma Client generator; its relative output resolves to `src/generated/prisma`.
 - The former root-level `prisma/schema.prisma` and generated client based on the discarded test schema have been removed. Successful generation in Step 5 must recreate the client from the approved Phase 2 schema.
 - `src/app/config/prisma.ts` imports the generated client and uses `@prisma/adapter-pg`.
-- Better Auth is not installed or configured.
+- At the time of `P2-T001`, Better Auth was not installed or configured; it was subsequently configured and verified under `P2-T005`.
 - Legacy test migration files are absent from the repository.
 - The database inspected and reset for `DEC-011` had zero migration records and no business tables. That observation does not prove that another developer's current `DATABASE_URL` is safe to migrate.
 - The test script is an approved temporary failing placeholder under `DEC-013`.
@@ -207,35 +207,46 @@ Use only `PASS`, `FAIL` or `NOT RUN`, with a reason when a required or applicabl
   - `prisma.config.ts` (schema root changed to `prisma/schema`)
   - `prisma/schema.prisma` (superseded root-level schema removed)
   - `prisma/schema/schema.prisma` (new directory-based datasource and generator entry)
-  - `prisma/schema/auth.prisma` (new: `User`, `Account`, `Session`, `Verification`, `UserRole`, `UserStatus`)
-  - `prisma/schema/profiles.prisma` (new: `Admin`, `Customer`)
-  - `prisma/schema/audit.prisma` (new: `AuditLog`, `AuditAction`, `AuditEntityType`)
-  - `prisma/migrations/20260906064109_init_phase_2/migration.sql` (generated canonical migration)
+  - `prisma/schema/auth.prisma` (new: `User`, `Account`, `Session`, `Verification`, `UserRole`, `UserStatus` with canonical `@@map`)
+  - `prisma/schema/profiles.prisma` (new: `Admin`, `Customer` with canonical `@@map`)
+  - `prisma/schema/audit.prisma` (new: `AuditLog`, `AuditAction`, `AuditEntityType` with canonical `@@map`)
+  - `prisma/migrations/20260912090148_init/migration.sql` (canonical initial migration baseline under `DEC-015`)
   - `prisma/migrations/migration_lock.toml` (generated lock file)
   - `src/generated/prisma/**` (legacy tracked output removed; Phase 2 client regenerated locally and intentionally Git-ignored)
   - `Dockerfile` (deleted by explicit human direction; Docker configuration deferred)
   - `.dockerignore` (deleted by explicit human direction)
   - `docs/governance/02-ARCHITECTURE.md` (current root layout reconciled)
   - `docs/governance/phases/phase-1-foundation.md` (container state reconciled)
-  - `docs/governance/DECISIONS.md` (`DEC-012` recorded)
-  - `docs/governance/MEMORY.md` (current Docker boundary recorded)
+  - `docs/governance/DECISIONS.md` (`DEC-012`, `DEC-015` recorded)
+  - `docs/governance/MEMORY.md` (current Docker boundary and canonical migration recorded)
   - `docs/governance/phases/phase-2-auth-rbac.md` (task status tracking)
   - `docs/governance/tasks/phase-2/P2-T001-phase-2-prisma-schema-and-initial-migration-baseline.md` (implementation plan & evidence)
-- **Migration Created:** `20260906064109_init_phase_2`
+- **Migration Created / Canonical Baseline:** `20260912090148_init` (reconciled and canonicalized under `DEC-015`)
 - **Database Target Classification:** Isolated developer PostgreSQL database (`db.prisma.io:5432/postgres`)
-- **Pre-Migration Safety Evidence:** Pre-migration inspection verified only `_prisma_migrations` existed with 0 migration rows and 0 business tables. No unmanaged application data was present.
+- **Pre-Migration Safety Evidence (Historical 2026-09-06):** Pre-migration inspection verified only `_prisma_migrations` existed with 0 migration rows and 0 business tables. No unmanaged application data was present. (Subsequent pre-production squash and dev database reset executed under `DEC-015` on 2026-09-12).
 - **Verification Results:**
   - `pnpm exec prisma format`: PASS (`Formatted prisma\schema in 15ms 🚀`)
   - `pnpm exec prisma validate`: PASS (`The schemas at prisma\schema are valid 🚀`)
-  - `pnpm exec prisma migrate dev --name init_phase_2`: PASS (`Applying migration 20260906064109_init_phase_2`, `Your database is now in sync with your schema.`)
+  - `pnpm exec prisma migrate dev --name init`: PASS (`Applying migration 20260912090148_init`, `Your database is now in sync with your schema.`)
   - `pnpm exec prisma generate`: PASS (`Generated Prisma Client (7.9.1) to .\src\generated\prisma`)
-  - `pnpm build`: PASS (`tsc` exited with code 0)
+  - `pnpm build`: PASS (`prisma generate && tsc` completed with exit code 0)
   - `pnpm lint`: PASS (`eslint ./src` exited with code 0)
   - `pnpm exec prisma migrate status`: PASS (`1 migration found in prisma/migrations`, `Database schema is up to date!`)
 - **Database Integrity Evidence:**
-  - PostgreSQL catalog inspection confirmed tables: `Account`, `Admin`, `AuditLog`, `Customer`, `Session`, `User`, `Verification`, `_prisma_migrations`.
+  - PostgreSQL catalog inspection confirmed canonical tables: `account`, `admin`, `audit_log`, `customer`, `session`, `user`, `verification`, `_prisma_migrations`.
   - Enums confirmed: `AuditAction` (8 values), `AuditEntityType` (3 values), `UserRole` (3 values), `UserStatus` (3 values).
-  - Foreign key and referential actions confirmed: `Account.userId` (`CASCADE`), `Session.userId` (`CASCADE`), `Admin.userId` (`RESTRICT`), `Customer.userId` (`RESTRICT`), `AuditLog.actorId` (`SET NULL`).
-  - Primary & Unique indexes confirmed: `User_email_key`, `Session_token_key`, plus PKs on each entity table.
-- **Deviations from Approved Plan:** During human review, the user directed removal of the current `Dockerfile` and `.dockerignore`, and deferred Docker configuration. The plan and affected governance records were amended under `DEC-012`.
-- **Remaining Concerns / Follow-ups:** Generated Prisma output remains intentionally ignored and must be created with `pnpm generate` in environments where it is absent. Future Docker work must define and verify its own generation/build sequence. Better Auth package installation and runtime verification remain deferred to `P2-T005`.
+  - Foreign key and referential actions confirmed: `account.userId` (`CASCADE`), `session.userId` (`CASCADE`), `admin.userId` (`RESTRICT`), `customer.userId` (`RESTRICT`), `audit_log.actorId` (`SET NULL`).
+  - Canonical indexes confirmed: `user_email_key`, `session_token_key`, `account_userId_idx`, `session_userId_idx`, `verification_identifier_idx`, `audit_log_actorId_idx`, plus PKs on each entity table.
+- **Deviations from Approved Plan:** During human review, the user directed removal of the current `Dockerfile` and `.dockerignore`, and deferred Docker configuration. The plan and affected governance records were amended under `DEC-012`. Pre-production migrations were squashed into a unified non-destructive baseline under `DEC-015`.
+- **Remaining Concerns / Follow-ups:** Generated Prisma output remains intentionally ignored by Git. Prisma Client generation is now covered by both `postinstall` and `build`. Future Docker work must verify its production dependency-installation and client-generation sequence.
+
+---
+
+## 11. Task Closure Review
+
+| Field          | Value                                                                                                        |
+| :------------- | :----------------------------------------------------------------------------------------------------------- |
+| Final Outcome  | `Accepted / ✅ Done`                                                                                         |
+| Reviewed by    | User                                                                                                         |
+| Closed on      | 2026-09-06 (Baseline reconciled to canonical `20260912090148_init` under `DEC-015` on 2026-09-12)           |
+| Notes          | All acceptance criteria verified; baseline canonicalized and verified against isolated PostgreSQL database. |

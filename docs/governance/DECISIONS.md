@@ -20,6 +20,17 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-015: Squash Phase 2 Pre-Production Migrations into Unified Canonical Baseline
+
+**Recorded:** 2026-09-12
+**Status:** `ACCEPTED`
+
+**Decision:** Squash the legacy pre-production Phase 2 migrations into a single canonical baseline migration (`20260912090148_init`). The resulting migration directly defines all mapped lowercase tables (`user`, `account`, `session`, `verification`, `admin`, `customer`, `audit_log`), canonical constraints, and indexes without destructive `DROP TABLE` operations.
+
+**Why:** The secondary migration generated destructive `DROP TABLE` statements when table mappings (`@@map`) were introduced during `P2-T005`. In a pre-production repository without live production data, maintaining destructive table drops introduces technical debt and deployment risks for CI/CD, staging, and future production deployment. Pre-production squashing establishes an immutable, clean, and safe schema baseline.
+
+**Consequences:** The Phase 2 migration history consists of a single canonical baseline migration. The development database is reset against this canonical baseline with zero schema drift. All future schema modifications must proceed through sequential, non-destructive migrations.
+
 ### DEC-014: Standardize Public Error Envelope, Stable Application Error Codes, and Typed Validated-Input Locals Contract
 
 **Recorded:** 2026-09-06

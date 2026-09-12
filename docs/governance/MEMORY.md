@@ -42,11 +42,11 @@
 ## 3. Known Gaps and Blockers
 
 - Docker, Jest and Winston are intentionally deferred to project-completion tooling work under `DEC-013`; former Phase 2 IDs `P2-T003` and `P2-T004` are retired.
-- Authentication, sessions, RBAC, ownership and account-status enforcement are not implemented.
+- RBAC, administrative authorization, customer/admin profile management, password lifecycle and OAuth linking remain to be implemented in upcoming tasks.
 - The test script is an approved temporary failing placeholder under `DEC-013`; current tasks use documented executable/manual verification.
 - Server lifecycle logging currently uses `console.*` under a file-level ESLint disable as the temporary baseline accepted by `DEC-013`.
 - `prisma.config.ts` uses the directory-based `prisma/schema` root with models partitioned across `schema.prisma`, `auth.prisma`, `profiles.prisma` and `audit.prisma`.
-- First canonical Phase 2 migration `20260906064109_init_phase_2` is applied and verified under `P2-T001`. Generated Prisma Client is created at `src/generated/prisma` and intentionally ignored by Git.
+- Canonical Phase 2 baseline migration `20260912090148_init` is applied and verified under `DEC-015`. Generated Prisma Client is created at `src/generated/prisma` and intentionally ignored by Git.
 
 These are verified observations only. They do not authorize fixes outside an approved task.
 
@@ -66,7 +66,7 @@ These are verified observations only. They do not authorize fixes outside an app
 
 - Approved roles are exactly `SUPER_ADMIN`, `ADMIN`, `CUSTOMER`.
 - Public registration must create `CUSTOMER`; privileged roles require approved authorized flows.
-- Authorization, ownership and account-status restrictions are enforced server-side.
+- Security Invariant: Authorization, resource ownership and account restrictions must strictly be enforced server-side; currently enforced at authentication boundary (registration role protection in `P2-T006`, account status checks in `P2-T008`), while session guards (`P2-T010`) and RBAC authorization (`P2-T015`) remain to be implemented in upcoming tasks.
 - Secrets remain in approved configuration and are never logged or committed.
 - Soft deletion is used only where required by the approved data model.
 - Generated Prisma output must not be hand-edited.
@@ -74,17 +74,18 @@ These are verified observations only. They do not authorize fixes outside an app
 
 ## 6. Verification Snapshot
 
-| Check                 | Result                                                                                       |
-| --------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm build`          | `PASS` on 2026-09-05                                                                         |
-| `pnpm lint`           | `PASS` on 2026-09-05                                                                         |
-| Automated tests       | `NOT RUN`: Jest is deferred under `DEC-013`                                                  |
-| Database / migrations | `PASS` on 2026-09-06: canonical migration `20260906064109_init_phase_2` applied and verified |
+| Check                 | Result                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `pnpm build`          | `PASS` on 2026-09-12                                                                  |
+| `pnpm lint`           | `PASS` on 2026-09-12                                                                  |
+| Automated tests       | `NOT RUN`: Jest is deferred under `DEC-013`                                           |
+| Database / migrations | `PASS` on 2026-09-12: canonical migration `20260912090148_init` applied and verified |
 
 ## 7. Next Action
 
-- Review the prepared `P2-T002` JIT plan, approve its public contracts and exact `zod@^4.5.4` dependency, and resolve `P2-B009` for this task.
-- Keep `P2-T002` as `🔲` and Phase 2 as `ACTIVE / BLOCKED` until those approvals are recorded. Then restore `ACTIVE / READY`, mark only `P2-T002` as `🔄`, and implement it under [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md).
+- Select the next planning candidate: `P2-T009` (Implement Google sign-in and sign-up).
+- Perform read-only inspection, prepare JIT task plan `docs/governance/tasks/phase-2/P2-T009-implement-google-sign-in-and-sign-up.md`, resolve prerequisites, and submit for human approval.
+- Mark `P2-T009` as `🔄 In progress` only after explicit human approval.
 - If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.
 
 ## 8. Maintenance Rule

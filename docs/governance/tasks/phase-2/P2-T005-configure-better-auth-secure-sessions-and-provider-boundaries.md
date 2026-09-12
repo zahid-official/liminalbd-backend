@@ -179,7 +179,7 @@
   - `docs/governance/phases/phase-2-auth-rbac.md`: Resolved `P2-B002` and `P2-B009`, marked `P2-T005` in progress.
   - `docs/governance/MEMORY.md`: Updated active task to `P2-T005`.
   - `docs/governance/tasks/phase-2/P2-T005-configure-better-auth-secure-sessions-and-provider-boundaries.md`: Recorded plan, architectural updates, and verification results.
-- **Migration Created:** `20260908055627_map_table_names_and_indexes` (applied table mappings `user`, `account`, `session`, `verification` and indexes).
+- **Migration Impact:** Schema table mappings (`@@map`) and indexes originally introduced during this task were subsequently consolidated into the canonical initial baseline `20260912090148_init` under `DEC-015`.
 - **Test / Verification Output:**
   - Runtime smoke test: `auth.api` object and `auth.handler` function loaded and verified (`PASS`).
   - Environment negative check: Secret length < 32 rejected with `BETTER_AUTH_SECRET must be at least 32 characters long` (`PASS`).

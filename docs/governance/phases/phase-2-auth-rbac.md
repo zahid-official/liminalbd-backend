@@ -646,7 +646,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 Approved mocks allow affected feature tasks to reach review before `P2-B010` is resolved. Live-provider evidence remains mandatory for `P2-T027` and phase completion.
 
-`P2-B006` was resolved on 2026-09-06. The disposable test database was reset successfully, its migration history is empty, and `P2-T001` will create the first approved Phase 2 schema and migration baseline.
+`P2-B006` was resolved on 2026-09-06. The disposable test database was reset successfully, and `P2-T001` established the first approved Phase 2 schema and migration baseline (subsequently squashed to canonical baseline `20260912090148_init` under `DEC-015`).
 
 Do not invent a resolution. Record each approved outcome in the affected task contract and in [DECISIONS.md](../DECISIONS.md) when it creates a durable rule.
 
@@ -661,12 +661,12 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 - [ ] This file, [MEMORY.md](../MEMORY.md), [DECISIONS.md](../DECISIONS.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are consistent.
 - [ ] Explicit human approval for phase completion is recorded.
 
-| Approval Field | Value                                                  |
-| -------------- | ------------------------------------------------------ |
-| Outcome        | `Pending`                                              |
-| Approved by    | `Pending`                                              |
-| Approved on    | `Pending`                                              |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T002` is `🔄 In progress` |
+| Approval Field | Value                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Outcome        | `Pending`                                                                                                            |
+| Approved by    | `Pending`                                                                                                            |
+| Approved on    | `Pending`                                                                                                            |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, and `P2-T008` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`); `P2-T009` is the next planning candidate (`🔲`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
