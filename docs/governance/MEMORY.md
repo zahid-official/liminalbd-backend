@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-08
+**Last verified:** 2026-09-12
 
 ## 1. Governance and Phase State
 
@@ -15,26 +15,28 @@
   - [04-RULES.md](04-RULES.md)
   - [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md)
   - [06-PHASE-ROADMAP.md](06-PHASE-ROADMAP.md)
+  - [07-TECHNOLOGY-INTEGRATIONS-GUIDE.md](07-TECHNOLOGY-INTEGRATIONS-GUIDE.md)
   - [DECISIONS.md](DECISIONS.md)
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, and `P2-T007` are `✅ Done`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, and `P2-T008` are `✅ Done`.
 - No future phase has approved implementation scope.
-- Active task: `P2-T008` - Implement Login with Account-Status and Rate-Limit Enforcement (`🔄 In progress`).
+- Next eligible candidate: `P2-T009` - Implement Google sign-in and sign-up (`🔲`).
 
 ## 2. Current Codebase State
 
 - Backend uses Express 5, TypeScript 6, Prisma 7, PostgreSQL and pnpm with ESM and NodeNext resolution.
 - Application includes CORS, body/cookie parsing, standardized root health endpoint (`sendResponse`), `/api/v1` routing, not-found handling (`notFoundErrorHandler`) and sanitized centralized error handling (`globalErrorHandler`).
 - Shared response helper `sendResponse` and async controller wrapper `catchAsync` are established under `src/app/utils/`.
-- Typed error system (`AppError`, `ConfigurationError`, public error codes) and source-qualified Zod validation middleware (`validateRequest`, `res.locals.validated`) are established under `src/app/errors/` and `src/app/middleware/`.
+- Typed error system (`AppError`, `ConfigurationError`, public error codes, `handleBetterAuthError`, `handlePrismaError`) and source-qualified Zod validation middleware (`validateRequest`, `res.locals.validated`) are established under `src/app/errors/` and `src/app/middleware/`.
 - Environment loading enforces strict validation via Zod under `src/app/config/env.ts` requiring `NODE_ENV`, `PORT`, `DATABASE_URL` and `FRONTEND_URL`.
-- Prisma Client uses the PostgreSQL adapter.
+- Prisma Client uses the PostgreSQL adapter (`@prisma/adapter-pg`).
 - Server lifecycle handling includes startup errors, shutdown signals, unhandled rejections and uncaught exceptions.
 - Better Auth is configured behind internal application boundary (`src/app/config/auth.ts`) with custom database adapter, secure session configuration (`P2-T005`), and `emailOTP` plugin with 15-minute `cookieCache` (`P2-T007`).
 - Public customer registration is implemented at `POST /api/v1/auth/register` (`P2-T006`) with strict Zod validation, Better Auth user creation, atomic/compensated `Customer` record linkage, duplicate check, and privilege escalation prevention.
 - Email verification and OTP subsystem is established (`P2-T007`): standalone universal transport `sendEmail` (`src/app/shared/email/email.service.ts`), branded React Email OTP template `VerificationEmail.tsx`, dedicated `AuthMailer` (`src/app/shared/email/mailers/auth.mailer.ts`), and endpoints `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp`.
+- Credential login is implemented at `POST /api/v1/auth/login` (`P2-T008`) with pre-authentication anti-enumeration guard (`deletedAt`), email verification guard (`emailVerified`), account restriction guards (`SUSPENDED`, `DEACTIVATED`), and session cookie forwarding (`better-auth.session_token`).
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers

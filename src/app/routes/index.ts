@@ -23,4 +23,5 @@ moduleRoutes.forEach((moduleRoute: ModuleRoute) => {
   router.use(moduleRoute.path, moduleRoute.route);
 });
 
-export const RootRouter = router;
+const RootRouter = router;
+export { RootRouter };

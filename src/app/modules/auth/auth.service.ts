@@ -164,8 +164,8 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
   return updatedUser;
 };
 
-// Login user account
-const login = async (payload: LoginInput, headers: Headers) => {
+// Login user with email and password credentials
+const loginWithCredentials = async (payload: LoginInput, headers: Headers) => {
   const { email, password } = payload;
 
   const existingUser = await prisma.user.findUnique({
@@ -241,7 +241,7 @@ const AuthService = {
   registerCustomer,
   sendVerificationOtp,
   verifyEmailOtp,
-  login,
+  loginWithCredentials,
 };
 
 export { AuthService };

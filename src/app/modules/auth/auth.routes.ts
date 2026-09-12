@@ -26,6 +26,12 @@ router.post(
   AuthController.verifyEmailOtp,
 );
 
-const AuthRoutes = router;
+// Login with email and password credentials
+router.post(
+  "/login",
+  validateRequest(AuthValidation.loginSchema),
+  AuthController.loginWithCredentials,
+);
 
+const AuthRoutes = router;
 export { AuthRoutes };

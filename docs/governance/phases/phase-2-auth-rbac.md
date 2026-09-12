@@ -146,7 +146,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
 | 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `✅`   | `P2-T005`                       | None                                         |
 | 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `✅`   | `P2-T006`                       | None                                         |
-| 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔄`   | `P2-T005`, `P2-T006`            | None                                         |
+| 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
 | 7     | B          | `P2-T009` | Implement Google sign-in and sign-up                                     | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
 | 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔲`   | `P2-T005`, `P2-T008`            | None                                         |
 | 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `🔲`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
@@ -293,7 +293,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Login, rate-limit, cookie and status behavior checks.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-12)
 
 #### P2-T009: Implement Google Sign-In and Sign-Up
 

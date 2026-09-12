@@ -1,3 +1,4 @@
+import { fromNodeHeaders } from "better-auth/node";
 import type { Request, Response } from "express";
 import status from "http-status";
 import { catchAsync } from "../../utils/catchAsync.js";
@@ -40,10 +41,29 @@ const verifyEmailOtp = catchAsync(async (_req: Request, res: Response) => {
   });
 });
 
+// Login with email and password credentials
+const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
+  const payload = res.locals.validated.body;
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.loginWithCredentials(payload, headers);
+
+  if (result.setCookie) {
+    res.setHeader("set-cookie", result.setCookie);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: "Login successful",
+    data: result.user,
+  });
+});
+
 const AuthController = {
   registerCustomer,
   sendVerificationOtp,
   verifyEmailOtp,
+  loginWithCredentials,
 };
 
 export { AuthController };
+
