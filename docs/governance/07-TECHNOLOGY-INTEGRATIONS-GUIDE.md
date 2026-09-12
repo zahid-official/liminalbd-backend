@@ -101,15 +101,18 @@ Better Auth communicates server-side failures by throwing instances of `APIError
 - **Error Mapping Pipeline (`handleBetterAuthError.ts`):**  
   All Better Auth machine codes are translated into standardized application errors via `handleBetterAuthError.ts`:
 
-  | Better Auth Code (`error.body.code`) | HTTP Status | Public Application Code |
-  | :--- | :--- | :--- |
-  | `INVALID_EMAIL_OR_PASSWORD` | `401 Unauthorized` | `INVALID_CREDENTIALS` |
-  | `INVALID_PASSWORD` | `401 Unauthorized` | `INVALID_CREDENTIALS` |
-  | `INVALID_OTP` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` |
-  | `TOKEN_EXPIRED` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` |
-  | `USER_NOT_FOUND` | `404 Not Found` | `USER_NOT_FOUND` |
-  | `USER_ALREADY_EXISTS` | `409 Conflict` | `USER_ALREADY_EXISTS` |
-  | Unknown / Generic `APIError` | `error.statusCode` | `VALIDATION_ERROR` |
+  | Better Auth Code (`error.body.code`) | HTTP Status | Public Application Code | Public Message |
+  | :--- | :--- | :--- | :--- |
+  | `INVALID_EMAIL_OR_PASSWORD` | `401 Unauthorized` | `INVALID_CREDENTIALS` | `"Invalid email or password"` |
+  | `INVALID_PASSWORD` | `401 Unauthorized` | `INVALID_CREDENTIALS` | `"Invalid email or password"` |
+  | `INVALID_OTP` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` | `"Invalid or expired verification code"` |
+  | `TOKEN_EXPIRED` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` | `"Invalid or expired verification code"` |
+  | `USER_NOT_FOUND` | `404 Not Found` | `USER_NOT_FOUND` | `"No account found with this email address"` |
+  | `USER_ALREADY_EXISTS` | `409 Conflict` | `USER_ALREADY_EXISTS` | `"User with this email already exists"` |
+  | Unknown 4xx `APIError` | `4xx` (`error.statusCode` or `400`) | `VALIDATION_ERROR` (`INVALID_CREDENTIALS` if 401) | Fixed safe message (`"Authentication request failed"`) |
+  | Internal 5xx / Unhandled `APIError` | `500 Internal Server Error` | `INTERNAL_SERVER_ERROR` | Fixed generic message (`"An unexpected internal error occurred."`) |
+
+  > **Note:** Unknown 4xx errors emit the fixed safe client message `"Authentication request failed"`, while 5xx/internal server errors are strictly masked with `"An unexpected internal error occurred."` and logged server-side via `globalErrorHandler.ts`.
 
 ### 2.6 Security and Account Lifecycle Enforcement
 

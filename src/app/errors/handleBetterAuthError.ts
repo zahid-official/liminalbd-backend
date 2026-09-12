@@ -39,18 +39,40 @@ const authErrorMap = {
 
 type AuthErrorCode = keyof typeof authErrorMap;
 
+// Helper to check if error code exists in our predefined authErrorMap
+const getAuthErrorCode = (error: APIError): AuthErrorCode | undefined => {
+  const code = error.body?.code;
+  return typeof code === "string" && code in authErrorMap
+    ? (code as AuthErrorCode)
+    : undefined;
+};
+
 // Transform Better Auth APIError into standardized AppError
 const handleBetterAuthError = (error: APIError): AppError => {
-  const authCode = error.body?.code as AuthErrorCode;
-  const mapped = authErrorMap[authCode];
-
-  if (mapped) {
+  // Resolve mapped domain errors
+  const authCode = getAuthErrorCode(error);
+  if (authCode) {
+    const mapped = authErrorMap[authCode];
     return new AppError(mapped.status, mapped.code, mapped.message);
   }
 
+  // Sanitize internal server errors to prevent information leakage
   const statusCode = error.statusCode || status.BAD_REQUEST;
-  const message = error.body?.message || error.message;
-  return new AppError(statusCode, PUBLIC_ERROR_CODES.VALIDATION_ERROR, message);
+  if (statusCode >= status.INTERNAL_SERVER_ERROR) {
+    return new AppError(
+      status.INTERNAL_SERVER_ERROR,
+      PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR,
+      "An unexpected internal error occurred.",
+    );
+  }
+
+  // Categorize unmapped client errors with safe generic message
+  const code =
+    statusCode === status.UNAUTHORIZED
+      ? PUBLIC_ERROR_CODES.INVALID_CREDENTIALS
+      : PUBLIC_ERROR_CODES.VALIDATION_ERROR;
+
+  return new AppError(statusCode, code, "Authentication request failed");
 };
 
 export { handleBetterAuthError };

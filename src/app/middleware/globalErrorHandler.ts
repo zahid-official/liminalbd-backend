@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { isAPIError } from "better-auth/api";
 import type { ErrorRequestHandler } from "express";
 import status from "http-status";
@@ -18,7 +19,7 @@ import type {
 
 // Central global error handling middleware for safe error serialization
 const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
-  // If response headers have already been sent, delegate to default Express error handler
+  // Delegate to default Express error handler if response headers were already sent
   if (res.headersSent) {
     next(error);
     return;
@@ -29,7 +30,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   let message = "An unexpected internal error occurred.";
   let errors: ErrorDetail[] | undefined = undefined;
 
-  // 1. Application-defined operational errors
+  // Application-defined operational errors
   if (
     error instanceof AppError &&
     error.code !== PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR
@@ -40,7 +41,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
     errors = error.errors;
   }
 
-  // 2. Better Auth API errors
+  // Better Auth API errors
   else if (isAPIError(error)) {
     const authError = handleBetterAuthError(error);
     statusCode = authError.statusCode;
@@ -48,7 +49,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
     message = authError.message;
   }
 
-  // 3. Prisma database errors
+  // Prisma database errors
   else if (isPrismaError(error)) {
     const dbError = handlePrismaError(error);
     statusCode = dbError.statusCode;
@@ -57,10 +58,9 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
     errors = dbError.errors;
   }
 
-  // Unexpected runtime errors
-  else {
-    // eslint-disable-next-line no-console
-    console.error("Unhandled runtime error:", error);
+  // Log internal errors server-side for diagnostics
+  if (statusCode >= status.INTERNAL_SERVER_ERROR) {
+    console.error("Internal server error:", error);
   }
 
   // Final unified response format

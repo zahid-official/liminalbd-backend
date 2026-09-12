@@ -1,7 +1,14 @@
 # Task: P2-T005 - Configure Better Auth, Secure Sessions and Provider Boundaries
 
-> **Canonical Status:** `✅` (Human-approved and fully closed; tracked authoritatively in parent phase file)  
+> **Canonical Status:** `✅` (Human-approved and fully closed; tracked authoritatively in parent phase file)
+>
 > **Planning Gate:** Plan Approved -> Blockers Cleared (`P2-B002`, `P2-B009`) -> Implemented & Verified -> Human Approved
+>
+> **Post-Closure Reconciliation Note (2026-09-13):**
+>
+> 1. *Session Persistence Evidence:* Direct database persistence, cookie lookup, and revocation capability across the PostgreSQL `session` table were verified via standalone executable check on 2026-09-13. Production login session issuance is implemented in `P2-T008` (`✅`), while application-level session middleware guard and logout endpoints will be delivered in upcoming tasks `P2-T010` (`🔲`) and `P2-T014` (`🔲`).
+> 2. *Session Validation Evolution:* The original plan noted "real-time status enforcement" (Section 4). In `P2-T007`, a 15-minute `cookieCache` (`session.cookieCache: { enabled: true, maxAge: 15 * 60 }`) was introduced to optimize database traffic as documented in [07-TECHNOLOGY-INTEGRATIONS-GUIDE.md](../../07-TECHNOLOGY-INTEGRATIONS-GUIDE.md#24-cookie-architecture-and-caching-policy). Status enforcement across active sessions will be governed under `P2-T017`.
+> 3. *Routing Architecture Deviation:* The original plan outlined wildcard mounting via `toNodeHandler(auth)`. As recorded in Section 10 Deviations, this was intentionally superseded by explicit MVC routing (`Route → Controller → Service → auth.api.* / Prisma`) under human architecture direction to preserve strict transaction, customer profile, and audit log boundaries.
 
 ---
 
@@ -32,7 +39,7 @@
 - Extend environment variable validation in `src/app/config/env.ts` with strict schemas for:
   - `BETTER_AUTH_SECRET`: string, minimum 32 characters.
   - `BETTER_AUTH_URL`: valid HTTP/HTTPS URL pointing to backend base address.
-  - Optional provider variables: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` (gracefully optional in development to prevent local boot breakage).
+  - Optional provider variables: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (gracefully optional in development to prevent local boot breakage).
 - Establish provider boundary for email delivery (verification & password reset) with clear separation so email logic does not leak into business services or controller code.
 - Ensure no application-managed JWT access or refresh tokens are returned in responses; rely purely on secure HTTP-only cookies.
 - Verify the configuration, cookie attributes, session persistence, and error handling via focused executable checks.
@@ -55,7 +62,7 @@
 | Environment variables validated via Zod throwing `ConfigurationError` on startup | Step 1 | `env.ts` unit/runtime test with missing & valid secrets |
 | Secure cookie policy (`httpOnly`, `secure` per env, `sameSite`, configurable expiry & renewal) | Step 2 & 3 | Inspect Better Auth cookie configuration options |
 | CSRF and trusted origin enforcement | Step 2 & 3 | Executable origin mismatch check |
-| Better Auth mounted at `/api/v1/auth` via `toNodeHandler` | Step 4 | HTTP route reachability check (e.g., `GET /api/v1/auth/ok`) |
+| Better Auth mounted at `/api/v1/auth` via `toNodeHandler` | Step 4 | Approved deviation: Replaced wildcard `toNodeHandler` with explicit MVC routing (`Route → Controller → Service → auth.api.* / Prisma`) |
 | No application-managed JWT access/refresh tokens in response | Steps 2 - 4 | Review public contracts and headers |
 | Email provider boundary decoupled | Step 3 | Inspect provider configuration & verification mocks |
 
@@ -90,7 +97,7 @@
   - Better Auth serves as the internal engine for session creation, hashing, and token verification.
 - **Security & Cookie Boundary:**
   - Cookies configured with `httpOnly: true`, `sameSite: "lax"`, `secure: env.NODE_ENV === "production"`.
-  - Real-time status enforcement ensured by keeping sessions strictly validated against the database.
+  - Real-time status enforcement ensured by keeping sessions strictly validated against the database. *(Note: Post-closure optimization in P2-T007 introduced a 15-minute `cookieCache` as documented in 07-TECHNOLOGY-INTEGRATIONS-GUIDE.md; see post-closure note above).*
   - Origin verification tied to `env.FRONTEND_URL`.
 
 ---
@@ -184,9 +191,14 @@
   - Runtime smoke test: `auth.api` object and `auth.handler` function loaded and verified (`PASS`).
   - Environment negative check: Secret length < 32 rejected with `BETTER_AUTH_SECRET must be at least 32 characters long` (`PASS`).
   - Environment positive check: Valid secret and URL safely parsed (`PASS`).
+  - Post-Closure Session Persistence Verification (2026-09-13): Executed end-to-end database lifecycle check verifying:
+    1. Persistent Session row inserted into PostgreSQL `session` table on sign-in (`PASS`).
+    2. Session successfully queried and validated via `auth.api.getSession` using `better-auth.session_token` cookie (`PASS`).
+    3. Session row deleted/revoked from PostgreSQL upon `auth.api.signOut` (`PASS`).
+    4. Subsequent `auth.api.getSession` lookup after revocation returned `null` (`PASS`).
   - Type checking & build: `pnpm build` exited with code 0 (`PASS`).
   - Lint: `pnpm lint` exited with code 0 (`PASS`).
 - **Deviations from Original Plan:**
   - Wildcard `router.all("/*", toNodeHandler(auth))` was intentionally omitted under explicit human architecture direction to preserve strict MVC flow control (`Route → Controller → Service → Better Auth API / Prisma`), ensuring complete application authority over domain transactions, customer profiles, and audit logging.
 - **Remaining Concerns / Follow-ups:**
-  - None. Ready for formal human review.
+  - Initial closure completed on 2026-09-08. Post-closure reconciliation notes added on 2026-09-13 capturing explicit PostgreSQL session persistence evidence and reconciling the 15-minute `cookieCache` evolution against the original real-time validation statement.
