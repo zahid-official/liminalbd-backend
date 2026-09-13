@@ -18,7 +18,7 @@ const registerCustomer = catchAsync(async (_req: Request, res: Response) => {
 
   sendResponse(res, {
     statusCode: status.CREATED,
-    message: "Customer registered successfully",
+    message: "Account created successfully. Please verify your email.",
     data: result,
   });
 });

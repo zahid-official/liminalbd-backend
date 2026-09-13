@@ -215,8 +215,11 @@ Prisma v7 provides modular, granular entrypoints from the generated output:
 
 ### 3.4 Data Access, Soft Deletion, and Field Selection
 
-1. **Explicit Field Selection:**
-   - Prefer `select` over returning full database models, especially on models containing sensitive hashes (`password`, tokens, internal audit metadata).
+1. **Mandatory Minimal Field Selection (`select`):**
+   - Every Prisma read and update query must explicitly specify a `select` projection tailored strictly to the minimal fields required for that operation.
+   - For existence checks, always use `select: { id: true }`.
+   - For validation or guard queries (e.g., status, soft-delete, or verification checks), select only the specific fields evaluated by the business logic.
+   - Unbounded full-entity fetches (`SELECT *`) without explicit `select` (or `omit` where applicable) are strictly prohibited across all services and repositories. This eliminates database over-fetching, saves network bandwidth, preserves Node.js heap memory, and guarantees zero leakage of sensitive credentials or internal fields.
    - In Prisma v7, `omit` can be used to explicitly exclude fields (e.g., `omit: { password: true }`), but cannot be combined simultaneously with `select`.
 2. **Soft Deletion Convention:**
    - Entities implementing soft deletion feature a `deletedAt DateTime?` column.

@@ -46,7 +46,7 @@ const auth = betterAuth({
   },
 
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: false,
     autoSignInAfterVerification: true,
   },
 
@@ -55,7 +55,7 @@ const auth = betterAuth({
       overrideDefaultEmailVerification: true,
       otpLength: 6,
       expiresIn: 5 * 60, // 5 minutes in seconds
-      sendVerificationOnSignUp: true,
+      sendVerificationOnSignUp: false,
       async sendVerificationOTP({ email, otp, type }) {
         // Dispatch branded OTP email for unverified user accounts
         if (type === "email-verification") {

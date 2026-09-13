@@ -325,6 +325,10 @@ When Jest is introduced, tests must verify behavior rather than implementation d
 - Review generated migration SQL when database behavior changes materially.
 - Do not rewrite already-applied migration history unless the approved workflow requires it.
 - Test important data-integrity and migration behavior before review.
+- **Mandatory Minimal Field Projection (`select`):** Every Prisma read and update query must explicitly specify a `select` projection tailored strictly to the minimal fields required for that operation.
+  - For existence checks, always use `select: { id: true }`.
+  - For validation and guard queries (e.g., status or verification checks), select only the specific fields being inspected (e.g., `select: { id: true, emailVerified: true }`).
+  - Unbounded full-entity fetches (`SELECT *`) without explicit `select` (or `omit` where applicable) are strictly prohibited across all services and repositories to eliminate over-fetching, conserve Node.js heap memory, protect against sensitive data leakage, and maintain optimal database I/O.
 
 ## 20. External Providers
 

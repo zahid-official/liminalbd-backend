@@ -11,12 +11,32 @@ import type {
   VerifyEmailOtpInput,
 } from "./auth.validation.js";
 
+// Helper to safely rollback orphan user without shadowing the primary failure
+const rollbackOrphanUser = async (userId: string, primaryError: unknown) => {
+  try {
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+  } catch (rollbackError) {
+    // eslint-disable-next-line no-console
+    console.error(
+      "Critical: Failed to rollback orphan user during customer profile creation failure:",
+      {
+        userId,
+        primaryError,
+        rollbackError,
+      },
+    );
+  }
+};
+
 // Register customer account
 const registerCustomer = async (payload: RegisterCustomerInput) => {
   const { name, email, password } = payload;
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
+    select: { id: true },
   });
 
   if (existingUser) {
@@ -45,35 +65,33 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
 
   // Create Customer profile with compensating rollback
   try {
-    const customerProfile = await prisma.customer.create({
+    await prisma.customer.create({
       data: {
         userId: authResult.user.id,
       },
     });
-
-    const result = {
-      id: authResult.user.id,
-      name: authResult.user.name,
-      email: authResult.user.email,
-      emailVerified: authResult.user.emailVerified,
-      role: authResult.user.role,
-      status: authResult.user.status,
-      contactNumber: customerProfile.contactNumber,
-      address: customerProfile.address,
-      createdAt: customerProfile.createdAt,
-    };
-
-    return result;
   } catch (error) {
-    // Compensating action: remove orphan User if customer profile creation fails
-    await prisma.user.delete({
-      where: {
-        id: authResult.user.id,
-      },
-    });
-
+    await rollbackOrphanUser(authResult.user.id, error);
     throw error;
   }
+
+  // Dispatch verification OTP only after account and customer profile are committed
+  await auth.api.sendVerificationOTP({
+    body: {
+      email,
+      type: "email-verification",
+    },
+  });
+
+  return {
+    id: authResult.user.id,
+    name: authResult.user.name,
+    email: authResult.user.email,
+    emailVerified: authResult.user.emailVerified,
+    role: authResult.user.role,
+    status: authResult.user.status,
+    createdAt: authResult.user.createdAt,
+  };
 };
 
 // Send verification OTP to user's email
