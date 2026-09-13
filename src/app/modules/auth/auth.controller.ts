@@ -25,9 +25,10 @@ const registerCustomer = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Send verification OTP
-const sendVerificationOtp = catchAsync(async (_req: Request, res: Response) => {
+const sendVerificationOtp = catchAsync(async (req: Request, res: Response) => {
   const payload = res.locals.validated?.body as SendVerificationOtpInput;
-  const result = await AuthService.sendVerificationOtp(payload);
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.sendVerificationOtp(payload, headers);
 
   sendResponse(res, {
     statusCode: status.OK,
@@ -37,14 +38,19 @@ const sendVerificationOtp = catchAsync(async (_req: Request, res: Response) => {
 });
 
 // Verify email using provided OTP
-const verifyEmailOtp = catchAsync(async (_req: Request, res: Response) => {
+const verifyEmailOtp = catchAsync(async (req: Request, res: Response) => {
   const payload = res.locals.validated?.body as VerifyEmailOtpInput;
-  const result = await AuthService.verifyEmailOtp(payload);
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.verifyEmailOtp(payload, headers);
+
+  if (result.setCookie) {
+    res.setHeader("set-cookie", result.setCookie);
+  }
 
   sendResponse(res, {
     statusCode: status.OK,
     message: "Email verified successfully",
-    data: result,
+    data: result.user,
   });
 });
 

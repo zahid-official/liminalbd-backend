@@ -111,7 +111,10 @@ const registerCustomer = async (
 };
 
 // Send verification OTP to user's email
-const sendVerificationOtp = async (payload: SendVerificationOtpInput) => {
+const sendVerificationOtp = async (
+  payload: SendVerificationOtpInput,
+  headers: Headers,
+) => {
   const { email } = payload;
 
   const existingUser = await prisma.user.findUnique({
@@ -119,15 +122,7 @@ const sendVerificationOtp = async (payload: SendVerificationOtpInput) => {
     select: { id: true, emailVerified: true },
   });
 
-  if (!existingUser) {
-    throw new AppError(
-      status.NOT_FOUND,
-      PUBLIC_ERROR_CODES.USER_NOT_FOUND,
-      "No account found with this email address",
-    );
-  }
-
-  if (existingUser.emailVerified) {
+  if (existingUser?.emailVerified) {
     throw new AppError(
       status.BAD_REQUEST,
       PUBLIC_ERROR_CODES.ALREADY_VERIFIED,
@@ -140,6 +135,7 @@ const sendVerificationOtp = async (payload: SendVerificationOtpInput) => {
       email,
       type: "email-verification",
     },
+    headers,
   });
 
   return {
@@ -148,7 +144,10 @@ const sendVerificationOtp = async (payload: SendVerificationOtpInput) => {
 };
 
 // Verify email OTP
-const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
+const verifyEmailOtp = async (
+  payload: VerifyEmailOtpInput,
+  headers: Headers,
+) => {
   const { email, otp } = payload;
 
   const existingUser = await prisma.user.findUnique({
@@ -172,30 +171,29 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
     );
   }
 
-  await auth.api.verifyEmailOTP({
-    body: {
-      email,
-      otp,
-    },
-  });
+  const { headers: authHeaders, response: authResult } =
+    await auth.api.verifyEmailOTP({
+      body: {
+        email,
+        otp,
+      },
+      headers,
+      returnHeaders: true,
+    });
 
-  // Synchronize database state ensuring emailVerified is set to true
-  const updatedUser = await prisma.user.update({
-    where: { email },
-    data: {
-      emailVerified: true,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      emailVerified: true,
-      role: true,
-      status: true,
-    },
-  });
+  const setCookie = authHeaders.get("set-cookie");
 
-  return updatedUser;
+  return {
+    user: {
+      id: authResult.user.id,
+      name: authResult.user.name,
+      email: authResult.user.email,
+      emailVerified: authResult.user.emailVerified,
+      role: authResult.user.role,
+      status: authResult.user.status,
+    },
+    setCookie,
+  };
 };
 
 // Login user with email and password credentials

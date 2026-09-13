@@ -1,7 +1,10 @@
 import type { APIError } from "better-auth/api";
 import status from "http-status";
 import { AppError } from "./AppError.js";
-import { PUBLIC_ERROR_CODES } from "./errorCodes.js";
+import {
+  PUBLIC_ERROR_CODES,
+  type PublicErrorCode,
+} from "./errorCodes.js";
 
 // Better Auth error resolution map
 const authErrorMap = {
@@ -20,10 +23,20 @@ const authErrorMap = {
     code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,
     message: "Invalid or expired verification code",
   },
+  OTP_EXPIRED: {
+    status: status.BAD_REQUEST,
+    code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,
+    message: "Invalid or expired verification code",
+  },
   TOKEN_EXPIRED: {
     status: status.BAD_REQUEST,
     code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,
     message: "Invalid or expired verification code",
+  },
+  TOO_MANY_ATTEMPTS: {
+    status: status.TOO_MANY_REQUESTS,
+    code: PUBLIC_ERROR_CODES.TOO_MANY_REQUESTS,
+    message: "Too many verification attempts. Please try again later.",
   },
   USER_NOT_FOUND: {
     status: status.NOT_FOUND,
@@ -67,12 +80,17 @@ const handleBetterAuthError = (error: APIError): AppError => {
   }
 
   // Categorize unmapped client errors with safe generic message
-  const code =
-    statusCode === status.UNAUTHORIZED
-      ? PUBLIC_ERROR_CODES.INVALID_CREDENTIALS
-      : PUBLIC_ERROR_CODES.VALIDATION_ERROR;
+  let code: PublicErrorCode = PUBLIC_ERROR_CODES.VALIDATION_ERROR;
+  let message = "Authentication request failed";
 
-  return new AppError(statusCode, code, "Authentication request failed");
+  if (statusCode === status.UNAUTHORIZED) {
+    code = PUBLIC_ERROR_CODES.INVALID_CREDENTIALS;
+  } else if (statusCode === status.TOO_MANY_REQUESTS) {
+    code = PUBLIC_ERROR_CODES.TOO_MANY_REQUESTS;
+    message = "Too many requests. Please try again later.";
+  }
+
+  return new AppError(statusCode, code, message);
 };
 
 export { handleBetterAuthError };
