@@ -5,7 +5,7 @@ import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { AuthService } from "./auth.service.js";
 import type {
-  LoginInput,
+  LoginWithCredentialsInput,
   RegisterCustomerInput,
   SendVerificationOtpInput,
   VerifyEmailOtpInput,
@@ -49,7 +49,7 @@ const verifyEmailOtp = catchAsync(async (_req: Request, res: Response) => {
 
 // Login with email and password credentials
 const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as LoginInput;
+  const payload = res.locals.validated?.body as LoginWithCredentialsInput;
   const headers = fromNodeHeaders(req.headers);
   const result = await AuthService.loginWithCredentials(payload, headers);
 

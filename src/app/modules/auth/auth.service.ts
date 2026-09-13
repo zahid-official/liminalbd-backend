@@ -5,7 +5,7 @@ import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import type {
-  LoginInput,
+  LoginWithCredentialsInput,
   RegisterCustomerInput,
   SendVerificationOtpInput,
   VerifyEmailOtpInput,
@@ -165,7 +165,10 @@ const verifyEmailOtp = async (payload: VerifyEmailOtpInput) => {
 };
 
 // Login user with email and password credentials
-const loginWithCredentials = async (payload: LoginInput, headers: Headers) => {
+const loginWithCredentials = async (
+  payload: LoginWithCredentialsInput,
+  headers: Headers,
+) => {
   const { email, password } = payload;
 
   const existingUser = await prisma.user.findUnique({

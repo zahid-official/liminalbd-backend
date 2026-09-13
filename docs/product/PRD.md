@@ -118,17 +118,17 @@ This project delivers a **production-grade RESTful API** that provides:
   | FR-AUTH-001.5 | Public registration must never create a privileged account | - Registration cannot create or assign `ADMIN` or `SUPER_ADMIN` roles |
   | FR-AUTH-001.6 | User and required authentication data must be created consistently | - User and related authentication data are created atomically and remain consistent |
 
-**Input Validation Rules**:
+**Input Validation Rules** (governed by `DEC-017` - Frictionless Registration):
 
 ```tsx
 {
-  email: string (valid email format, max 255 chars),
-  password: string (min 8, max 100 chars),
   name: string (min 2, max 100 chars),
-  contactNumber: string (optional, valid phone format),
-  address: string (optional, max 500 chars)
+  email: string (valid email format, max 255 chars),
+  password: string (min 8, max 100 chars)
 }
 ```
+
+> **Note on Profile Attributes (`DEC-017`):** To eliminate onboarding friction and optimize conversion, public customer registration collects credentials only (`name`, `email`, `password`). Contact and address details are deferred to **FR-CUSTOMER-001** (`P2-T024`).
 
 **Success Response**: HTTP 201 Created
 

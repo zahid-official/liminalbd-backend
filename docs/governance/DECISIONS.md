@@ -20,6 +20,17 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-017: Defer Customer Profile Fields (contactNumber, address) to P2-T024 for Frictionless Registration
+
+**Recorded:** 2026-09-13
+**Status:** `ACCEPTED`
+
+**Decision:** Maintain a minimal, frictionless public customer registration contract (`POST /api/v1/auth/register`) consisting exclusively of identity and credential fields: `name` (min 2, max 100), `email` (RFC-compliant, max 255), and `password` (min 8, max 100 with complexity). Do not accept or persist `contactNumber` or `address` during public customer registration. Defer collection, validation, and persistence of customer contact numbers and addresses exclusively to the Customer Profile Update flow (`P2-T024`).
+
+**Why:** Requiring or prompting for phone numbers and physical addresses during initial account creation introduces unnecessary onboarding friction and drops conversion rates. In an e-commerce and interior studio customer journey, contact and shipping address details are contextual and properly collected during profile completion or checkout, not during authentication signup. This aligns with human product governance (`AGENTS.md` Section 1) and honors the original design assumption recorded during `P2-T006` planning (`docs/governance/tasks/phase-2/P2-T006-implement-email-password-customer-registration.md` Section 8).
+
+**Consequences:** `registerCustomerSchema` strictly validates `name`, `email`, and `password`. Any client-supplied profile fields outside these credentials continue to be safely stripped by Zod. `email` is bounded to 255 characters (RFC 5321 / DB constraint guard) and `password` to 100 characters (cryptographic hashing CPU DoS guard). Customer records are initialized with null contact and address attributes upon signup. Full customer profile management, validation, and updates will be implemented and tested under `P2-T024`.
+
 ### DEC-016: Structured Validation Error Detail Contract with Explicit Source and Field Separation
 
 **Recorded:** 2026-09-12

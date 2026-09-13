@@ -1,7 +1,12 @@
 # Task: P2-T006 - Implement Email/Password Customer Registration
 
-> **Canonical Status:** `✅` (tracked authoritatively in parent phase file)  
+> **Canonical Status:** `✅` (tracked authoritatively in parent phase file)
 > **Closure Date:** 2026-09-08
+>
+> **Post-Closure Reconciliation Note (2026-09-13):**
+>
+> 1. *Frictionless Registration vs. Profile Fields (`contactNumber`, `address`):* Section 2 historically listed optional `contactNumber` and `address` fields in scope, while Section 8 recorded the approved design assumption deferring optional profile attributes to `P2-T024`. On 2026-09-13, human product governance reaffirmed this via [DEC-017](../../DECISIONS.md#dec-017-defer-customer-profile-fields-contactnumber-address-to-p2-t024-for-frictionless-registration): public customer registration strictly collects `name`, `email`, and `password`. Collection, validation, and persistence of `contactNumber` and `address` are handled exclusively under `P2-T024` (Customer Profile Update).
+> 2. *Registration Payload Boundaries:* `registerCustomerSchema` in `src/app/modules/auth/auth.validation.ts` enforces RFC-compliant `email` capped at 255 characters and `password` capped at 100 characters to prevent hashing denial-of-service and database constraint overflows.
 
 ---
 

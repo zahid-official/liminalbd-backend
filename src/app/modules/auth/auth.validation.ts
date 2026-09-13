@@ -1,6 +1,22 @@
 import { z } from "zod";
 
-// Schema for public customer registration
+// Shared email validation schema with normalization preceding format checks
+const emailSchema = z
+  .string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Email address is required"
+        : "Email must be a valid text string",
+  })
+  .trim()
+  .toLowerCase()
+  .pipe(
+    z
+      .email({ error: "Please provide a valid email address" })
+      .max(255, { error: "Email address cannot exceed 255 characters" }),
+  );
+
+// Register Customer Schema
 const registerCustomerSchema = {
   body: z.object({
     name: z
@@ -14,15 +30,7 @@ const registerCustomerSchema = {
       .min(2, { error: "Name must be at least 2 characters" })
       .max(100, { error: "Name cannot exceed 100 characters" }),
 
-    email: z
-      .email({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Email address is required"
-            : "Please provide a valid email address",
-      })
-      .trim()
-      .toLowerCase(),
+    email: emailSchema,
 
     password: z
       .string({
@@ -32,6 +40,7 @@ const registerCustomerSchema = {
             : "Password must be a valid text string",
       })
       .min(8, { error: "Password must be at least 8 characters" })
+      .max(100, { error: "Password cannot exceed 100 characters" })
       .regex(/[A-Z]/, {
         error: "Password must include at least one uppercase letter (A-Z)",
       })
@@ -47,33 +56,17 @@ const registerCustomerSchema = {
   }),
 };
 
-// Schema for requesting customer account verification OTP
+// Send Verification OTP Schema
 const sendVerificationOtpSchema = {
   body: z.object({
-    email: z
-      .email({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Email address is required"
-            : "Please provide a valid email address",
-      })
-      .trim()
-      .toLowerCase(),
+    email: emailSchema,
   }),
 };
 
-// Schema for verifying customer email using 6-digit OTP
+// Verify Email OTP Schema
 const verifyEmailOtpSchema = {
   body: z.object({
-    email: z
-      .email({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Email address is required"
-            : "Please provide a valid email address",
-      })
-      .trim()
-      .toLowerCase(),
+    email: emailSchema,
 
     otp: z
       .string({
@@ -89,18 +82,10 @@ const verifyEmailOtpSchema = {
   }),
 };
 
-// Schema for customer authentication login
-const loginSchema = {
+// Login With Credentials Schema
+const loginWithCredentialsSchema = {
   body: z.object({
-    email: z
-      .email({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Email address is required"
-            : "Please provide a valid email address",
-      })
-      .trim()
-      .toLowerCase(),
+    email: emailSchema,
 
     password: z
       .string({
@@ -119,12 +104,15 @@ export type SendVerificationOtpInput = z.infer<
   typeof sendVerificationOtpSchema.body
 >;
 export type VerifyEmailOtpInput = z.infer<typeof verifyEmailOtpSchema.body>;
-export type LoginInput = z.infer<typeof loginSchema.body>;
+export type LoginWithCredentialsInput = z.infer<
+  typeof loginWithCredentialsSchema.body
+>;
 
 // Export validation schemas
 export const AuthValidation = {
   registerCustomerSchema,
   sendVerificationOtpSchema,
   verifyEmailOtpSchema,
-  loginSchema,
+  loginWithCredentialsSchema,
 };
+

@@ -2,7 +2,7 @@
 
 > Authoritative reference for core external technologies, libraries, and provider boundaries in Liminal Backend.
 > Defines architectural integration patterns, operational rules, and error contracts for third-party technologies.
-> Governed under [AGENTS.md](../../AGENTS.md), [02-ARCHITECTURE.md](02-ARCHITECTURE.md), [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md), and [DECISIONS.md](DECISIONS.md) (`DEC-003`, `DEC-004`, `DEC-014`).
+> Governed under [AGENTS.md](../../AGENTS.md), [02-ARCHITECTURE.md](02-ARCHITECTURE.md), [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md), and [DECISIONS.md](DECISIONS.md) (`DEC-002`, `DEC-003`, `DEC-004`, `DEC-014`).
 
 ---
 
@@ -297,9 +297,238 @@ All database migrations and schema updates follow strict governance procedures (
 
 ---
 
-## 4. Future Integrations Baseline (Redis, Stripe, Cloudinary)
+---
+
+## 4. Zod (Data Validation & Type Inference Engine)
+
+### 4.1 Architectural Responsibility Boundary (`DEC-002`, `DEC-014`)
+
+Zod is the authoritative schema validation and static type inference engine for Liminal Backend (`"zod": "^4.5.4"`). It guards application boundaries against malformed or malicious inputs before requests reach controllers or services.
+
+```text
+HTTP Request (body / query / params)
+         ↓
+  validateRequest(schema)
+  [Zod safeParseAsync]
+         ↓  (Pass: Store in res.locals.validated)
+         ↓  (Fail: Throw AppValidationError / formatZodIssues)
+    Controller (Reads ONLY res.locals.validated)
+         ↓
+     Service (Applies business rules & domain invariant checks)
+         ↓
+   Repository / Prisma (Enforces DB constraints & referential integrity)
+```
+
+| Zod / `validateRequest` Boundary Owns | Service / Domain Boundary Owns | Prisma / PostgreSQL Layer Owns |
+| :--- | :--- | :--- |
+| Shape, primitive types, and required fields | Business logic rules & permissions | Physical column types & nullability |
+| String lengths, patterns, regex, formatting | Cross-entity business invariants | Unique constraints & foreign key integrity |
+| String sanitization (`.trim()`, `.toLowerCase()`) | Account status & state transitions | Cascading rules & database check constraints |
+| Input transformation & coercion (`z.coerce.number()`) | Temporal validation requiring DB state | Auto-generated default values & timestamps |
+| Converting raw inputs into strongly-typed objects | Calling third-party providers & auth APIs | Transaction isolation & row locks |
+
+> **Hard Rule:** Never duplicate business or database validations in Zod schemas. For example, verifying whether an email is already registered, whether a user has sufficient balance, or whether an ID exists in the database belongs in the Service or Database layer, not inside Zod refinements or custom schemas.
+
+---
+
+### 4.2 Schema Design & Zod v4 Standards
+
+All module request schemas must reside in `<module>.validation.ts` and follow strict Zod v4 syntax:
+
+1. **Top-Level Request Structure:**
+   Every route validation schema must implement `RequestValidationSchema`:
+   ```typescript
+   import { z } from "zod";
+
+   export const exampleSchema = {
+     body: z.strictObject({
+       // validated body fields
+     }),
+     params: z.object({
+       id: z.string().uuid({ error: "ID must be a valid UUID v4" }),
+     }),
+     query: z.object({
+       page: z.coerce.number().int().positive().default(1),
+       limit: z.coerce.number().int().positive().max(100).default(10),
+     }),
+   };
+   ```
+
+2. **Strict Object Principle for Payloads:**
+   - Always use `z.strictObject({...})` or `z.object({...}).strict()` for incoming JSON request bodies (`body`).
+   - **Rationale:** Strict objects actively reject unexpected or extraneous fields (`unrecognized_keys`), preventing mass assignment vulnerabilities and accidental parameter pollution.
+
+3. **Zod v4 Error Customization Syntax:**
+   - In Zod v4, custom error messages are declared using `{ error: "..." }` or dynamic callbacks `{ error: (issue) => "..." }`.
+   - Do NOT use legacy Zod v3 signatures such as `{ message: "..." }`, `{ required_error: "..." }`, or `{ invalid_type_error: "..." }`.
+   ```typescript
+   // Recommended (Zod v4 Standard):
+   z.string({ error: "Name is required" })
+     .trim()
+     .min(2, { error: "Name must be at least 2 characters long" })
+     .max(100, { error: "Name cannot exceed 100 characters" });
+
+   // Dynamic contextual error:
+   z.number({
+     error: (issue) => issue.input === undefined ? "Price is required" : "Price must be a valid number",
+   });
+   ```
+
+4. **Input Sanitization & Normalization Pipeline:**
+   - Always sanitize and normalize string inputs at the schema level before executing format validations:
+     - Apply `.trim()` on all text fields.
+     - Apply `.toLowerCase()` on email addresses and case-insensitive usernames.
+   - **Order of Execution & Deprecation Rule:** In Zod v4, `z.string().email()` is deprecated in favor of `z.email()`. However, calling `z.email().trim()` evaluates regex before trimming, causing inputs with accidental leading or trailing whitespace to fail format checks prematurely. Therefore, the canonical non-deprecated Zod v4 pattern uses `.pipe(z.email(...))` to pipe normalized string values directly into the standalone `z.email()` validator:
+   - Canonical Standard Pattern:
+     ```typescript
+     email: z
+       .string({
+         error: (issue) =>
+           issue.input === undefined
+             ? "Email address is required"
+             : "Email must be a valid text string",
+       })
+       .trim()
+       .toLowerCase()
+       .pipe(
+         z
+           .email({ error: "Please provide a valid email address" })
+           .max(255, { error: "Email address cannot exceed 255 characters" })
+       );
+     ```
+
+5. **Security & Regex Constraints:**
+   - Passwords must be validated with explicit complexity rules using `.regex()` and descriptive error messages:
+     ```typescript
+     password: z
+       .string({ error: "Password is required" })
+       .min(8, { error: "Password must be at least 8 characters long" })
+       .max(128, { error: "Password cannot exceed 128 characters" })
+       .regex(/[A-Z]/, { error: "Password must contain at least one uppercase letter" })
+       .regex(/[a-z]/, { error: "Password must contain at least one lowercase letter" })
+       .regex(/[0-9]/, { error: "Password must contain at least one number" })
+       .regex(/[^A-Za-z0-9]/, { error: "Password must contain at least one special character" });
+     ```
+
+---
+
+### 4.3 Request Validation Middleware (`validateRequest.ts`)
+
+Request validation is executed via `src/app/middleware/validateRequest.ts`:
+
+1. **Asynchronous Parsing:**
+   Always use `schema[source].safeParseAsync(sourceData)` to support asynchronous refinements, transformations, and non-blocking validation execution.
+
+2. **Storage in `res.locals.validated` (`DEC-014`):**
+   - Transformed and validated outputs are stored in `res.locals.validated[source]`.
+   - **Immutability Principle:** `req.body`, `req.query`, and `req.params` must NEVER be modified directly by validation middleware.
+   - Controllers must read exclusively from `res.locals.validated[source]` via `ValidatedLocals<TSchema>`.
+
+3. **Issue Formatting Pipeline:**
+   Validation errors are transformed from raw `z.ZodIssue` items into application-standard `ErrorDetail` objects:
+   ```typescript
+   interface ErrorDetail {
+     source: "body" | "params" | "query";
+     field: string;   // dot-delimited path (e.g., "address.postalCode" or "items[0].id")
+     message: string; // clear, client-friendly validation instruction
+   }
+   ```
+   When validation fails, `validateRequest` instantly aborts request processing with `AppValidationError(details)`.
+
+---
+
+### 4.4 Static Type Inference Standards
+
+To eliminate duplicate TypeScript type declarations and keep types 100% synchronized with runtime validations:
+
+1. **Infer from Schemas:**
+   Always infer types directly from validation schemas:
+   ```typescript
+   export type RegisterCustomerInput = z.infer<typeof registerCustomerValidationSchema.body>;
+   export type CustomerQueryInput = z.infer<typeof customerListQuerySchema.query>;
+   ```
+
+2. **Understanding `z.infer`, `z.output`, and `z.input`:**
+   - In 99% of backend application handlers, `z.infer<T>` (which is synonymous with `z.output<T>`) is required, representing the sanitized, transformed, and coerced data.
+   - Use `z.input<T>` only when typing the raw, unvalidated external payload (e.g., testing mock payloads before passing them to the validator):
+     ```typescript
+     // If schema has coercion or transforms:
+     const schema = z.object({ count: z.coerce.number() });
+     type Input = z.input<typeof schema>;   // { count?: unknown }
+     type Output = z.output<typeof schema>; // { count: number }
+     type Infer = z.infer<typeof schema>;   // { count: number } (Output)
+     ```
+
+3. **Controller Parameter Typing:**
+   Use the project helper type `ValidatedLocals<TSchema>` when declaring Express controller parameters:
+   ```typescript
+   export const registerCustomer = catchAsync(
+     async (
+       _req: Request,
+       res: Response<ApiResponse<RegisterResponseData>, ValidatedLocals<typeof registerCustomerValidationSchema>>
+     ) => {
+       const validatedBody = res.locals.validated.body;
+       // validatedBody is fully typed and sanitized
+     }
+   );
+   ```
+
+---
+
+### 4.5 Environment Variable Validation (`src/app/config/env.ts`)
+
+All application environment variables are validated at boot-up using Zod (`DEC-001`, `DEC-002`):
+
+1. **Fail-Fast Boot Principle:**
+   - If any environment variable is missing, invalid, or violates required constraints, the application must immediately throw `ConfigurationError` and terminate the process before listening on any port.
+   - Sensitive credentials (e.g., database passwords, Better Auth secrets) must NEVER be printed in error logs.
+
+2. **Coercion & URL Standards:**
+   - Use `z.coerce.number()` for numeric variables (`PORT`, `RATE_LIMIT_MAX_REQUESTS`).
+   - Use `z.url()` with explicit error messages for network endpoints (`DATABASE_URL`, `BETTER_AUTH_URL`, `FRONTEND_URL`).
+   - Use `z.enum(["development", "production", "test"])` for `NODE_ENV`.
+
+---
+
+### 4.6 Advanced Zod Capabilities: Metadata, JSON Schema & Codecs
+
+Zod v4 provides native architectural features for documentation and system interoperability:
+
+1. **Schema Metadata (`.describe()` and `.meta()`):**
+   - Attach human-readable field documentation and contract notes directly to schema fields:
+     ```typescript
+     const priceSchema = z.number().positive().describe("Unit price in BDT currency");
+     ```
+   - Useful for automated API documentation generation (e.g., OpenAPI / Swagger generation).
+
+2. **JSON Schema Generation (`z.toJsonSchema()`):**
+   - When communicating data contracts to frontend clients, form builders, or external webhooks, use Zod's native JSON schema conversion:
+     ```typescript
+     const jsonSchema = z.toJsonSchema(exampleSchema.body);
+     ```
+
+3. **Bidirectional Codecs (`z.codec()`):**
+   - For complex bidirectional serialization (such as parsing a comma-separated query string into an array and serializing it back), utilize Zod v4 codecs rather than ad-hoc split/join functions.
+
+---
+
+### 4.7 Prohibited Anti-Patterns & Best Practices
+
+| Anti-Pattern | Correct Practice | Reason |
+| :--- | :--- | :--- |
+| `req.body.email = ...` | Read sanitized data from `res.locals.validated.body` | Mutating `req` breaks purity and bypasses express immutability guarantees. |
+| Using `z.any()` or `z.unknown()` in body schemas | Explicitly define schemas or use `z.record()` with typed values | Unchecked input destroys type safety downstream. |
+| Passing unvalidated `req.params.id` to services | Validate with `params: z.object({ id: z.string().uuid() })` | Prevents invalid UUID syntax errors from crashing database queries. |
+| Catching Zod errors inside Controllers | Let `validateRequest` handle errors and throw `AppValidationError` | Preserves standard centralized error serialization architecture (`DEC-014`). |
+| Using Zod refinements (`.refine()`) for DB checks | Execute DB existence queries in Services/Repositories | Schemas must remain pure, synchronous or bounded, and decoupled from DB connections. |
+| Legacy Zod v3 error options (`required_error`) | Use Zod v4 `{ error: "..." }` or `{ error: (issue) => ... }` | Deprecated in Zod v4; causes type errors or ignored message strings. |
+
+---
+
+## 5. Future Integrations Baseline (Redis, Stripe, Cloudinary)
 
 As defined in `DEC-004` (Replaceable External Provider Boundaries):
 1. **Isolation:** External provider SDKs must remain strictly encapsulated behind dedicated application boundaries (`src/app/shared/<provider>/` or feature-specific adapters).
 2. **Error Translation:** Provider-specific errors must be caught at the integration boundary and translated into application-standard `AppError` instances before reaching controllers or routes.
 3. **Configuration:** All provider secrets and credentials must be read exclusively from `src/app/config/env.ts` with strict Zod validation at startup.
+

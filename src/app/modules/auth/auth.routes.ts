@@ -29,7 +29,7 @@ router.post(
 // Login with email and password credentials
 router.post(
   "/login",
-  validateRequest(AuthValidation.loginSchema),
+  validateRequest(AuthValidation.loginWithCredentialsSchema),
   AuthController.loginWithCredentials,
 );
 
