@@ -43,8 +43,8 @@ const verifyEmailOtp = catchAsync(async (req: Request, res: Response) => {
   const headers = fromNodeHeaders(req.headers);
   const result = await AuthService.verifyEmailOtp(payload, headers);
 
-  if (result.setCookie) {
-    res.setHeader("set-cookie", result.setCookie);
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
   }
 
   sendResponse(res, {
@@ -60,8 +60,8 @@ const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
   const headers = fromNodeHeaders(req.headers);
   const result = await AuthService.loginWithCredentials(payload, headers);
 
-  if (result.setCookie) {
-    res.setHeader("set-cookie", result.setCookie);
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
   }
 
   sendResponse(res, {

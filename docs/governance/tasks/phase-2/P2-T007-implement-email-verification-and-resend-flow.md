@@ -9,10 +9,10 @@
 
 - **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`
 - **Task ID:** `P2-T007`
-- **PRD / Requirement Reference:** `FR-AUTH-004` (Email Verification: `FR-AUTH-004.1` through `FR-AUTH-004.5`)
+- **PRD / Requirement Reference:** `FR-AUTH-004` (Email Verification: `FR-AUTH-004.1` through `FR-AUTH-004.4` in-scope; `FR-AUTH-004.5` deferred to `P2-T009`)
 - **ERD Reference:** `User`, `Verification`
 - **Dependencies:** `P2-T006` (`✅ Done`)
-- **Active Blockers:** `P2-B001` (Public API: Approved `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp`)
+- **Active Blockers:** None (`P2-B001` cleared for email verification endpoints)
 
 ---
 
@@ -21,19 +21,19 @@
 ### In Scope
 
 1. **Email Verification Trigger on Registration (`FR-AUTH-004.1`):**
-   - Configured Better Auth `emailOTP` plugin with `sendVerificationOnSignUp: true` and `overrideDefaultEmailVerification: true`.
-   - When a customer registers via `POST /api/v1/auth/register`, Better Auth generates a 6-digit OTP (5 min validity) and triggers branded email dispatch.
+   - Configured Better Auth `emailOTP` plugin with `sendVerificationOnSignUp: false` and `overrideDefaultEmailVerification: true`.
+   - When a customer registers via `POST /api/v1/auth/register`, `AuthService.registerCustomer` explicitly triggers 6-digit OTP generation (5 min validity) via `auth.api.sendVerificationOTP` after the User account and Customer profile are successfully created (with compensating rollback on profile creation failure).
 2. **Email Verification Completion (`FR-AUTH-004.2`, `FR-AUTH-004.3`):**
    - Exposed endpoint `POST /api/v1/auth/verify-email-otp`.
    - Validated incoming payload (`email`, `otp` exactly 6 digits) via Zod schema using `validateRequest`.
    - Verified OTP against Better Auth / `Verification` store.
-   - Upon successful verification, synchronized database state so `User.emailVerified` is set to `true`.
+   - Upon successful verification, Better Auth updates `User.emailVerified: true`, issues a session (`autoSignInAfterVerification: true`), and the controller returns the session cookie and sanitized user data.
    - Rejected invalid, expired, or tampered verification codes with `400 Bad Request` and sanitized error message (`INVALID_OR_EXPIRED_OTP`).
 3. **Resend Verification Flow (`FR-AUTH-004.4`):**
    - Exposed endpoint `POST /api/v1/auth/send-verification-otp`.
    - Validated payload (`email`) via Zod schema using `validateRequest`.
    - Re-issued fresh 6-digit OTP code via Better Auth `sendVerificationOTP`.
-   - Guarded against abuse: checks if user is already verified and returns `400 Bad Request` (`ALREADY_VERIFIED`).
+   - Guarded against abuse: checks if user is already verified and returns `400 Bad Request` (`ALREADY_VERIFIED`). Anti-enumeration preserves generic response for non-existent accounts.
 4. **Email Delivery Boundary:**
    - Established standalone universal email transport `sendEmail` under `src/app/shared/email/email.service.ts` using Nodemailer and React Email.
    - Designed branded, responsive HTML & plain-text architectural email template `VerificationEmail.tsx` matching Liminal Studio aesthetics.
@@ -44,6 +44,7 @@
 - In-memory custom token tables (Better Auth's canonical `Verification` model is used).
 - Full production SMTP infrastructure setup (`P2-B010` allows approved test credentials / dev mocks).
 - Session creation without credentials on email verification (unless configured with Better Auth `autoSignInAfterVerification`).
+- Google OAuth trusted email verification preservation (`FR-AUTH-004.5` is deferred to and verified under `P2-T009`).
 
 ---
 
@@ -52,10 +53,10 @@
 - `src/app/shared/email/email.service.ts`: Standalone universal email dispatcher supporting React Email templates, HTML/plain-text rendering, and high-priority transactional headers.
 - `src/app/shared/email/templates/VerificationEmail.tsx`: Architectural 6-digit OTP email template styled with Tailwind, Olive Green accents, and 5-minute expiration notice.
 - `src/app/shared/email/mailers/auth.mailer.ts`: Dedicated `AuthMailer` handling auth-domain email dispatches.
-- `src/app/config/auth.ts`: Better Auth configured with `emailAndPassword` (`requireEmailVerification: true`), `emailVerification` (`sendOnSignUp: true`), and `emailOTP` plugin.
+- `src/app/config/auth.ts`: Better Auth configured with `emailAndPassword` (`requireEmailVerification: true`), `emailVerification` (`sendOnSignUp: false`, `autoSignInAfterVerification: true`), and `emailOTP` plugin (`sendVerificationOnSignUp: false`).
 - `src/app/modules/auth/auth.validation.ts`: Zod schemas `registerCustomerSchema`, `sendVerificationOtpSchema`, and `verifyEmailOtpSchema`.
-- `src/app/modules/auth/auth.service.ts`: `registerCustomer`, `sendVerificationOtp`, and `verifyEmailOtp` with strict error handling.
-- `src/app/modules/auth/auth.controller.ts`: Controller handlers using `catchAsync` and `sendResponse`.
+- `src/app/modules/auth/auth.service.ts`: `registerCustomer` (with explicit post-commit OTP dispatch), `sendVerificationOtp`, and `verifyEmailOtp` (capturing session cookie from Better Auth).
+- `src/app/modules/auth/auth.controller.ts`: Controller handlers forwarding headers and session cookies using `catchAsync` and `sendResponse`.
 - `src/app/modules/auth/auth.routes.ts`: Mounted `/register`, `/send-verification-otp`, and `/verify-email-otp`.
 
 ---
@@ -92,17 +93,18 @@
 | Type check / build | `Yes` | `pnpm build` (`tsc`) | `PASS` (0 errors) |
 | Lint | `Yes` | `pnpm lint` (`eslint ./src`) | `PASS` (0 warnings/errors) |
 | Dev server runtime | `Yes` | `pnpm dev` | `PASS` (Port 5000 running) |
-| OTP dispatch on signup | `Yes` | Verified Better Auth hook triggers `AuthMailer` | `PASS` |
+| OTP dispatch on signup | `Yes` | Verified explicit service dispatch triggers `AuthMailer` | `PASS` |
 | Invalid OTP rejection | `Yes` | Rejects with HTTP 400 (`INVALID_OR_EXPIRED_OTP`) | `PASS` |
-| Valid OTP verification | `Yes` | Updates `User.emailVerified: true` | `PASS` |
+| Valid OTP verification | `Yes` | Updates `User.emailVerified: true` and issues session | `PASS` |
 | Resend verification | `Yes` | Generates fresh OTP for unverified accounts | `PASS` |
 
 ---
 
 ## 7. Assumptions & Blockers
 
-- **Active Blockers:** `P2-B001` resolved for email verification endpoints (`POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp`).
+- **Blockers Cleared:** `P2-B001` resolved for email verification endpoints (`POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp`).
 - **Assumptions:** SMTP credentials or local dev logger handles email delivery gracefully without breaking request flows.
+- **Requirement Traceability:** `FR-AUTH-004.5` (treating verified Google identities as email-verified) depends on Google provider integration in `P2-T009` and is explicitly deferred to that task for implementation and verification evidence.
 
 ---
 
@@ -122,8 +124,8 @@
 - **Universal Transport:** Created `sendEmail` in `src/app/shared/email/email.service.ts` supporting dual HTML/plain-text rendering with React Email.
 - **Architectural Email Template:** Created `VerificationEmail.tsx` with responsive layout, Liminal Studio color theory (`#44542d`, `#141f0a`), monospaced 6-digit OTP box, and 5-minute validity notices.
 - **Mailer Subsystem:** Created `AuthMailer` under `src/app/shared/email/mailers/auth.mailer.ts`.
-- **Better Auth Integration:** Configured `emailOTP` plugin with 6-digit length, 300s expiry, `sendVerificationOnSignUp: true`, `overrideDefaultEmailVerification: true`, and 15-minute `cookieCache` for session optimization.
-- **Service & Error Contract:** Added `USER_NOT_FOUND`, `ALREADY_VERIFIED`, and `INVALID_OR_EXPIRED_OTP` to `PUBLIC_ERROR_CODES`. Implemented `sendVerificationOtp` and `verifyEmailOtp` in `auth.service.ts`.
+- **Better Auth Integration:** Configured `emailOTP` plugin with 6-digit length, 300s expiry, `sendVerificationOnSignUp: false` (orchestrated post-commit via `AuthService.registerCustomer`), `overrideDefaultEmailVerification: true`, `autoSignInAfterVerification: true`, and 15-minute `cookieCache` for session optimization.
+- **Service & Error Contract:** Added `USER_NOT_FOUND`, `ALREADY_VERIFIED`, `INVALID_OR_EXPIRED_OTP`, and `TOO_MANY_REQUESTS` to `PUBLIC_ERROR_CODES`. Implemented `sendVerificationOtp` (with anti-enumeration) and `verifyEmailOtp` (capturing session cookie without redundant DB writes) in `auth.service.ts`.
 - **Zod Validation:** Added `sendVerificationOtpSchema` and `verifyEmailOtpSchema` with exact 6-digit length checking.
 - **Routing:** Mounted `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp` in `auth.routes.ts`.
 - **Checks:** `pnpm lint` and `pnpm build` pass with 0 errors.

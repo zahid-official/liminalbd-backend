@@ -83,7 +83,7 @@ Every listed top-level FR includes all of its approved sub-requirements unless a
 | `FR-AUTH-001`     | `P2-T006`                                             |
 | `FR-AUTH-002`     | `P2-T009`                                             |
 | `FR-AUTH-003`     | `P2-T011`                                             |
-| `FR-AUTH-004`     | `P2-T007`                                             |
+| `FR-AUTH-004`     | `P2-T007` (FR-AUTH-004.1–4), `P2-T009` (FR-AUTH-004.5) |
 | `FR-AUTH-005`     | `P2-T008`                                             |
 | `FR-AUTH-006`     | `P2-T012`                                             |
 | `FR-AUTH-007`     | `P2-T013`                                             |
@@ -263,7 +263,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 #### P2-T007: Implement Email Verification and Resend Flow
 
-**Requirements:** `FR-AUTH-004`  
+**Requirements:** `FR-AUTH-004` (FR-AUTH-004.1–FR-AUTH-004.4; `FR-AUTH-004.5` verified under `P2-T009`)  
 **Objective:** Support initial verification, secure verification completion and rate-limited resend through Better Auth and SMTP boundaries.
 
 **Acceptance Criteria:**
@@ -297,7 +297,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 #### P2-T009: Implement Google Sign-In and Sign-Up
 
-**Requirements:** `FR-AUTH-002`, `FR-RBAC-001.2`, `FR-RBAC-001.3`  
+**Requirements:** `FR-AUTH-002`, `FR-AUTH-004.5`, `FR-RBAC-001.2`, `FR-RBAC-001.3`  
 **Objective:** Support Google authentication through Better Auth without duplicate accounts or privileged-role mutation.
 
 **Acceptance Criteria:**

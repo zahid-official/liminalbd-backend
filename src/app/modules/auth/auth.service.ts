@@ -150,27 +150,6 @@ const verifyEmailOtp = async (
 ) => {
   const { email, otp } = payload;
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, emailVerified: true },
-  });
-
-  if (!existingUser) {
-    throw new AppError(
-      status.NOT_FOUND,
-      PUBLIC_ERROR_CODES.USER_NOT_FOUND,
-      "No account found with this email address",
-    );
-  }
-
-  if (existingUser.emailVerified) {
-    throw new AppError(
-      status.BAD_REQUEST,
-      PUBLIC_ERROR_CODES.ALREADY_VERIFIED,
-      "Your account is already verified. Please sign in.",
-    );
-  }
-
   const { headers: authHeaders, response: authResult } =
     await auth.api.verifyEmailOTP({
       body: {
@@ -181,7 +160,7 @@ const verifyEmailOtp = async (
       returnHeaders: true,
     });
 
-  const setCookie = authHeaders.get("set-cookie");
+  const setCookies = authHeaders.getSetCookie();
 
   return {
     user: {
@@ -192,7 +171,7 @@ const verifyEmailOtp = async (
       role: authResult.user.role,
       status: authResult.user.status,
     },
-    setCookie,
+    setCookies,
   };
 };
 
@@ -257,7 +236,7 @@ const loginWithCredentials = async (
       returnHeaders: true,
     });
 
-  const setCookie = authHeaders.get("set-cookie");
+  const setCookies = authHeaders.getSetCookie();
 
   return {
     user: {
@@ -268,7 +247,7 @@ const loginWithCredentials = async (
       role: authResult.user.role,
       status: authResult.user.status,
     },
-    setCookie,
+    setCookies,
   };
 };
 
