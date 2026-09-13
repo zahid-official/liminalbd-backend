@@ -15,10 +15,10 @@
 
 - **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`
 - **Task ID:** `P2-T006`
-- **PRD / Requirement Reference:** `FR-AUTH-001` (Customer Registration: `FR-AUTH-001.1` through `FR-AUTH-001.4`), `FR-RBAC-001.1` through `FR-RBAC-001.3` (Default Customer Role Assignment & Protection against Privilege Escalation)
+- **PRD / Requirement Reference:** `FR-AUTH-001` (Customer Registration: `FR-AUTH-001.1` through `FR-AUTH-001.6`), `FR-RBAC-001.1` through `FR-RBAC-001.3` (Default Customer Role Assignment & Protection against Privilege Escalation)
 - **ERD Reference:** `User`, `Account`, `Customer`
 - **Dependencies:** `P2-T005` (`✅ Done`)
-- **Active Blockers:** `P2-B001` (Public API: Approval of `POST /api/v1/auth/register`)
+- **Active Blockers:** None (Cleared: `P2-B001` approved `POST /api/v1/auth/register` on 2026-09-08)
 
 ---
 
@@ -29,23 +29,23 @@
 - Expose public endpoint `POST /api/v1/auth/register` with strict MVC architecture (`Route → Controller → Service → Better Auth API / Prisma`).
 - Validate incoming request payload via dedicated Zod schema with `validateRequest`:
   - `name`: string, trimmed, min 2 characters, max 100 characters.
-  - `email`: valid email format, converted to lowercase, trimmed.
-  - `password`: string, min 8 characters, requiring at least one letter and one number for secure baseline.
-  - `contactNumber`: string, optional, trimmed.
-  - `address`: string, optional, trimmed.
+  - `email`: valid email format, converted to lowercase, trimmed, max 255 characters.
+  - `password`: string, min 8 characters, max 100 characters, requiring at least one letter and one number for secure baseline.
+  *(Note: Under DEC-017, public customer registration strictly collects credentials; optional profile attributes `contactNumber` and `address` are deferred to P2-T024).*
 - Strict payload sanitization: Reject or strip any client-supplied `role`, `status`, `needPasswordChange`, or `deletedAt`.
 - Enforce default role and status: Always assign `role: "CUSTOMER"` and `status: "ACTIVE"`. Never create an `ADMIN` or `SUPER_ADMIN` via this public endpoint.
 - Duplicate email prevention: Check email existence case-insensitively and return `HTTP 409 Conflict` if the email is already registered.
 - Atomic / consistent database persistence:
   - Better Auth `auth.api.signUpEmail` creates `User` and `Account` (with securely hashed password).
-  - Associate and create `Customer` record (`userId`, `contactNumber`, `address`) in PostgreSQL.
+  - Associate and create `Customer` record (`userId`) in PostgreSQL (optional profile attributes deferred to `P2-T024` under `DEC-017`).
 - Response contract:
   - Respond with `HTTP 201 Created` using shared `sendResponse`.
-  - Return sanitized user & customer profile data (`id`, `name`, `email`, `role`, `status`, `createdAt`, `customer: { contactNumber, address }`).
+  - Return sanitized canonical User identity data (`id`, `name`, `email`, `role`, `status`, `emailVerified`, `createdAt`) matching `PRD.md` line 140 and `DEC-017`.
   - Never expose or return passwords, hashes, internal tokens, or secrets.
 
 ### Out of Scope
 
+- Optional customer profile fields collection and persistence (`contactNumber`, `address`) deferred to `P2-T024` under `DEC-017`.
 - Email verification sending / token dispatch (`P2-T007`).
 - Login, session cookie creation, or rate-limiting for sign-in (`P2-T008`).
 - Google OAuth registration (`P2-T009`).
@@ -55,7 +55,7 @@
 
 | Acceptance Criterion | Planned Step | Verification |
 | :------------------- | :----------- | :----------- |
-| Validate approved name, email, password, contactNumber, address rules | Step 2 & 3 | Zod schema unit & executable contract test |
+| Validate approved name, email, password credentials rules (DEC-017) | Step 2 & 3 | Zod schema unit & executable contract test |
 | Reject duplicate email case-insensitively with HTTP 409 | Step 3 & 4 | Duplicate registration test returning 409 Conflict |
 | Always assign `CUSTOMER`, reject client privileged-role input | Step 2 & 3 | Payload injection test asserting role remains `CUSTOMER` |
 | Create User, Account and Customer profile consistently returning HTTP 201 | Step 3 & 4 | End-to-end registration check verifying database rows |
@@ -84,7 +84,7 @@
   - **Service (`src/app/modules/auth/auth.service.ts`):**
     - Check case-insensitive duplicate email existence via `prisma.user.findUnique({ where: { email } })`. If found, throw `AppError(status.CONFLICT, "User with this email already exists")`.
     - Call Better Auth `auth.api.signUpEmail` passing sanitized fields (`name`, `email`, `password`) ensuring `role: UserRole.CUSTOMER` and `status: UserStatus.ACTIVE`.
-    - Create `Customer` profile record linked to the newly created user ID with `contactNumber` and `address`.
+    - Create `Customer` profile record linked to the newly created user ID (profile fields deferred to `P2-T024`).
     - Format and return sanitized public data.
 - **Data / Schema Impact:**
   - No database schema migrations needed; existing `User`, `Account`, and `Customer` tables are fully established.
@@ -92,7 +92,7 @@
   - `POST /api/v1/auth/register` becomes the official public customer registration endpoint.
 - **Security & Authorization Considerations:**
   - No client-supplied role assignment (strictly `CUSTOMER`).
-  - Passwords hashed securely by Better Auth using scrypt/argon2id.
+  - Passwords hashed securely by Better Auth using scrypt.
   - Never return password hash in JSON response.
 
 ---
@@ -182,7 +182,7 @@
   - `src/app/modules/auth/auth.service.ts` (orchestrated duplicate check, Better Auth `signUpEmail`, and `Customer` record creation with rollback)
   - `src/app/modules/auth/auth.controller.ts` (handler with `catchAsync`, HTTP 201 response)
   - `src/app/modules/auth/auth.routes.ts` (mounted `POST /register` with `validateRequest`)
-- **Migration Created:** None (uses existing Prisma schema from Phase 1).
+- **Migration Created:** None (uses existing Prisma schema baseline from Phase 2 P2-T001).
 - **Test / Verification Output:**
   - `pnpm lint`: Passed (0 errors, 0 warnings).
   - `pnpm build`: Passed (clean `tsc` output).

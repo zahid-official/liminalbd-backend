@@ -13,6 +13,12 @@ import type {
 
 // Helper to safely rollback orphan user without shadowing the primary failure
 const rollbackOrphanUser = async (userId: string, primaryError: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error("Customer profile creation failed, rolling back orphan user:", {
+    userId,
+    primaryError,
+  });
+
   try {
     await prisma.user.delete({
       where: { id: userId },
@@ -31,7 +37,10 @@ const rollbackOrphanUser = async (userId: string, primaryError: unknown) => {
 };
 
 // Register customer account
-const registerCustomer = async (payload: RegisterCustomerInput) => {
+const registerCustomer = async (
+  payload: RegisterCustomerInput,
+  headers: Headers,
+) => {
   const { name, email, password } = payload;
 
   const existingUser = await prisma.user.findUnique({
@@ -53,6 +62,7 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
       email,
       password,
     },
+    headers,
   });
 
   if (!authResult?.user) {
@@ -72,7 +82,12 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
     });
   } catch (error) {
     await rollbackOrphanUser(authResult.user.id, error);
-    throw error;
+
+    throw new AppError(
+      status.INTERNAL_SERVER_ERROR,
+      PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR,
+      "Failed to complete customer registration",
+    );
   }
 
   // Dispatch verification OTP only after account and customer profile are committed
@@ -81,6 +96,7 @@ const registerCustomer = async (payload: RegisterCustomerInput) => {
       email,
       type: "email-verification",
     },
+    headers,
   });
 
   return {

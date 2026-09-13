@@ -251,15 +251,15 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Acceptance Criteria:**
 
-- Validate the approved name, email, password, contact-number and address rules.
+- Validate approved name, email, and password credentials rules (`DEC-017`; optional profile attributes `contactNumber` and `address` deferred to `P2-T024`).
 - Reject duplicate email case-insensitively with HTTP 409.
 - Always assign `CUSTOMER`; ignore or reject client role/status/ownership input and never create a privileged account.
-- Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract.
+- Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract (pure User identity attributes under `DEC-017` and `PRD.md` line 140).
 - Never store or log a plain-text password; cover success and meaningful failure paths.
 
 **Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-08)
 
 #### P2-T007: Implement Email Verification and Resend Flow
 

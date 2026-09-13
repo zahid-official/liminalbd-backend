@@ -12,9 +12,10 @@ import type {
 } from "./auth.validation.js";
 
 // Register customer account
-const registerCustomer = catchAsync(async (_req: Request, res: Response) => {
+const registerCustomer = catchAsync(async (req: Request, res: Response) => {
   const payload = res.locals.validated?.body as RegisterCustomerInput;
-  const result = await AuthService.registerCustomer(payload);
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.registerCustomer(payload, headers);
 
   sendResponse(res, {
     statusCode: status.CREATED,

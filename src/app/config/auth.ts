@@ -38,6 +38,7 @@ const auth = betterAuth({
 
   database: prismaAdapter(prisma, {
     provider: "postgresql",
+    transaction: true,
   }),
 
   emailAndPassword: {
