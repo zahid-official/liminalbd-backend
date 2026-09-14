@@ -20,9 +20,9 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, and `P2-T008` are `✅ Done`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, and `P2-T009` are `✅ Done`.
 - No future phase has approved implementation scope.
-- Next eligible candidate: `P2-T009` - Implement Google sign-in and sign-up (`🔲`).
+- Next eligible candidate: `P2-T010` - Implement session and authentication middleware guard (`🔲`).
 
 ## 2. Current Codebase State
 

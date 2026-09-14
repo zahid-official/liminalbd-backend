@@ -76,7 +76,7 @@ const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
 const loginWithGoogle = catchAsync(async (req: Request, res: Response) => {
   const headers = fromNodeHeaders(req.headers);
   const query = res.locals.validated?.query as LoginWithGoogleQuery | undefined;
-  const result = await AuthService.loginWithGoogle(headers, query?.callbackURL);
+  const result = await AuthService.loginWithGoogle(headers, query?.redirectTo);
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);

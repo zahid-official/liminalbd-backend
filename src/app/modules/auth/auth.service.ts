@@ -222,12 +222,16 @@ const loginWithCredentials = async (
 };
 
 // Initialize Google OAuth sign-in flow
-const loginWithGoogle = async (headers: Headers, callbackURL?: string) => {
+const loginWithGoogle = async (headers: Headers, redirectTo?: string) => {
+  const callbackURL = redirectTo
+    ? `${env.FRONTEND_URL}${redirectTo.startsWith("/") ? redirectTo : `/${redirectTo}`}`
+    : `${env.FRONTEND_URL}/dashboard`;
+
   const { headers: authHeaders, response: authResult } =
     await auth.api.signInSocial({
       body: {
         provider: "google",
-        callbackURL: callbackURL || env.FRONTEND_URL,
+        callbackURL,
       },
       headers,
       returnHeaders: true,

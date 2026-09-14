@@ -102,9 +102,9 @@ const loginWithCredentialsSchema = {
 // Login With Google Schema
 const loginWithGoogleSchema = {
   query: z.object({
-    callbackURL: z
+    redirectTo: z
       .string({
-        error: "Callback URL must be a valid text string",
+        error: "Redirect URL must be a valid text string",
       })
       .trim()
       .optional(),

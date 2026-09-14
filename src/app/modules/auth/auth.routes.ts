@@ -35,7 +35,7 @@ router.post(
   AuthController.loginWithCredentials,
 );
 
-// Customer Google OAuth initiation
+// Google OAuth initiation
 router.post(
   "/login/google",
   validateRequest(AuthValidation.loginWithGoogleSchema),
@@ -44,6 +44,9 @@ router.post(
 
 // Google OAuth callback
 router.get("/callback/google", toNodeHandler(auth));
+
+// OAuth and authentication error handler
+router.get("/error", toNodeHandler(auth));
 
 // Export auth routes
 export const AuthRoutes = router;
