@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-12
+**Last verified:** 2026-09-14
 
 ## 1. Governance and Phase State
 
@@ -36,7 +36,7 @@
 - Better Auth is configured behind internal application boundary (`src/app/config/auth.ts`) with custom database adapter, secure session configuration (`P2-T005`), and `emailOTP` plugin with 15-minute `cookieCache` (`P2-T007`).
 - Public customer registration is implemented at `POST /api/v1/auth/register` (`P2-T006`) with strict Zod validation, Better Auth user creation, atomic/compensated `Customer` record linkage, duplicate check, and privilege escalation prevention.
 - Email verification and OTP subsystem is established (`P2-T007`): standalone universal transport `sendEmail` (`src/app/shared/email/email.service.ts`), branded React Email OTP template `VerificationEmail.tsx`, dedicated `AuthMailer` (`src/app/shared/email/mailers/auth.mailer.ts`), and endpoints `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp`.
-- Credential login is implemented at `POST /api/v1/auth/login` (`P2-T008`) with pre-authentication anti-enumeration guard (`deletedAt`), email verification guard (`emailVerified`), account restriction guards (`SUSPENDED`, `DEACTIVATED`), and session cookie forwarding (`better-auth.session_token`).
+- Credential login is implemented at `POST /api/v1/auth/login` (`P2-T008`) with centralized session-hook status guards (`deletedAt` anti-enumeration per `DEC-018`, `SUSPENDED`, `DEACTIVATED`), deterministic compound-state precedence, secure cookie transport, flat sanitized user response, and network rate limiting delegated to reverse proxy (`DEC-019`).
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers

@@ -24,13 +24,13 @@
    - Expose endpoint `POST /api/v1/auth/login`.
    - Validate payload (`email`, `password`) via Zod schema using `validateRequest`.
    - Execute authentication via Better Auth internal API (`auth.api.signInEmail`).
-   - Forward session cookies (`session_token`) via Express response headers so browser/client automatically receives httpOnly secure cookie.
+   - Forward session cookies (`session_token`, `session_data`) via Express response headers so browser/client automatically receives httpOnly secure cookies.
 2. **Account Status Enforcement (`FR-RBAC-006.1`):**
    - Check account eligibility before establishing/returning session:
-     - If user is soft-deleted (`deletedAt !== null`): reject with `401 Unauthorized` (`ACCOUNT_DELETED` / generic credential rejection to avoid enumeration).
+     - If user is soft-deleted (`deletedAt !== null`): reject with `401 Unauthorized` (`INVALID_CREDENTIALS` per `DEC-018` to prevent account enumeration).
      - If user is suspended (`status === SUSPENDED`): reject with `403 Forbidden` (`ACCOUNT_SUSPENDED`, sanitized message).
      - If user is deactivated (`status === DEACTIVATED`): reject with `403 Forbidden` (`ACCOUNT_DEACTIVATED`, sanitized message).
-     - If email is not verified (`emailVerified === false`): reject with `403 Forbidden` / `400 Bad Request` (`EMAIL_NOT_VERIFIED`).
+     - If email is not verified (`emailVerified === false`): reject with `403 Forbidden` (`EMAIL_NOT_VERIFIED`).
 3. **Invalid Credential Protection:**
    - Reject invalid password or non-existent email with `401 Unauthorized` (`INVALID_CREDENTIALS`), without leaking whether the email exists.
 4. **Sanitized User Response Envelope:**
@@ -42,7 +42,7 @@
 When an account exhibits multiple overlapping state conditions (e.g. invalid credentials, unverified email, suspended status, and/or soft-deleted timestamp), evaluation proceeds through a deterministic, security-first sequence:
 
 1. **Priority 1: Invalid Credentials (HTTP 401 `INVALID_CREDENTIALS`):**  
-   Evaluated first during Better Auth credential verification. Any incorrect password or non-existent email receives generic 401 rejection with constant-time dummy password hashing, preventing attacker reconnaissance into account existence or internal state.
+   Evaluated first during Better Auth credential verification. Any incorrect password or non-existent email receives generic 401 rejection with timing-equalized dummy password hashing, preventing attacker reconnaissance into account existence or internal state.
 2. **Priority 2: Soft-Deleted Account (HTTP 401 `INVALID_CREDENTIALS`):**  
    Evaluated at the session creation boundary (`databaseHooks.session.create.before`). If `deletedAt !== null`, session persistence is aborted and generic 401 `INVALID_CREDENTIALS` is returned (anti-enumeration per `DEC-018`). This takes precedence over verification or suspension state so deleted accounts are treated strictly as non-existent and reveal no lifecycle telemetry.
 3. **Priority 3: Administrative Sanction (HTTP 403 `ACCOUNT_SUSPENDED` / `ACCOUNT_DEACTIVATED`):**  
@@ -64,11 +64,11 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 | Acceptance Criterion                              | Planned Step         | Verification                                                                  |
 | :------------------------------------------------ | :------------------- | :---------------------------------------------------------------------------- |
 | Validate email and password inputs                | Step 2               | Reject missing or malformed inputs with 400                                   |
-| Reject invalid credentials without detail leakage | Step 3 & 4           | HTTP 401 with `INVALID_CREDENTIALS` (constant-time protected)                 |
+| Reject invalid credentials without detail leakage | Step 3 & 4           | HTTP 401 with `INVALID_CREDENTIALS` (timing-equalized via dummy password hash) |
 | Reject unverified user accounts                   | Step 3 & 4           | HTTP 403 with `EMAIL_NOT_VERIFIED`                                            |
 | Reject suspended and deactivated accounts         | Step 3 & 4           | HTTP 403 with status-specific public error codes                              |
 | Reject soft-deleted accounts                      | Step 3 & 4           | HTTP 401 `INVALID_CREDENTIALS` preventing enumeration                         |
-| Issue session cookie and sanitized response       | Step 3 & 5           | Verify `Set-Cookie` header and 200 JSON envelope                              |
+| Issue session cookies and sanitized response      | Step 3 & 5           | Verify `Set-Cookie` headers and 200 JSON envelope                             |
 | Rate-limit repeated failed attempts               | Out of Scope / Infra | Delegated to Reverse Proxy (Nginx / Cloudflare) infrastructure per `DEC-019` |
 
 ---
@@ -77,8 +77,8 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 
 - `src/app/modules/auth/auth.validation.ts`: contains strict `loginWithCredentialsSchema` validating `email` and `password`.
 - `src/app/errors/errorCodes.ts`: defines `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_DEACTIVATED`.
-- `src/app/modules/auth/auth.service.ts`: implements `loginWithCredentials` orchestrating pre-auth status checks and Better Auth `signInEmail`.
-- `src/app/modules/auth/auth.controller.ts`: implements `loginWithCredentials` forwarding `set-cookie` header and sending sanitized 200 JSON envelope.
+- `src/app/modules/auth/auth.service.ts`: implements `loginWithCredentials` delegating directly to Better Auth `signInEmail` with session cookies extraction, while account status guards are enforced centrally via `databaseHooks.session.create.before`.
+- `src/app/modules/auth/auth.controller.ts`: implements `loginWithCredentials` forwarding `Set-Cookie` headers and sending sanitized 200 JSON envelope.
 - `src/app/modules/auth/auth.routes.ts`: mounts `POST /login` with `validateRequest(AuthValidation.loginWithCredentialsSchema)`.
 
 ---
@@ -86,7 +86,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 ## 4. Architectural & Governance Alignment
 
 - **Layered Architecture:** Controller depends only on Service; Service coordinates Prisma and Better Auth internal API.
-- **Session Architecture:** Strictly cookie-only session issuance (`session_token`) via `res.setHeader("set-cookie", ...)`. No raw tokens in JSON.
+- **Session Architecture:** Strictly cookie-only session issuance (`session_token`, `session_data`) via `res.setHeader("set-cookie", ...)`. No raw tokens in JSON.
 - **Error Resolution:** Centralized handling via `handleBetterAuthError` and `handlePrismaError` caught at `globalErrorHandler`.
 - **Naming Standard:** Method names adhere to verb-first domain standard `loginWithCredentials`.
 
@@ -100,7 +100,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 | `[MODIFY]` | `src/app/errors/handleBetterAuthError.ts`                                                                 | Added error mapping for `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`, and `INVALID_CREDENTIALS` |
 | `[MODIFY]` | `src/app/modules/auth/auth.validation.ts`                                                                 | Added `loginWithCredentialsSchema` and exported `LoginWithCredentialsInput`                                                        |
 | `[MODIFY]` | `src/app/errors/errorCodes.ts`                                                                            | Added public machine error codes for login and account states                                                       |
-| `[MODIFY]` | `src/app/modules/auth/auth.service.ts`                                                                    | Implemented `loginWithCredentials` delegating directly to `auth.api.signInEmail` with constant-time protection      |
+| `[MODIFY]` | `src/app/modules/auth/auth.service.ts`                                                                    | Implemented `loginWithCredentials` delegating directly to `auth.api.signInEmail` with timing-equalized protection  |
 | `[MODIFY]` | `src/app/modules/auth/auth.controller.ts`                                                                 | Added `loginWithCredentials` handler with `getSetCookie()` cookie forwarding                                        |
 | `[MODIFY]` | `src/app/modules/auth/auth.routes.ts`                                                                     | Mounted `POST /login` endpoint with validation middleware                                                           |
 | `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md`                                                             | Track task progress and status                                                                                      |
@@ -121,7 +121,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 4. **Step 4: Controller & Route Mounting:**
    - Implemented controller handler with multi-cookie array forwarding (`getSetCookie()`) and mounted `POST /login` route.
 5. **Step 5: Verification & Quality Gates:**
-   - Verified input validation, invalid credentials, unverified email, suspended/deactivated status, and successful session cookie issuance across all 8 security test scenarios.
+   - Verified input validation, invalid credentials, unverified email, suspended/deactivated status, and successful session cookies issuance across all 8 security test scenarios.
    - Passed `pnpm lint` and `pnpm exec tsc --noEmit`.
 6. **Gate 2: Human Review & Closure:**
    - Record implementation evidence and mark `✅ Done`.
@@ -130,13 +130,13 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 
 ## 7. Verification & Quality Gates
 
-| Check                          | Required | Command or Method                                                                                          | Result      |
-| :----------------------------- | :------- | :--------------------------------------------------------------------------------------------------------- | :---------- |
-| Acceptance criteria            | `Yes`    | PRD FR-AUTH-005 & FR-RBAC-006.1 inspection                                                                 | `PASS`      |
-| Type check / build             | `Yes`    | `pnpm exec tsc --noEmit`                                                                                   | `PASS`      |
-| Lint                           | `Yes`    | `pnpm lint`                                                                                                | `PASS`      |
-| Input validation check         | `Yes`    | Empty body returns 400 with `VALIDATION_ERROR`                                                             | `PASS`      |
-| Invalid credential rejection   | `Yes`    | Non-existent user or wrong password returns 401 `INVALID_CREDENTIALS` (constant-time dummy hash protected) | `PASS`      |
+| Check                          | Required | Command or Method                                                                                                          | Result      |
+| :----------------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------- | :---------- |
+| Acceptance criteria            | `Yes`    | PRD FR-AUTH-005 & FR-RBAC-006.1 inspection                                                                                 | `PASS`      |
+| Type check / build             | `Yes`    | `pnpm exec tsc --noEmit`                                                                                                   | `PASS`      |
+| Lint                           | `Yes`    | `pnpm lint`                                                                                                                | `PASS`      |
+| Input validation check         | `Yes`    | Empty body returns 400 with `VALIDATION_ERROR`                                                                             | `PASS`      |
+| Invalid credential rejection   | `Yes`    | Non-existent user or wrong password returns 401 `INVALID_CREDENTIALS` (timing-equalized via Better Auth dummy password hash) | `PASS`      |
 | Unverified account rejection   | `Yes`    | Returns 403 `EMAIL_NOT_VERIFIED` only upon correct password                                                | `PASS`      |
 | Restricted account rejection   | `Yes`    | Returns 403 for `ACCOUNT_SUSPENDED` and `ACCOUNT_DEACTIVATED` only upon correct password                   | `PASS`      |
 | Soft-deleted account rejection | `Yes`    | Returns 401 `INVALID_CREDENTIALS` preventing account enumeration                                           | `PASS`      |
@@ -179,7 +179,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
   - `pnpm exec tsc --noEmit`: Passed (`tsc` completed with 0 errors).
   - Executable Contract Checks (All 8 scenarios verified):
     1. Validation Gate: POST `{}` -> HTTP 400 (`VALIDATION_ERROR`, missing email and password fields).
-    2. Missing User Gate: POST non-existent user -> HTTP 401 (`INVALID_CREDENTIALS`, constant-time dummy password hash applied).
+    2. Missing User Gate: POST non-existent user -> HTTP 401 (`INVALID_CREDENTIALS`, timing-equalized via Better Auth dummy password hash applied).
     3. Wrong Password on Unverified User: POST unverified email with wrong password -> HTTP 401 (`INVALID_CREDENTIALS`, account state not leaked).
     4. Unverified Email Gate: POST unverified email with correct password -> HTTP 403 (`EMAIL_NOT_VERIFIED`, "Please verify your email before logging in").
     5. Suspended Account Gate: POST suspended user with correct password -> HTTP 403 (`ACCOUNT_SUSPENDED`).
@@ -188,7 +188,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
     8. Soft-Deleted Account Gate: POST user with `deletedAt !== null` (including compound states where user is simultaneously unverified and suspended) -> HTTP 401 (`INVALID_CREDENTIALS`, anti-enumeration per `DEC-018`).
     9. Happy Path (Login Success): POST valid credentials on active verified account -> HTTP 200 OK, `Set-Cookie` headers present (`session_token`, cookie cache), sanitized user payload returned directly under `data` (`{ id, name, email, emailVerified: true, role: "CUSTOMER", status: "ACTIVE" }`) for strict endpoint symmetry with `registerCustomer` and `verifyEmailOtp`.
 - **Deviations from Original Plan:**
-  - Refactored from service-level pre-auth status checking to Better Auth `databaseHooks.session.create.before` to ensure constant-time response for nonexistent users and prevent leaking account existence or state on wrong passwords.
+  - Refactored from service-level pre-auth status checking to Better Auth `databaseHooks.session.create.before` to ensure timing-equalized credential rejection for nonexistent users and prevent leaking account existence or state on wrong passwords.
   - Multi-cookie support improved by adopting `authHeaders.getSetCookie()` returning `string[]` to prevent illegal comma-folding under RFC 6265.
   - Centralized IP rate limiting is formally designated for the API gateway / reverse proxy infrastructure tier per `DEC-019` rather than brittle in-memory Node process limits.
 - **Remaining Concerns / Follow-ups:**

@@ -257,12 +257,10 @@ This project delivers a **production-grade RESTful API** that provides:
   "success": true,
   "message": "Login successful",
   "data": {
-    "user": {
-      "id": "uuid",
-      "email": "customer@example.com",
-      "role": "CUSTOMER",
-      "emailVerified": true
-    }
+    "id": "uuid",
+    "email": "customer@example.com",
+    "role": "CUSTOMER",
+    "emailVerified": true
   }
 }
 ```

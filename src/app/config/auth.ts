@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
 import { emailOTP } from "better-auth/plugins";
 import { UserRole, UserStatus } from "../../generated/prisma/enums.js";
+import { PUBLIC_ERROR_CODES } from "../errors/errorCodes.js";
 import { AuthMailer } from "../shared/email/mailers/auth.mailer.js";
 import { prisma } from "./prisma.js";
 import { env } from "./env.js";
@@ -33,7 +34,7 @@ const auth = betterAuth({
           // Priority 2: Soft-deleted -> generic invalid credentials (anti-enumeration per DEC-018)
           if (!user || user.deletedAt !== null) {
             throw new APIError("UNAUTHORIZED", {
-              code: "INVALID_CREDENTIALS",
+              code: PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
               message: "Invalid email or password",
             });
           }
@@ -41,7 +42,7 @@ const auth = betterAuth({
           // Priority 3: Administrative Sanction (Suspended / Deactivated)
           if (user.status === UserStatus.SUSPENDED) {
             throw new APIError("FORBIDDEN", {
-              code: "ACCOUNT_SUSPENDED",
+              code: PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,
               message:
                 "Your account has been suspended. Please contact support.",
             });
@@ -49,7 +50,7 @@ const auth = betterAuth({
 
           if (user.status === UserStatus.DEACTIVATED) {
             throw new APIError("FORBIDDEN", {
-              code: "ACCOUNT_DEACTIVATED",
+              code: PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
               message: "Your account is deactivated. Please contact support.",
             });
           }
@@ -57,7 +58,7 @@ const auth = betterAuth({
           // Priority 4: Unverified Email
           if (!user.emailVerified) {
             throw new APIError("FORBIDDEN", {
-              code: "EMAIL_NOT_VERIFIED",
+              code: PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED,
               message: "Please verify your email before logging in",
             });
           }

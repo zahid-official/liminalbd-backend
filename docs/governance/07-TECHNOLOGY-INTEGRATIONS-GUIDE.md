@@ -2,7 +2,7 @@
 
 > Authoritative reference for core external technologies, libraries, and provider boundaries in Liminal Backend.
 > Defines architectural integration patterns, operational rules, and error contracts for third-party technologies.
-> Governed under [AGENTS.md](../../AGENTS.md), [02-ARCHITECTURE.md](02-ARCHITECTURE.md), [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md), and [DECISIONS.md](DECISIONS.md) (`DEC-002`, `DEC-003`, `DEC-004`, `DEC-014`).
+> Governed under [AGENTS.md](../../AGENTS.md), [02-ARCHITECTURE.md](02-ARCHITECTURE.md), [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md), and [DECISIONS.md](DECISIONS.md) (`DEC-002`, `DEC-003`, `DEC-004`, `DEC-014`, `DEC-018`, `DEC-019`).
 
 ---
 
@@ -24,12 +24,12 @@ HTTP Request → Middleware → Controller → Service → Better Auth API / Rep
 
 | Better Auth Owns | Liminal Application Code Owns |
 | :--- | :--- |
-| Credential validation and secure password hashing | User roles (`SUPER_ADMIN`, `ADMIN`, `CUSTOMER`) |
+| Credential validation and timing-equalized password hashing | User roles (`SUPER_ADMIN`, `ADMIN`, `CUSTOMER`) |
 | Session token generation, signing, and lifecycle | RBAC enforcement and authorization guards |
 | Cookie serialization, encryption, and caching | User account status policy (`ACTIVE`, `SUSPENDED`, `DEACTIVATED`) |
-| Email verification mechanics and OTP delivery | Soft deletion lifecycle (`deletedAt`) |
+| Email verification mechanics and OTP delivery | Soft deletion lifecycle (`deletedAt` anti-enumeration per `DEC-018`) |
 | Google OAuth handshake and token management | Resource ownership verification |
-| Built-in brute-force and request rate limiting | Audit logging of sensitive and privileged events |
+| Core auth mechanics & dummy password hash | Audit logging (network rate limiting delegated to Reverse Proxy per `DEC-019`) |
 
 > **Hard Rule:** Never construct a parallel session or custom authentication mechanism. Never store JWTs in local storage or expose raw tokens in response bodies.
 
@@ -42,6 +42,7 @@ When invoking Better Auth endpoints from application services, always use the in
    When an operation generates or refreshes cookies (e.g., `signInEmail`, `signOut`), supply `returnHeaders: true`.
    - **Why:** `returnHeaders: true` automatically throws typed `APIError` upon failure and directly returns typed `{ headers, response }` on success.
    - Avoid `asResponse: true` for business services, as it suppresses exceptions and returns raw web Response streams requiring manual status verification.
+   - Use `authHeaders.getSetCookie()` returning `string[]` to preserve discrete cookie headers without RFC 6265 illegal comma-folding.
 
 ```ts
 // Canonical Server-Side Sign-In Invocation
@@ -52,7 +53,7 @@ const { headers: authHeaders, response: authResult } =
     returnHeaders: true,
   });
 
-const setCookie = authHeaders.get("set-cookie");
+const setCookies = authHeaders.getSetCookie();
 ```
 
 ### 2.3 Server-Side Session Retrieval
@@ -105,6 +106,10 @@ Better Auth communicates server-side failures by throwing instances of `APIError
   | :--- | :--- | :--- | :--- |
   | `INVALID_EMAIL_OR_PASSWORD` | `401 Unauthorized` | `INVALID_CREDENTIALS` | `"Invalid email or password"` |
   | `INVALID_PASSWORD` | `401 Unauthorized` | `INVALID_CREDENTIALS` | `"Invalid email or password"` |
+  | `INVALID_CREDENTIALS` | `401 Unauthorized` | `INVALID_CREDENTIALS` | `"Invalid email or password"` |
+  | `EMAIL_NOT_VERIFIED` | `403 Forbidden` | `EMAIL_NOT_VERIFIED` | `"Please verify your email before logging in"` |
+  | `ACCOUNT_SUSPENDED` | `403 Forbidden` | `ACCOUNT_SUSPENDED` | `"Your account has been suspended. Please contact support."` |
+  | `ACCOUNT_DEACTIVATED` | `403 Forbidden` | `ACCOUNT_DEACTIVATED` | `"Your account is deactivated. Please contact support."` |
   | `INVALID_OTP` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` | `"Invalid or expired verification code"` |
   | `TOKEN_EXPIRED` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` | `"Invalid or expired verification code"` |
   | `USER_NOT_FOUND` | `404 Not Found` | `USER_NOT_FOUND` | `"No account found with this email address"` |
@@ -114,15 +119,16 @@ Better Auth communicates server-side failures by throwing instances of `APIError
 
   > **Note:** Unknown 4xx errors emit the fixed safe client message `"Authentication request failed"`, while 5xx/internal server errors are strictly masked with `"An unexpected internal error occurred."` and logged server-side via `globalErrorHandler.ts`.
 
-### 2.6 Security and Account Lifecycle Enforcement
+### 2.6 Security, Compound-State Precedence and Lifecycle Guards
 
-Application services must enforce account status rules **before and after** delegating to Better Auth:
+Account status restrictions and anti-enumeration protections are enforced centrally at the session creation lifecycle boundary (`databaseHooks.session.create.before` in `src/app/config/auth.ts`). This guarantees that Better Auth's timing-equalized credential verification executes first, completely eliminating timing side-channels and state reconnaissance:
 
-1. **Pre-Authentication Guard:**
-   - Soft-deleted (`deletedAt !== null`) and non-existent users must return identical generic `401 INVALID_CREDENTIALS` errors to prevent email enumeration.
-   - Unverified accounts (`emailVerified === false`) must return `403 EMAIL_NOT_VERIFIED`.
-   - Suspended accounts (`status === UserStatus.SUSPENDED`) must return `403 ACCOUNT_SUSPENDED`.
-   - Deactivated accounts (`status === UserStatus.DEACTIVATED`) must return `403 ACCOUNT_DEACTIVATED`.
+1. **Deterministic Compound-State Precedence:**
+   - **Priority 1: Invalid Credentials (`401 INVALID_CREDENTIALS`):** Non-existent users or incorrect passwords fail credential verification first with timing-equalized dummy password hashing.
+   - **Priority 2: Soft-Deleted Account (`401 INVALID_CREDENTIALS` per `DEC-018`):** If `deletedAt !== null`, session persistence aborts with generic 401 to prevent disclosing prior account existence.
+   - **Priority 3: Administrative Sanctions (`403 ACCOUNT_SUSPENDED` / `ACCOUNT_DEACTIVATED`):** Suspended or deactivated accounts abort session creation with sanitized status-specific 403 forbidden responses. Moderation takes precedence over email verification.
+   - **Priority 4: Unverified Email (`403 EMAIL_NOT_VERIFIED`):** Unverified accounts with valid credentials abort session creation with 403 instructing verification.
+   - **Priority 5: Active Verified Success (`200 OK`):** Session and secure cookies are established and returned in the shared envelope.
 
 2. **Schema Protection (`additionalFields`):**
    - Privileged and operational user fields (`role`, `status`, `needPasswordChange`, `deletedAt`) are configured with `input: false` in `src/app/config/auth.ts`.
@@ -447,7 +453,8 @@ To eliminate duplicate TypeScript type declarations and keep types 100% synchron
 1. **Infer from Schemas:**
    Always infer types directly from validation schemas:
    ```typescript
-   export type RegisterCustomerInput = z.infer<typeof registerCustomerValidationSchema.body>;
+   export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
+   export type LoginWithCredentialsInput = z.infer<typeof loginWithCredentialsSchema.body>;
    export type CustomerQueryInput = z.infer<typeof customerListQuerySchema.query>;
    ```
 
@@ -468,7 +475,7 @@ To eliminate duplicate TypeScript type declarations and keep types 100% synchron
    export const registerCustomer = catchAsync(
      async (
        _req: Request,
-       res: Response<ApiResponse<RegisterResponseData>, ValidatedLocals<typeof registerCustomerValidationSchema>>
+       res: Response<ApiResponse<RegisterResponseData>, ValidatedLocals<typeof registerCustomerSchema>>
      ) => {
        const validatedBody = res.locals.validated.body;
        // validatedBody is fully typed and sanitized
