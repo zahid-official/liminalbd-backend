@@ -1,6 +1,7 @@
 import status from "http-status";
 import { auth } from "../../config/auth.js";
 import { prisma } from "../../config/prisma.js";
+import { UserRole } from "../../../generated/prisma/enums.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import type {
@@ -190,6 +191,21 @@ const loginWithCredentials = async (
       headers,
       returnHeaders: true,
     });
+
+  // Enforce customer portal boundary (DEC-020)
+  if (authResult.user.role !== UserRole.CUSTOMER) {
+    if (authResult.token) {
+      await prisma.session.deleteMany({
+        where: { token: authResult.token },
+      });
+    }
+
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      "Access denied. This login portal is reserved for customers.",
+    );
+  }
 
   const setCookies = authHeaders.getSetCookie();
 
