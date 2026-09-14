@@ -27,9 +27,10 @@ const auth = betterAuth({
         before: async (session) => {
           const user = await prisma.user.findUnique({
             where: { id: session.userId },
-            select: { status: true, deletedAt: true },
+            select: { status: true, deletedAt: true, emailVerified: true },
           });
 
+          // Priority 2: Soft-deleted -> generic invalid credentials (anti-enumeration per DEC-018)
           if (!user || user.deletedAt !== null) {
             throw new APIError("UNAUTHORIZED", {
               code: "INVALID_CREDENTIALS",
@@ -37,6 +38,7 @@ const auth = betterAuth({
             });
           }
 
+          // Priority 3: Administrative Sanction (Suspended / Deactivated)
           if (user.status === UserStatus.SUSPENDED) {
             throw new APIError("FORBIDDEN", {
               code: "ACCOUNT_SUSPENDED",
@@ -49,6 +51,14 @@ const auth = betterAuth({
             throw new APIError("FORBIDDEN", {
               code: "ACCOUNT_DEACTIVATED",
               message: "Your account is deactivated. Please contact support.",
+            });
+          }
+
+          // Priority 4: Unverified Email
+          if (!user.emailVerified) {
+            throw new APIError("FORBIDDEN", {
+              code: "EMAIL_NOT_VERIFIED",
+              message: "Please verify your email before logging in",
             });
           }
         },
@@ -88,7 +98,8 @@ const auth = betterAuth({
   // Primary Authentication Strategies
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    autoSignIn: false, // Do not auto sign-in unverified user on registration
+    requireEmailVerification: false, // Enforced centrally via databaseHooks for compound-state precedence
   },
 
   emailVerification: {

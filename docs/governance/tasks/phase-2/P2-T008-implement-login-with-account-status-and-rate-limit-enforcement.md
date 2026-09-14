@@ -37,6 +37,21 @@
    - Return authenticated user profile data (id, name, email, role, status, emailVerified) using standardized `sendResponse`.
    - Never expose password hash, internal credentials, or sensitive token strings in the response body (session is maintained solely through secure httpOnly cookies).
 
+### Compound-State Precedence Rules
+
+When an account exhibits multiple overlapping state conditions (e.g. invalid credentials, unverified email, suspended status, and/or soft-deleted timestamp), evaluation proceeds through a deterministic, security-first sequence:
+
+1. **Priority 1: Invalid Credentials (HTTP 401 `INVALID_CREDENTIALS`):**  
+   Evaluated first during Better Auth credential verification. Any incorrect password or non-existent email receives generic 401 rejection with constant-time dummy password hashing, preventing attacker reconnaissance into account existence or internal state.
+2. **Priority 2: Soft-Deleted Account (HTTP 401 `INVALID_CREDENTIALS`):**  
+   Evaluated at the session creation boundary (`databaseHooks.session.create.before`). If `deletedAt !== null`, session persistence is aborted and generic 401 `INVALID_CREDENTIALS` is returned (anti-enumeration per `DEC-018`). This takes precedence over verification or suspension state so deleted accounts are treated strictly as non-existent and reveal no lifecycle telemetry.
+3. **Priority 3: Administrative Sanction (HTTP 403 `ACCOUNT_SUSPENDED` / `ACCOUNT_DEACTIVATED`):**  
+   Evaluated at the session creation boundary immediately after the soft-delete check. If `status === SUSPENDED` or `DEACTIVATED`, session write is aborted and status-specific 403 forbidden is returned. Administrative moderation takes precedence over email verification (prompting an unverified suspended user to verify their email would be misleading and contradictory).
+4. **Priority 4: Unverified Email (HTTP 403 `EMAIL_NOT_VERIFIED`):**  
+   Evaluated at the session creation boundary after confirming valid credentials, non-deleted state, and active administrative standing. If `!emailVerified`, session write is aborted with 403 `EMAIL_NOT_VERIFIED`, instructing the user to verify their email before session issuance.
+5. **Priority 5: Active Verified Success (HTTP 200 OK):**  
+   Session and secure httpOnly cookies are established and returned in the shared envelope.
+
 ### Out of Scope
 
 - Application-managed JWT tokens in response body (maintain session exclusively through secure cookies per `DEC-003` & `DEC-014`).
@@ -170,7 +185,7 @@
     5. Suspended Account Gate: POST suspended user with correct password -> HTTP 403 (`ACCOUNT_SUSPENDED`).
     6. Suspended Account Gate (Wrong Password): POST suspended user with wrong password -> HTTP 401 (`INVALID_CREDENTIALS`, status not leaked).
     7. Deactivated Account Gate: POST deactivated user with correct password -> HTTP 403 (`ACCOUNT_DEACTIVATED`).
-    8. Soft-Deleted Account Gate: POST user with `deletedAt !== null` -> HTTP 401 (`INVALID_CREDENTIALS`, anti-enumeration).
+    8. Soft-Deleted Account Gate: POST user with `deletedAt !== null` (including compound states where user is simultaneously unverified and suspended) -> HTTP 401 (`INVALID_CREDENTIALS`, anti-enumeration per `DEC-018`).
     9. Happy Path (Login Success): POST valid credentials on active verified account -> HTTP 200 OK, `Set-Cookie` headers present (`session_token`, cookie cache), sanitized user payload returned directly under `data` (`{ id, name, email, emailVerified: true, role: "CUSTOMER", status: "ACTIVE" }`) for strict endpoint symmetry with `registerCustomer` and `verifyEmailOtp`.
 - **Deviations from Original Plan:**
   - Refactored from service-level pre-auth status checking to Better Auth `databaseHooks.session.create.before` to ensure constant-time response for nonexistent users and prevent leaking account existence or state on wrong passwords.
