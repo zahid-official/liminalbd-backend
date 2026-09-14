@@ -1,6 +1,7 @@
 import { fromNodeHeaders } from "better-auth/node";
 import type { Request, Response } from "express";
 import status from "http-status";
+import { env } from "../../config/env.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { AuthService } from "./auth.service.js";
@@ -92,6 +93,12 @@ const loginWithGoogle = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// OAuth error handler - safely redirects to frontend login with error query
+const handleOAuthError = catchAsync(async (req: Request, res: Response) => {
+  const error = (req.query.error as string) || "oauth_failed";
+  res.redirect(`${env.FRONTEND_URL}/login?error=${encodeURIComponent(error)}`);
+});
+
 // Export auth controller
 export const AuthController = {
   registerCustomer,
@@ -99,4 +106,5 @@ export const AuthController = {
   verifyEmailOtp,
   loginWithCredentials,
   loginWithGoogle,
+  handleOAuthError,
 };

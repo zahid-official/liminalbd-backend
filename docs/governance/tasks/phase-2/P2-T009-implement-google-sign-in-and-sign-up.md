@@ -222,8 +222,8 @@ Per `DEC-020` and user architectural direction:
   - `src/app/config/auth.ts`: configured Google social provider, account linking (`trustedProviders: ["google"]`), customer profile hook (`databaseHooks.user.create.after`), and admin account linking guard (`databaseHooks.account.create.before`).
   - `src/app/config/env.ts`: added strict validation for `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, and SMTP variables with canonical `emailSchema`.
   - `src/app/modules/auth/auth.validation.ts`: added `loginWithGoogleSchema` validating optional query `redirectTo` and exported `LoginWithGoogleQuery`.
-  - `src/app/modules/auth/auth.routes.ts`: mounted `POST /login/google` with `validateRequest`, `GET /callback/google`, and `GET /error` with `toNodeHandler(auth)`.
-  - `src/app/modules/auth/auth.controller.ts`: added `loginWithGoogle` controller extracting validated `redirectTo` query.
+  - `src/app/modules/auth/auth.routes.ts`: mounted `POST /login/google` with `validateRequest`, `GET /callback/google` with `toNodeHandler(auth)`, and `GET /error` with `AuthController.handleOAuthError`.
+  - `src/app/modules/auth/auth.controller.ts`: added `loginWithGoogle` and `handleOAuthError` controllers for query extraction and safe frontend error redirection.
   - `src/app/modules/auth/auth.service.ts`: enforced `role === UserRole.CUSTOMER` check on credential login (`FORBIDDEN_ROLE_ACCESS`), implemented `loginWithGoogle` service method with open-redirect guard and dynamic fallback to `env.FRONTEND_URL`.
   - `src/app/shared/email/email.service.ts`: cleaned up fallbacks aligned with strictly validated SMTP environment variables.
 - **Migration Created:** None required (database schema already contained `Account` and `Customer` tables).

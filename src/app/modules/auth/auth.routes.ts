@@ -45,8 +45,8 @@ router.post(
 // Google OAuth callback
 router.get("/callback/google", toNodeHandler(auth));
 
-// OAuth and authentication error handler
-router.get("/error", toNodeHandler(auth));
+// OAuth error handler
+router.get("/error", AuthController.handleOAuthError);
 
 // Export auth routes
 export const AuthRoutes = router;
