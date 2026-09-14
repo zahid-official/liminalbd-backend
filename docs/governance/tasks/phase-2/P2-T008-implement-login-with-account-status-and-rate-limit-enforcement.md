@@ -57,19 +57,19 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 - Application-managed JWT tokens in response body (maintain session exclusively through secure cookies per `DEC-003` & `DEC-014`).
 - Google OAuth login (handled separately in `P2-T009`).
 - Administrative status alteration endpoints (handled in `P2-T019`).
-- Node process in-memory IP rate limiting (network-level DoS protection and distributed IP rate limiting are formally designated for the Reverse Proxy / API Gateway / Cloudflare infrastructure boundary at deployment).
+- Node process in-memory IP rate limiting (network-level DoS protection and distributed IP rate limiting are formally designated for the Reverse Proxy / API Gateway / Cloudflare infrastructure boundary per `DEC-019`).
 
 ### Acceptance Criteria Mapping
 
-| Acceptance Criterion                              | Planned Step         | Verification                                                            |
-| :------------------------------------------------ | :------------------- | :---------------------------------------------------------------------- |
-| Validate email and password inputs                | Step 2               | Reject missing or malformed inputs with 400                             |
-| Reject invalid credentials without detail leakage | Step 3 & 4           | HTTP 401 with `INVALID_CREDENTIALS` (constant-time protected)           |
-| Reject unverified user accounts                   | Step 3 & 4           | HTTP 403 with `EMAIL_NOT_VERIFIED`                                      |
-| Reject suspended and deactivated accounts         | Step 3 & 4           | HTTP 403 with status-specific public error codes                        |
-| Reject soft-deleted accounts                      | Step 3 & 4           | HTTP 401 `INVALID_CREDENTIALS` preventing enumeration                   |
-| Issue session cookie and sanitized response       | Step 3 & 5           | Verify `Set-Cookie` header and 200 JSON envelope                        |
-| Rate-limit repeated failed attempts               | Out of Scope / Infra | Delegated to Reverse Proxy (Nginx / Cloudflare) infrastructure boundary |
+| Acceptance Criterion                              | Planned Step         | Verification                                                                  |
+| :------------------------------------------------ | :------------------- | :---------------------------------------------------------------------------- |
+| Validate email and password inputs                | Step 2               | Reject missing or malformed inputs with 400                                   |
+| Reject invalid credentials without detail leakage | Step 3 & 4           | HTTP 401 with `INVALID_CREDENTIALS` (constant-time protected)                 |
+| Reject unverified user accounts                   | Step 3 & 4           | HTTP 403 with `EMAIL_NOT_VERIFIED`                                            |
+| Reject suspended and deactivated accounts         | Step 3 & 4           | HTTP 403 with status-specific public error codes                              |
+| Reject soft-deleted accounts                      | Step 3 & 4           | HTTP 401 `INVALID_CREDENTIALS` preventing enumeration                         |
+| Issue session cookie and sanitized response       | Step 3 & 5           | Verify `Set-Cookie` header and 200 JSON envelope                              |
+| Rate-limit repeated failed attempts               | Out of Scope / Infra | Delegated to Reverse Proxy (Nginx / Cloudflare) infrastructure per `DEC-019` |
 
 ---
 
@@ -141,14 +141,14 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 | Restricted account rejection   | `Yes`    | Returns 403 for `ACCOUNT_SUSPENDED` and `ACCOUNT_DEACTIVATED` only upon correct password                   | `PASS`      |
 | Soft-deleted account rejection | `Yes`    | Returns 401 `INVALID_CREDENTIALS` preventing account enumeration                                           | `PASS`      |
 | Valid credential login         | `Yes`    | Returns 200 OK + sets session cookies + sanitized user profile                                             | `PASS`      |
-| Network / IP Rate Limiting     | `No`     | Formally delegated to Reverse Proxy (Nginx) / Cloudflare infrastructure boundary                           | `DELEGATED` |
+| Network / IP Rate Limiting     | `No`     | Formally delegated to Reverse Proxy (Nginx) / Cloudflare infrastructure boundary per `DEC-019` | `DELEGATED` |
 
 ---
 
 ## 8. Assumptions & Blockers
 
 - **Active Blockers:** None (`P2-B001` resolved for `POST /api/v1/auth/login`).
-- **Assumptions:** Session is communicated exclusively via secure httpOnly cookies adhering to `DEC-003` and `DEC-014`. Distributed IP rate limiting (e.g., 5 requests/min per IP on `/api/v1/auth/login`) is designated for the API Gateway / Reverse Proxy (Nginx / Cloudflare) infrastructure layer to avoid brittle single-process in-memory limits in multi-instance environments.
+- **Assumptions:** Session is communicated exclusively via secure httpOnly cookies adhering to `DEC-003` and `DEC-014`. Distributed IP rate limiting (e.g., 5 requests/min per IP on `/api/v1/auth/login`) is designated for the API Gateway / Reverse Proxy (Nginx / Cloudflare) infrastructure layer per `DEC-019` to avoid brittle single-process in-memory limits in multi-instance environments.
 
 ---
 
@@ -190,7 +190,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 - **Deviations from Original Plan:**
   - Refactored from service-level pre-auth status checking to Better Auth `databaseHooks.session.create.before` to ensure constant-time response for nonexistent users and prevent leaking account existence or state on wrong passwords.
   - Multi-cookie support improved by adopting `authHeaders.getSetCookie()` returning `string[]` to prevent illegal comma-folding under RFC 6265.
-  - Centralized IP rate limiting is formally designated for the API gateway / reverse proxy infrastructure tier rather than brittle in-memory Node process limits.
+  - Centralized IP rate limiting is formally designated for the API gateway / reverse proxy infrastructure tier per `DEC-019` rather than brittle in-memory Node process limits.
 - **Remaining Concerns / Follow-ups:**
-  - **Infrastructure Follow-up:** Configure Nginx/Cloudflare rate-limiting policy (e.g. 5 failed requests/min per IP on `POST /api/v1/auth/login` returning HTTP 429) during deployment infrastructure setup.
+  - **Infrastructure Follow-up:** Configure Nginx/Cloudflare rate-limiting policy per `DEC-019` (e.g. 5 failed requests/min per IP on `POST /api/v1/auth/login` returning HTTP 429) during deployment infrastructure setup.
   - All application-level authentication, credential protection, and account-status criteria are fully met and verified. Ready for human closure review.

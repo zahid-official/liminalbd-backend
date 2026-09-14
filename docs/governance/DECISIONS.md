@@ -20,6 +20,23 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-019: Delegation of Authentication Rate Limiting to Reverse Proxy / API Gateway Tier
+
+**Recorded:** 2026-09-14
+**Status:** `ACCEPTED`
+
+**Decision:** Formally delegate IP-based and network-level rate limiting for authentication endpoints (including `POST /api/v1/auth/login` and repeated failed attempts) to the infrastructure tier—specifically the Reverse Proxy (Nginx) or Cloudflare / API Gateway boundary. Do not implement single-process in-memory rate-limiting middleware in the Node.js Express application.
+
+**Why:**
+1. **Stateless Multi-Instance Architecture:** In production, the backend runs in a clustered or containerized environment (multiple Node.js instances behind a load balancer). In-memory rate limiting within a single Node.js process does not share state across instances, allowing distributed brute-force attempts to leak through.
+2. **Resource & DoS Protection:** Network-level rate limiting at the Nginx or Cloudflare edge drops malicious or excessive requests at the socket/kernel layer in microseconds without consuming Node.js CPU cycles, event loop time, or parsing overhead.
+3. **Better Auth SDK Isolation:** In our architecture (`Route → Controller → Service → Repository`), authentication services invoke Better Auth's programmatic SDK (`auth.api.signInEmail`), which operates as a direct server-side dispatcher and intentionally bypasses Better Auth's HTTP-level `onRequestRateLimit` pipeline. Adding custom application-level rate limiting would introduce redundant state management without solving distributed coordination.
+
+**Consequences:**
+- Node application code remains stateless and lean; no unnecessary in-memory rate limiting middleware or unapproved packages are introduced into Express.
+- Deployment specifications require configuring an Nginx / Cloudflare rate-limiting policy (e.g. `limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=5r/m; limit_req zone=auth_limit burst=5 nodelay;` returning HTTP 429) for `POST /api/v1/auth/login`.
+- `docs/product/PRD.md` (`FR-AUTH-005.4`), `docs/governance/phases/phase-2-auth-rbac.md` (`P2-T008`), `docs/governance/02-ARCHITECTURE.md` (Section 5), and task file `P2-T008` are synchronized with this decision.
+
 ### DEC-018: Anti-Enumeration Rejection for Soft-Deleted Accounts on Authentication
 
 **Recorded:** 2026-09-14

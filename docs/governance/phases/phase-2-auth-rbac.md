@@ -287,11 +287,11 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 - Reject invalid credentials with HTTP 401 without leaking credential details.
 - Reject suspended, deactivated and soft-deleted accounts before protected access is granted.
-- Rate-limit repeated failed attempts using the approved authentication policy.
+- Rate-limit repeated failed attempts using the approved authentication policy (delegated to Reverse Proxy / API Gateway boundary per DEC-019).
 - Return the approved user data in the shared envelope while maintaining the session only through secure cookies.
 - Cover active, invalid-credential and restricted-account paths.
 
-**Additional verification:** Login, rate-limit, cookie and status behavior checks.
+**Additional verification:** Login, cookie and status behavior checks (Rate limiting verified at Reverse Proxy infrastructure boundary per DEC-019).
 
 **Human review:** `Approved` (2026-09-12)
 

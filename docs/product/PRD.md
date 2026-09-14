@@ -247,7 +247,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | - Invalid credentials are rejected |
 | FR-AUTH-005.2                      | System must support Google login                               | - Users with a linked Google authentication method can authenticate through Google |
 | FR-AUTH-005.3                      | System must reject suspended or deleted accounts               | - Suspended or deleted accounts cannot establish an authenticated session          |
-| FR-AUTH-005.4                      | System must rate-limit repeated failed authentication attempts | - Excessive failed attempts are temporarily restricted                             |
+| FR-AUTH-005.4                      | System must rate-limit repeated failed authentication attempts | - Excessive failed attempts are temporarily restricted (enforced at Reverse Proxy / API Gateway boundary per DEC-019) |
 | FR-AUTH-005.5                      | Successful authentication must establish a secure session      | - Session is created and managed by Better Auth                                    |
 
 **Success Response:** HTTP 200 OK
@@ -274,7 +274,7 @@ This project delivers a **production-grade RESTful API** that provides:
 - Invalid email or password → HTTP 401 Unauthorized
 - Suspended account → HTTP 403 Forbidden
 - Deleted account → HTTP 401 Unauthorized (anti-enumeration: treated as non-existent credentials per DEC-018)
-- Authentication rate limit exceeded → HTTP 429 Too Many Requests
+- Authentication rate limit exceeded → HTTP 429 Too Many Requests (enforced at Reverse Proxy / API Gateway boundary per DEC-019)
 
 ---
 

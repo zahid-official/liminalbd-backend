@@ -152,7 +152,7 @@ Cross-module behavior should use explicit service or application-level interface
 - `src/app/config/`: environment and runtime configuration, third-party client setup.
 - `src/app/errors/`: typed application errors and error-code mapping.
 - `src/app/interfaces/`: shared interfaces, contracts and common types.
-- `src/app/middleware/`: authentication, authorization/RBAC, validation, error handling, rate limiting and other cross-cutting middleware.
+- `src/app/middleware/`: authentication, authorization/RBAC, validation, error handling and other cross-cutting middleware (network/IP rate limiting is delegated to the Reverse Proxy / API Gateway tier per DEC-019).
 - `src/app/routes/index.ts`: mounts module routers; no business logic.
 - `src/app/shared/`: cross-cutting domain constants, shared contracts and common structures used across multiple modules.
 - `src/app/utils/`: reusable stateless helper functions (e.g., `catchAsync`, `sendResponse`, formatting utilities).
