@@ -23,6 +23,39 @@ const auth = betterAuth({
   }),
 
   databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          if (user.role === UserRole.CUSTOMER) {
+            await prisma.customer.upsert({
+              where: { userId: user.id },
+              create: { userId: user.id },
+              update: {},
+            });
+          }
+        },
+      },
+    },
+    account: {
+      create: {
+        before: async (account) => {
+          if (account.providerId === "google") {
+            const user = await prisma.user.findUnique({
+              where: { id: account.userId },
+              select: { role: true },
+            });
+
+            if (user && user.role !== UserRole.CUSTOMER) {
+              throw new APIError("FORBIDDEN", {
+                code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+                message:
+                  "Access denied. Administrative accounts cannot link or use Google sign-in.",
+              });
+            }
+          }
+        },
+      },
+    },
     session: {
       create: {
         before: async (session) => {
@@ -106,6 +139,21 @@ const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: false,
     autoSignInAfterVerification: true,
+  },
+
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      redirectURI: env.GOOGLE_CALLBACK_URL,
+    },
+  },
+
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"],
+    },
   },
 
   // Session Lifecycle & Cookie Security Transport

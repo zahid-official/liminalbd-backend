@@ -6,9 +6,9 @@ import { env } from "../../config/env.js";
 
 // Initialize Nodemailer SMTP Transporter
 const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST || "smtp.gmail.com",
-  port: env.SMTP_PORT || 465,
-  secure: (env.SMTP_PORT || 465) === 465,
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  secure: env.SMTP_PORT === 465,
   auth: {
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
@@ -42,7 +42,7 @@ const sendEmail = async ({
   try {
     const emailHtml = await render(template);
     const plainText = text || (await render(template, { plainText: true }));
-    const senderEmail = env.SMTP_FROM || env.SMTP_USER || "noreply@liminalstudio.com";
+    const senderEmail = env.SMTP_FROM;
 
     const mailOptions = {
       from: `Liminal Studio <${senderEmail}>`,

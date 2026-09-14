@@ -99,6 +99,18 @@ const loginWithCredentialsSchema = {
   }),
 };
 
+// Login With Google Schema
+const loginWithGoogleSchema = {
+  query: z.object({
+    callbackURL: z
+      .string({
+        error: "Callback URL must be a valid text string",
+      })
+      .trim()
+      .optional(),
+  }),
+};
+
 // Inferred input types from validation schemas
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
 export type SendVerificationOtpInput = z.infer<
@@ -108,6 +120,7 @@ export type VerifyEmailOtpInput = z.infer<typeof verifyEmailOtpSchema.body>;
 export type LoginWithCredentialsInput = z.infer<
   typeof loginWithCredentialsSchema.body
 >;
+export type LoginWithGoogleQuery = z.infer<typeof loginWithGoogleSchema.query>;
 
 // Export validation schemas
 export const AuthValidation = {
@@ -115,5 +128,6 @@ export const AuthValidation = {
   sendVerificationOtpSchema,
   verifyEmailOtpSchema,
   loginWithCredentialsSchema,
+  loginWithGoogleSchema,
 };
 

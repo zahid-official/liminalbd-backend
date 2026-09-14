@@ -1,4 +1,6 @@
+import { toNodeHandler } from "better-auth/node";
 import { Router } from "express";
+import { auth } from "../../config/auth.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthValidation } from "./auth.validation.js";
@@ -32,6 +34,16 @@ router.post(
   validateRequest(AuthValidation.loginWithCredentialsSchema),
   AuthController.loginWithCredentials,
 );
+
+// Customer Google OAuth initiation
+router.post(
+  "/login/google",
+  validateRequest(AuthValidation.loginWithGoogleSchema),
+  AuthController.loginWithGoogle,
+);
+
+// Google OAuth callback
+router.get("/callback/google", toNodeHandler(auth));
 
 // Export auth routes
 export const AuthRoutes = router;

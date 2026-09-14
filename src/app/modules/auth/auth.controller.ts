@@ -6,6 +6,7 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import { AuthService } from "./auth.service.js";
 import type {
   LoginWithCredentialsInput,
+  LoginWithGoogleQuery,
   RegisterCustomerInput,
   SendVerificationOtpInput,
   VerifyEmailOtpInput,
@@ -71,10 +72,31 @@ const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Login with Google OAuth
+const loginWithGoogle = catchAsync(async (req: Request, res: Response) => {
+  const headers = fromNodeHeaders(req.headers);
+  const query = res.locals.validated?.query as LoginWithGoogleQuery | undefined;
+  const result = await AuthService.loginWithGoogle(headers, query?.callbackURL);
+
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: "Google authentication initialized",
+    data: {
+      url: result.url,
+      redirect: result.redirect,
+    },
+  });
+});
+
 // Export auth controller
 export const AuthController = {
   registerCustomer,
   sendVerificationOtp,
   verifyEmailOtp,
   loginWithCredentials,
+  loginWithGoogle,
 };

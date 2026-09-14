@@ -4,6 +4,7 @@ import { prisma } from "../../config/prisma.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
+import { env } from "../../config/env.js";
 import type {
   LoginWithCredentialsInput,
   RegisterCustomerInput,
@@ -207,8 +208,6 @@ const loginWithCredentials = async (
     );
   }
 
-  const setCookies = authHeaders.getSetCookie();
-
   return {
     user: {
       id: authResult.user.id,
@@ -218,7 +217,26 @@ const loginWithCredentials = async (
       role: authResult.user.role,
       status: authResult.user.status,
     },
-    setCookies,
+    setCookies: authHeaders.getSetCookie(),
+  };
+};
+
+// Initialize Google OAuth sign-in flow
+const loginWithGoogle = async (headers: Headers, callbackURL?: string) => {
+  const { headers: authHeaders, response: authResult } =
+    await auth.api.signInSocial({
+      body: {
+        provider: "google",
+        callbackURL: callbackURL || env.FRONTEND_URL,
+      },
+      headers,
+      returnHeaders: true,
+    });
+
+  return {
+    url: authResult.url,
+    redirect: authResult.redirect,
+    setCookies: authHeaders.getSetCookie(),
   };
 };
 
@@ -228,4 +246,5 @@ export const AuthService = {
   sendVerificationOtp,
   verifyEmailOtp,
   loginWithCredentials,
+  loginWithGoogle,
 };
