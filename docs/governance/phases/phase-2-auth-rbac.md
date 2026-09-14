@@ -146,8 +146,8 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
 | 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `✅`   | `P2-T005`                       | None                                         |
 | 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `✅`   | `P2-T006`                       | None                                         |
-| 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
-| 7     | B          | `P2-T009` | Implement Google sign-in and sign-up                                     | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
+| 6     | B          | `P2-T008` | Implement customer login with account-status and rate-limit enforcement  | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
+| 7     | B          | `P2-T009` | Implement customer Google sign-in and sign-up (`/login/google`)          | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
 | 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔲`   | `P2-T005`, `P2-T008`            | None                                         |
 | 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `🔲`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
 | 10    | B          | `P2-T012` | Implement password reset                                                 | `🔲`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
@@ -281,11 +281,12 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 #### P2-T008: Implement Login with Account-Status and Rate-Limit Enforcement
 
 **Requirements:** `FR-AUTH-005`, `FR-RBAC-006.1`  
-**Objective:** Authenticate eligible users by email/password and establish a secure Better Auth session.
+**Objective:** Authenticate eligible customer users by email/password and establish a secure Better Auth session (dedicated to `CUSTOMER` role per `DEC-020`).
 
 **Acceptance Criteria:**
 
 - Reject invalid credentials with HTTP 401 without leaking credential details.
+- Enforce customer-exclusive portal access (`DEC-020`): reject non-`CUSTOMER` roles with HTTP 403 Forbidden (`FORBIDDEN_ROLE_ACCESS`).
 - Reject suspended, deactivated and soft-deleted accounts before protected access is granted.
 - Rate-limit repeated failed attempts using the approved authentication policy (delegated to Reverse Proxy / API Gateway boundary per DEC-019).
 - Return the approved user data in the shared envelope while maintaining the session only through secure cookies.
@@ -298,17 +299,18 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 #### P2-T009: Implement Google Sign-In and Sign-Up
 
 **Requirements:** `FR-AUTH-002`, `FR-AUTH-004.5`, `FR-RBAC-001.2`, `FR-RBAC-001.3`  
-**Objective:** Support Google authentication through Better Auth without duplicate accounts or privileged-role mutation.
+**Objective:** Support customer Google authentication through Better Auth at `POST /api/v1/auth/login/google` without duplicate accounts, privileged-role mutation, or unauthorized administrative access (`DEC-020`).
 
 **Acceptance Criteria:**
 
-- Complete Google sign-in/sign-up through the approved provider boundary.
-- Create first-time public Google users as `CUSTOMER` and populate only approved trusted profile fields.
+- Complete Google sign-in/sign-up through the approved customer provider route (`/login/google` and `/callback/google`).
+- Enforce customer-exclusive portal access (`DEC-020`): reject any existing `ADMIN` or `SUPER_ADMIN` user attempting Google authentication with HTTP 403 Forbidden (`FORBIDDEN_ROLE_ACCESS`).
+- Create first-time public Google users as `CUSTOMER` and populate only approved trusted profile fields, automatically creating a `Customer` profile record.
 - Treat a verified Google email as verified where the approved policy permits.
-- Apply the approved matching/linking policy without unintended duplicate accounts.
+- Apply the approved matching/linking policy for customers without unintended duplicate accounts.
 - Preserve every existing privileged role and map denial, provider failure and conflicts safely.
 
-**Additional verification:** Provider-mocked first-time, returning, conflict and privileged-account checks.
+**Additional verification:** Provider-mocked first-time, returning customer, conflict and privileged-account rejection checks.
 
 **Human review:** `Pending`
 
@@ -633,9 +635,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 | ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status     |
 | --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/auth/register` approved under `P2-T006` on 2026-09-08; subsequent endpoints pending)             | `OPEN`     |
+| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/auth/register` and `POST /api/v1/auth/login` approved under `P2-T006`/`P2-T008`; `POST /api/v1/auth/login/google` and `GET /api/v1/auth/callback/google` approved under `P2-T009`/`DEC-020`) | `OPEN`     |
 | `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Session lifetime (7d), renewal (1d), `SameSite: "lax"`, CSRF and cookie policy approved under `P2-T005` on 2026-09-08                                    | `RESOLVED` |
-| `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy                                                                                      | `OPEN`     |
+| `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy (customer-only linking enabled; admin linking rejected per `DEC-020`)               | `OPEN`     |
 | `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN`     |
 | `P2-B005` | `TASK`     | Security          | `P2-T011` through `P2-T013` | Approve recent-authentication and post-password-change session policy                                                                                    | `OPEN`     |
 | `P2-B006` | `PHASE`    | Data              | `P2-T001`, phase readiness  | Legacy schema and migrations confirmed as disposable test artifacts; database reset and clean-baseline strategy approved under `DEC-011`                 | `RESOLVED` |

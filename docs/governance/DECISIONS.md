@@ -20,6 +20,23 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-020: Dedicated Customer Authentication Boundary and Separation of Administrative Login Portals
+
+**Recorded:** 2026-09-14
+**Status:** `ACCEPTED`
+
+**Decision:** The public authentication endpoints `POST /api/v1/auth/login` (credential login) and `POST /api/v1/auth/login/google` (Google OAuth) are strictly reserved for the `CUSTOMER` role. Privileged accounts (`ADMIN`, `SUPER_ADMIN`) are strictly forbidden from authenticating, creating sessions, or linking accounts via these customer endpoints. Administrative authentication will be handled via dedicated administrative endpoints (to be established under Workstream C). Any attempt by an administrative user to authenticate via the public customer login routes must be rejected with `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`).
+
+**Why:**
+1. **Attack Surface Minimization & Privilege Separation:** Mixing customer and administrative authentication on the same public endpoints exposes high-privilege accounts to public credential stuffing, consumer-facing social login misconfigurations, and unauthorized identity linking.
+2. **Dedicated Administrative Workflows:** Administrative users operate in a distinct back-office environment with different security requirements (no third-party social logins like Google, mandatory security audits, and specialized credential policies).
+3. **Defense-in-Depth:** Enforcing role checks at the authentication handler ensures that even if an administrative user's credentials are valid, they cannot establish a session through the public customer portal.
+
+**Consequences:**
+- `POST /api/v1/auth/login` verifies that the authenticated user possesses the `CUSTOMER` role. Any attempt to log in with an `ADMIN` or `SUPER_ADMIN` account returns `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`), and any newly created session is immediately revoked.
+- `POST /api/v1/auth/login/google` and Google OAuth callback reject any account with an administrative role (`ADMIN`, `SUPER_ADMIN`) with `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`). Public Google sign-up will only ever create accounts with `role: CUSTOMER`.
+- Task plan `P2-T009`, parent phase file `phase-2-auth-rbac.md`, and `MEMORY.md` are synchronized with this policy.
+
 ### DEC-019: Delegation of Authentication Rate Limiting to Reverse Proxy / API Gateway Tier
 
 **Recorded:** 2026-09-14
