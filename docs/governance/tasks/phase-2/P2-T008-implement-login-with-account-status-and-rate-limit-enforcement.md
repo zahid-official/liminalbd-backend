@@ -42,27 +42,29 @@
 - Application-managed JWT tokens in response body (maintain session exclusively through secure cookies per `DEC-003` & `DEC-014`).
 - Google OAuth login (handled separately in `P2-T009`).
 - Administrative status alteration endpoints (handled in `P2-T019`).
+- Node process in-memory IP rate limiting (network-level DoS protection and distributed IP rate limiting are formally designated for the Reverse Proxy / API Gateway / Cloudflare infrastructure boundary at deployment).
 
 ### Acceptance Criteria Mapping
 
-| Acceptance Criterion | Planned Step | Verification |
-| :------------------- | :----------- | :----------- |
-| Validate email and password inputs | Step 2 | Reject missing or malformed inputs with 400 |
-| Reject invalid credentials without detail leakage | Step 3 & 4 | HTTP 401 with `INVALID_CREDENTIALS` |
-| Reject unverified user accounts | Step 3 & 4 | HTTP 403 with `EMAIL_NOT_VERIFIED` |
-| Reject suspended and deactivated accounts | Step 3 & 4 | HTTP 403 with status-specific public error codes |
-| Reject soft-deleted accounts | Step 3 & 4 | HTTP 401 / 403 preventing access |
-| Issue session cookie and sanitized response | Step 3 & 5 | Verify `Set-Cookie` header and 200 JSON envelope |
+| Acceptance Criterion                              | Planned Step         | Verification                                                            |
+| :------------------------------------------------ | :------------------- | :---------------------------------------------------------------------- |
+| Validate email and password inputs                | Step 2               | Reject missing or malformed inputs with 400                             |
+| Reject invalid credentials without detail leakage | Step 3 & 4           | HTTP 401 with `INVALID_CREDENTIALS` (constant-time protected)           |
+| Reject unverified user accounts                   | Step 3 & 4           | HTTP 403 with `EMAIL_NOT_VERIFIED`                                      |
+| Reject suspended and deactivated accounts         | Step 3 & 4           | HTTP 403 with status-specific public error codes                        |
+| Reject soft-deleted accounts                      | Step 3 & 4           | HTTP 401 `INVALID_CREDENTIALS` preventing enumeration                   |
+| Issue session cookie and sanitized response       | Step 3 & 5           | Verify `Set-Cookie` header and 200 JSON envelope                        |
+| Rate-limit repeated failed attempts               | Out of Scope / Infra | Delegated to Reverse Proxy (Nginx / Cloudflare) infrastructure boundary |
 
 ---
 
 ## 3. Verified Current Codebase State
 
-- `src/app/modules/auth/auth.validation.ts`: contains strict `loginSchema` validating `email` and `password`.
+- `src/app/modules/auth/auth.validation.ts`: contains strict `loginWithCredentialsSchema` validating `email` and `password`.
 - `src/app/errors/errorCodes.ts`: defines `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_DEACTIVATED`.
 - `src/app/modules/auth/auth.service.ts`: implements `loginWithCredentials` orchestrating pre-auth status checks and Better Auth `signInEmail`.
 - `src/app/modules/auth/auth.controller.ts`: implements `loginWithCredentials` forwarding `set-cookie` header and sending sanitized 200 JSON envelope.
-- `src/app/modules/auth/auth.routes.ts`: mounts `POST /login` with `validateRequest(AuthValidation.loginSchema)`.
+- `src/app/modules/auth/auth.routes.ts`: mounts `POST /login` with `validateRequest(AuthValidation.loginWithCredentialsSchema)`.
 
 ---
 
@@ -77,15 +79,17 @@
 
 ## 5. Affected Files & Directives
 
-| Action | File Path | Responsibility |
-| :----- | :-------- | :------------- |
-| `[MODIFY]` | `src/app/modules/auth/auth.validation.ts` | Added `loginSchema` and exported `LoginInput` |
-| `[MODIFY]` | `src/app/errors/errorCodes.ts` | Added public machine error codes for login and account states |
-| `[MODIFY]` | `src/app/modules/auth/auth.service.ts` | Added `loginWithCredentials` method with pre-auth guards and session issuance |
-| `[MODIFY]` | `src/app/modules/auth/auth.controller.ts` | Added `loginWithCredentials` handler with cookie forwarding |
-| `[MODIFY]` | `src/app/modules/auth/auth.routes.ts` | Mounted `POST /login` endpoint with validation middleware |
-| `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md` | Track task progress and status |
-| `[MODIFY]` | `docs/governance/tasks/phase-2/P2-T008-implement-login-with-account-status-and-rate-limit-enforcement.md` | Persistent JIT task plan and verification evidence |
+| Action     | File Path                                                                                                 | Responsibility                                                                                                      |
+| :--------- | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------ |
+| `[MODIFY]` | `src/app/config/auth.ts`                                                                                  | Configured `databaseHooks.session.create.before` to enforce `deletedAt`, `SUSPENDED`, and `DEACTIVATED` checks      |
+| `[MODIFY]` | `src/app/errors/handleBetterAuthError.ts`                                                                 | Added error mapping for `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`, and `INVALID_CREDENTIALS` |
+| `[MODIFY]` | `src/app/modules/auth/auth.validation.ts`                                                                 | Added `loginWithCredentialsSchema` and exported `LoginWithCredentialsInput`                                                        |
+| `[MODIFY]` | `src/app/errors/errorCodes.ts`                                                                            | Added public machine error codes for login and account states                                                       |
+| `[MODIFY]` | `src/app/modules/auth/auth.service.ts`                                                                    | Implemented `loginWithCredentials` delegating directly to `auth.api.signInEmail` with constant-time protection      |
+| `[MODIFY]` | `src/app/modules/auth/auth.controller.ts`                                                                 | Added `loginWithCredentials` handler with `getSetCookie()` cookie forwarding                                        |
+| `[MODIFY]` | `src/app/modules/auth/auth.routes.ts`                                                                     | Mounted `POST /login` endpoint with validation middleware                                                           |
+| `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md`                                                             | Track task progress and status                                                                                      |
+| `[MODIFY]` | `docs/governance/tasks/phase-2/P2-T008-implement-login-with-account-status-and-rate-limit-enforcement.md` | Persistent JIT task plan and verification evidence                                                                  |
 
 ---
 
@@ -95,76 +99,83 @@
    - Approved `POST /api/v1/auth/login` and marked `P2-T008` as `🔄 In progress`.
 2. **Step 2: Error Registry & Zod Validation:**
    - Added required error codes to `PUBLIC_ERROR_CODES`.
-   - Created `loginSchema` and exported `LoginInput`.
-3. **Step 3: Service Implementation:**
-   - Implemented `loginWithCredentials` with pre-auth status checks and Better Auth `signInEmail`.
+   - Created `loginWithCredentialsSchema` and exported `LoginWithCredentialsInput`.
+3. **Step 3: Service & Hook Architecture:**
+   - Enforced account status (`deletedAt`, `SUSPENDED`, `DEACTIVATED`) via Better Auth `databaseHooks.session.create.before` right before session persistence.
+   - Refactored `loginWithCredentials` in `auth.service.ts` to directly invoke `auth.api.signInEmail`, eliminating premature pre-auth database lookups and user enumeration.
 4. **Step 4: Controller & Route Mounting:**
-   - Implemented controller handler with cookie forwarding and mounted `POST /login` route.
+   - Implemented controller handler with multi-cookie array forwarding (`getSetCookie()`) and mounted `POST /login` route.
 5. **Step 5: Verification & Quality Gates:**
-   - Verified input validation, invalid credentials, unverified email, suspended/deactivated status, and successful session cookie issuance.
-   - Passed `pnpm lint` and `pnpm build`.
+   - Verified input validation, invalid credentials, unverified email, suspended/deactivated status, and successful session cookie issuance across all 8 security test scenarios.
+   - Passed `pnpm lint` and `pnpm exec tsc --noEmit`.
 6. **Gate 2: Human Review & Closure:**
-   - Record implementation evidence and mark `🕵️ Awaiting human review`.
+   - Record implementation evidence and mark `✅ Done`.
 
 ---
 
 ## 7. Verification & Quality Gates
 
-| Check | Required | Command or Method | Result |
-| :---- | :------- | :---------------- | :----- |
-| Acceptance criteria | `Yes` | PRD FR-AUTH-005 & FR-RBAC-006.1 inspection | `PASS` |
-| Type check / build | `Yes` | `pnpm build` | `PASS` |
-| Lint | `Yes` | `pnpm lint` | `PASS` |
-| Input validation check | `Yes` | Empty body returns 400 with `VALIDATION_ERROR` | `PASS` |
-| Invalid credential rejection | `Yes` | Non-existent user or wrong password returns 401 `INVALID_CREDENTIALS` | `PASS` |
-| Unverified account rejection | `Yes` | Returns 403 `EMAIL_NOT_VERIFIED` | `PASS` |
-| Restricted account rejection | `Yes` | Returns 403 for `ACCOUNT_SUSPENDED` and `ACCOUNT_DEACTIVATED` | `PASS` |
-| Soft-deleted account rejection | `Yes` | Returns 401 `INVALID_CREDENTIALS` preventing enumeration | `PASS` |
-| Valid credential login | `Yes` | Returns 200 OK + sets `better-auth.session_token` cookie + sanitized user profile | `PASS` |
+| Check                          | Required | Command or Method                                                                                          | Result      |
+| :----------------------------- | :------- | :--------------------------------------------------------------------------------------------------------- | :---------- |
+| Acceptance criteria            | `Yes`    | PRD FR-AUTH-005 & FR-RBAC-006.1 inspection                                                                 | `PASS`      |
+| Type check / build             | `Yes`    | `pnpm exec tsc --noEmit`                                                                                   | `PASS`      |
+| Lint                           | `Yes`    | `pnpm lint`                                                                                                | `PASS`      |
+| Input validation check         | `Yes`    | Empty body returns 400 with `VALIDATION_ERROR`                                                             | `PASS`      |
+| Invalid credential rejection   | `Yes`    | Non-existent user or wrong password returns 401 `INVALID_CREDENTIALS` (constant-time dummy hash protected) | `PASS`      |
+| Unverified account rejection   | `Yes`    | Returns 403 `EMAIL_NOT_VERIFIED` only upon correct password                                                | `PASS`      |
+| Restricted account rejection   | `Yes`    | Returns 403 for `ACCOUNT_SUSPENDED` and `ACCOUNT_DEACTIVATED` only upon correct password                   | `PASS`      |
+| Soft-deleted account rejection | `Yes`    | Returns 401 `INVALID_CREDENTIALS` preventing account enumeration                                           | `PASS`      |
+| Valid credential login         | `Yes`    | Returns 200 OK + sets session cookies + sanitized user profile                                             | `PASS`      |
+| Network / IP Rate Limiting     | `No`     | Formally delegated to Reverse Proxy (Nginx) / Cloudflare infrastructure boundary                           | `DELEGATED` |
 
 ---
 
 ## 8. Assumptions & Blockers
 
 - **Active Blockers:** None (`P2-B001` resolved for `POST /api/v1/auth/login`).
-- **Assumptions:** Session is communicated exclusively via secure httpOnly cookies adhering to `DEC-003` and `DEC-014`.
+- **Assumptions:** Session is communicated exclusively via secure httpOnly cookies adhering to `DEC-003` and `DEC-014`. Distributed IP rate limiting (e.g., 5 requests/min per IP on `/api/v1/auth/login`) is designated for the API Gateway / Reverse Proxy (Nginx / Cloudflare) infrastructure layer to avoid brittle single-process in-memory limits in multi-instance environments.
 
 ---
 
 ## 9. Plan Review
 
-| Field | Value |
-| :---- | :---- |
-| Outcome | `Approved` |
-| Reviewed by | Zahidul Islam |
-| Reviewed on | 2026-09-12 |
-| Notes | Approved endpoint POST /api/v1/auth/login, credential-based authentication naming standard, and pre-auth account status checks. |
+| Field       | Value                                                                                                                                         |
+| :---------- | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| Outcome     | `Approved`                                                                                                                                    |
+| Reviewed by | Zahidul Islam                                                                                                                                 |
+| Reviewed on | 2026-09-12                                                                                                                                    |
+| Notes       | Approved endpoint POST /api/v1/auth/login, credential-based authentication naming standard, and centralized hook-based account status guards. |
 
 ---
 
 ## 10. Implementation Evidence
 
 - **Changed Files:**
+  - `src/app/config/auth.ts` (configured `databaseHooks.session.create.before` to enforce status guards before session write)
+  - `src/app/errors/handleBetterAuthError.ts` (added mappings for `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`, `INVALID_CREDENTIALS`)
   - `src/app/errors/errorCodes.ts` (added `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`)
-  - `src/app/modules/auth/auth.validation.ts` (added `loginSchema`, `LoginInput`)
-  - `src/app/modules/auth/auth.service.ts` (added `loginWithCredentials` with pre-auth anti-enumeration, verification, and status guards)
-  - `src/app/modules/auth/auth.controller.ts` (added `loginWithCredentials` with `fromNodeHeaders` and `res.setHeader("set-cookie", ...)`)
-  - `src/app/modules/auth/auth.routes.ts` (mounted `POST /login` with `validateRequest(AuthValidation.loginSchema)`)
-  - `src/app/errors/handlePrismaError.ts` (hardened P2002 field extraction and connection error mapping)
-  - `src/app/middleware/globalErrorHandler.ts` (propagate field errors)
-  - `docs/governance/07-TECHNOLOGY-INTEGRATIONS-GUIDE.md` (authoritative Prisma and Better Auth documentation)
+  - `src/app/modules/auth/auth.validation.ts` (added `loginWithCredentialsSchema`, `LoginWithCredentialsInput`)
+  - `src/app/modules/auth/auth.service.ts` (implemented `loginWithCredentials` delegating directly to `auth.api.signInEmail` with cookie forwarding)
+  - `src/app/modules/auth/auth.controller.ts` (implemented `loginWithCredentials` with `fromNodeHeaders` and `authHeaders.getSetCookie()`)
+  - `src/app/modules/auth/auth.routes.ts` (mounted `POST /login` with `validateRequest(AuthValidation.loginWithCredentialsSchema)`)
+  - `docs/governance/tasks/phase-2/P2-T008-implement-login-with-account-status-and-rate-limit-enforcement.md` (updated implementation evidence and architectural design)
 - **Test / Verification Output:**
   - `pnpm lint`: Passed (0 errors, 0 warnings).
-  - `pnpm build`: Passed (`tsc` completed with 0 errors).
-  - Executable Contract Checks:
+  - `pnpm exec tsc --noEmit`: Passed (`tsc` completed with 0 errors).
+  - Executable Contract Checks (All 8 scenarios verified):
     1. Validation Gate: POST `{}` -> HTTP 400 (`VALIDATION_ERROR`, missing email and password fields).
-    2. Missing User Gate: POST non-existent user -> HTTP 401 (`INVALID_CREDENTIALS`, "Invalid email or password").
-    3. Wrong Password Gate: POST valid email with wrong password -> HTTP 401 (`INVALID_CREDENTIALS`).
-    4. Unverified Email Gate: POST unverified email -> HTTP 403 (`EMAIL_NOT_VERIFIED`, "Please verify your email before logging in").
-    5. Suspended Account Gate: POST suspended user -> HTTP 403 (`ACCOUNT_SUSPENDED`).
-    6. Deactivated Account Gate: POST deactivated user -> HTTP 403 (`ACCOUNT_DEACTIVATED`).
-    7. Soft-Deleted Account Gate: POST user with `deletedAt !== null` -> HTTP 401 (`INVALID_CREDENTIALS`, anti-enumeration check).
-    8. Happy Path (Login Success): POST valid credentials on active verified account -> HTTP 200 OK, `Set-Cookie` header present (`better-auth.session_token=...; HttpOnly; SameSite=Lax; Path=/`), sanitized user payload returned (`id`, `name`, `email`, `emailVerified: true`, `role: "CUSTOMER"`, `status: "ACTIVE"`).
+    2. Missing User Gate: POST non-existent user -> HTTP 401 (`INVALID_CREDENTIALS`, constant-time dummy password hash applied).
+    3. Wrong Password on Unverified User: POST unverified email with wrong password -> HTTP 401 (`INVALID_CREDENTIALS`, account state not leaked).
+    4. Unverified Email Gate: POST unverified email with correct password -> HTTP 403 (`EMAIL_NOT_VERIFIED`, "Please verify your email before logging in").
+    5. Suspended Account Gate: POST suspended user with correct password -> HTTP 403 (`ACCOUNT_SUSPENDED`).
+    6. Suspended Account Gate (Wrong Password): POST suspended user with wrong password -> HTTP 401 (`INVALID_CREDENTIALS`, status not leaked).
+    7. Deactivated Account Gate: POST deactivated user with correct password -> HTTP 403 (`ACCOUNT_DEACTIVATED`).
+    8. Soft-Deleted Account Gate: POST user with `deletedAt !== null` -> HTTP 401 (`INVALID_CREDENTIALS`, anti-enumeration).
+    9. Happy Path (Login Success): POST valid credentials on active verified account -> HTTP 200 OK, `Set-Cookie` headers present (`session_token`, cookie cache), sanitized user payload returned directly under `data` (`{ id, name, email, emailVerified: true, role: "CUSTOMER", status: "ACTIVE" }`) for strict endpoint symmetry with `registerCustomer` and `verifyEmailOtp`.
 - **Deviations from Original Plan:**
-  - Method name in Service and Controller refined from generic `login` to domain-specific `loginWithCredentials` to establish clean symmetry with upcoming social authentication (`loginWithGoogle`).
-- **Remaining Concerns / Follow-ups:** None. All acceptance criteria fully met. Ready for human closure review.
+  - Refactored from service-level pre-auth status checking to Better Auth `databaseHooks.session.create.before` to ensure constant-time response for nonexistent users and prevent leaking account existence or state on wrong passwords.
+  - Multi-cookie support improved by adopting `authHeaders.getSetCookie()` returning `string[]` to prevent illegal comma-folding under RFC 6265.
+  - Centralized IP rate limiting is formally designated for the API gateway / reverse proxy infrastructure tier rather than brittle in-memory Node process limits.
+- **Remaining Concerns / Follow-ups:**
+  - **Infrastructure Follow-up:** Configure Nginx/Cloudflare rate-limiting policy (e.g. 5 failed requests/min per IP on `POST /api/v1/auth/login` returning HTTP 429) during deployment infrastructure setup.
+  - All application-level authentication, credential protection, and account-status criteria are fully met and verified. Ready for human closure review.

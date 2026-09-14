@@ -1,5 +1,4 @@
 import status from "http-status";
-import { UserStatus } from "../../../generated/prisma/enums.js";
 import { auth } from "../../config/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
@@ -181,50 +180,6 @@ const loginWithCredentials = async (
   headers: Headers,
 ) => {
   const { email, password } = payload;
-
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      emailVerified: true,
-      status: true,
-      deletedAt: true,
-    },
-  });
-
-  // Prevent email enumeration for missing or soft-deleted accounts
-  if (!existingUser || existingUser.deletedAt !== null) {
-    throw new AppError(
-      status.UNAUTHORIZED,
-      PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
-      "Invalid email or password",
-    );
-  }
-
-  if (!existingUser.emailVerified) {
-    throw new AppError(
-      status.FORBIDDEN,
-      PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED,
-      "Please verify your email before logging in",
-    );
-  }
-
-  if (existingUser.status === UserStatus.SUSPENDED) {
-    throw new AppError(
-      status.FORBIDDEN,
-      PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,
-      "Your account has been suspended. Please contact support.",
-    );
-  }
-
-  if (existingUser.status === UserStatus.DEACTIVATED) {
-    throw new AppError(
-      status.FORBIDDEN,
-      PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
-      "Your account is deactivated. Please contact support.",
-    );
-  }
 
   const { headers: authHeaders, response: authResult } =
     await auth.api.signInEmail({

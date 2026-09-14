@@ -94,7 +94,8 @@ const loginWithCredentialsSchema = {
             ? "Password is required"
             : "Password must be a valid text string",
       })
-      .min(1, { error: "Password cannot be empty" }),
+      .min(1, { error: "Password cannot be empty" })
+      .max(100, { error: "Password cannot exceed 100 characters" }),
   }),
 };
 

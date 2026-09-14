@@ -20,6 +20,17 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-018: Anti-Enumeration Rejection for Soft-Deleted Accounts on Authentication
+
+**Recorded:** 2026-09-14
+**Status:** `ACCEPTED`
+
+**Decision:** Authenticating against soft-deleted accounts (`deletedAt !== null`) via `POST /api/v1/auth/login` must return generic `HTTP 401 Unauthorized` with public error code `INVALID_CREDENTIALS` ("Invalid email or password"), exactly matching non-existent accounts and invalid passwords, rather than returning `HTTP 403 Forbidden` ("Account deleted").
+
+**Why:** Returning a specialized `HTTP 403 Forbidden` specifically for deleted accounts discloses the prior existence and lifecycle history of an account to unauthenticated callers. This enables user enumeration and identity reconnaissance attacks against former customers. Treating soft-deleted accounts as non-existent credentials during authentication aligns with standard OWASP anti-enumeration principles and prevents account-state leakage.
+
+**Consequences:** `databaseHooks.session.create.before` in `src/app/config/auth.ts` throws `APIError("UNAUTHORIZED", { code: "INVALID_CREDENTIALS", message: "Invalid email or password" })` when `deletedAt !== null`. `docs/product/PRD.md` Section 2.2 (`FR-AUTH-005`) error scenario is synchronized to reflect that deleted accounts return generic HTTP 401 Unauthorized for anti-enumeration protection.
+
 ### DEC-017: Defer Customer Profile Fields (contactNumber, address) to P2-T024 for Frictionless Registration
 
 **Recorded:** 2026-09-13

@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError } from "better-auth/api";
 import { emailOTP } from "better-auth/plugins";
 import { UserRole, UserStatus } from "../../generated/prisma/enums.js";
 import { AuthMailer } from "../shared/email/mailers/auth.mailer.js";
@@ -8,75 +9,54 @@ import { env } from "./env.js";
 
 // Central Better Auth authentication and lifecycle configuration
 const auth = betterAuth({
+  // Core Infrastructure & Server Context
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   basePath: "/api/v1/auth",
   trustedOrigins: [env.FRONTEND_URL],
 
-  session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // 1 day sliding renewal
-    cookieCache: {
-      enabled: true,
-      maxAge: 15 * 60, // 15 minutes in seconds
-    },
-  },
-
-  advanced: {
-    useSecureCookies: env.NODE_ENV === "production",
-    cookies: {
-      session_token: {
-        attributes: {
-          httpOnly: true,
-          sameSite: "lax",
-          path: "/",
-          secure: env.NODE_ENV === "production",
-        },
-      },
-    },
-  },
-
+  // Database Adapter & Data Lifecycle Hooks
   database: prismaAdapter(prisma, {
     provider: "postgresql",
     transaction: true,
   }),
 
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-  },
-
-  emailVerification: {
-    sendOnSignUp: false,
-    autoSignInAfterVerification: true,
-  },
-
-  plugins: [
-    emailOTP({
-      overrideDefaultEmailVerification: true,
-      otpLength: 6,
-      expiresIn: 5 * 60, // 5 minutes in seconds
-      sendVerificationOnSignUp: false,
-      async sendVerificationOTP({ email, otp, type }) {
-        // Dispatch branded OTP email for unverified user accounts
-        if (type === "email-verification") {
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
           const user = await prisma.user.findUnique({
-            where: { email },
-            select: { name: true, emailVerified: true },
+            where: { id: session.userId },
+            select: { status: true, deletedAt: true },
           });
 
-          if (user && !user.emailVerified) {
-            await AuthMailer.sendVerificationOtp({
-              email,
-              name: user.name,
-              otp,
+          if (!user || user.deletedAt !== null) {
+            throw new APIError("UNAUTHORIZED", {
+              code: "INVALID_CREDENTIALS",
+              message: "Invalid email or password",
             });
           }
-        }
-      },
-    }),
-  ],
 
+          if (user.status === UserStatus.SUSPENDED) {
+            throw new APIError("FORBIDDEN", {
+              code: "ACCOUNT_SUSPENDED",
+              message:
+                "Your account has been suspended. Please contact support.",
+            });
+          }
+
+          if (user.status === UserStatus.DEACTIVATED) {
+            throw new APIError("FORBIDDEN", {
+              code: "ACCOUNT_DEACTIVATED",
+              message: "Your account is deactivated. Please contact support.",
+            });
+          }
+        },
+      },
+    },
+  },
+
+  // User Entity Schema Extensions
   user: {
     additionalFields: {
       role: {
@@ -104,6 +84,68 @@ const auth = betterAuth({
       },
     },
   },
+
+  // Primary Authentication Strategies
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+  },
+
+  emailVerification: {
+    sendOnSignUp: false,
+    autoSignInAfterVerification: true,
+  },
+
+  // Session Lifecycle & Cookie Security Transport
+  session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // 1 day sliding renewal
+    cookieCache: {
+      enabled: true,
+      maxAge: 15 * 60, // 15 minutes in seconds
+    },
+  },
+
+  advanced: {
+    useSecureCookies: env.NODE_ENV === "production",
+    cookies: {
+      session_token: {
+        attributes: {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          secure: env.NODE_ENV === "production",
+        },
+      },
+    },
+  },
+
+  // Modular Extensions & Plugins
+  plugins: [
+    emailOTP({
+      overrideDefaultEmailVerification: true,
+      otpLength: 6,
+      expiresIn: 5 * 60, // 5 minutes in seconds
+      sendVerificationOnSignUp: false,
+      async sendVerificationOTP({ email, otp, type }) {
+        // Dispatch branded OTP email for unverified user accounts
+        if (type === "email-verification") {
+          const user = await prisma.user.findUnique({
+            where: { email },
+            select: { name: true, emailVerified: true },
+          });
+
+          if (user && !user.emailVerified) {
+            await AuthMailer.sendVerificationOtp({
+              email,
+              name: user.name,
+              otp,
+            });
+          }
+        }
+      },
+    }),
+  ],
 });
 
 export type Auth = typeof auth;

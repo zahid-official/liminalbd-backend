@@ -18,6 +18,26 @@ const authErrorMap = {
     code: PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
     message: "Invalid email or password",
   },
+  INVALID_CREDENTIALS: {
+    status: status.UNAUTHORIZED,
+    code: PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
+    message: "Invalid email or password",
+  },
+  EMAIL_NOT_VERIFIED: {
+    status: status.FORBIDDEN,
+    code: PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED,
+    message: "Please verify your email before logging in",
+  },
+  ACCOUNT_SUSPENDED: {
+    status: status.FORBIDDEN,
+    code: PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,
+    message: "Your account has been suspended. Please contact support.",
+  },
+  ACCOUNT_DEACTIVATED: {
+    status: status.FORBIDDEN,
+    code: PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
+    message: "Your account is deactivated. Please contact support.",
+  },
   INVALID_OTP: {
     status: status.BAD_REQUEST,
     code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,

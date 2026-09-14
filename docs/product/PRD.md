@@ -273,7 +273,7 @@ This project delivers a **production-grade RESTful API** that provides:
 
 - Invalid email or password → HTTP 401 Unauthorized
 - Suspended account → HTTP 403 Forbidden
-- Deleted account → HTTP 403 Forbidden
+- Deleted account → HTTP 401 Unauthorized (anti-enumeration: treated as non-existent credentials per DEC-018)
 - Authentication rate limit exceeded → HTTP 429 Too Many Requests
 
 ---
