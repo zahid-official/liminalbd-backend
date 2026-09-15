@@ -148,7 +148,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `✅`   | `P2-T006`                       | None                                         |
 | 6     | B          | `P2-T008` | Implement customer login with account-status and rate-limit enforcement  | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
 | 7     | B          | `P2-T009` | Implement customer Google sign-in and sign-up (`/login/google`)          | `✅`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
-| 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔲`   | `P2-T005`, `P2-T008`            | None                                         |
+| 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔄`   | `P2-T005`, `P2-T008`            | None                                         |
 | 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `🔲`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
 | 10    | B          | `P2-T012` | Implement password reset                                                 | `🔲`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
 | 11    | B          | `P2-T013` | Implement change or set password                                         | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
@@ -668,7 +668,7 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | Outcome        | `Pending`                                                                                                            |
 | Approved by    | `Pending`                                                                                                            |
 | Approved on    | `Pending`                                                                                                            |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, and `P2-T009` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`); `P2-T010` is the next planning candidate (`🔲`) |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, and `P2-T009` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`); `P2-T010` is in progress (`🔄`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
