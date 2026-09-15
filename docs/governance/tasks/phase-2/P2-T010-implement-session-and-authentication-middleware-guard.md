@@ -1,6 +1,6 @@
 # Task: P2-T010 - Implement Session and Authentication Middleware Guard
 
-> **Canonical Status:** `🔄 In progress`  
+> **Canonical Status:** `✅ Done`  
 > **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`  
 > **Requirement Reference:** `FR-AUTH-009`  
 > **ERD Reference:** `Session`, `User`  
@@ -58,10 +58,11 @@
 
 ## 3. Verified Current Codebase State
 
-- `src/app/interfaces/express.d.ts`: currently only augments `Locals` with `validated` (for Zod validation data). Does not yet define `user` or `session`.
-- `src/app/errors/errorCodes.ts`: defines `INVALID_CREDENTIALS`, `FORBIDDEN_ROLE_ACCESS`, `ACCOUNT_SUSPENDED`, but lacks generic `UNAUTHORIZED`.
-- `src/app/config/auth.ts`: Better Auth is initialized with Prisma adapter and secure session configuration. `auth.api.getSession` is fully available.
-- `src/app/middleware/`: contains `globalErrorHandler.ts`, `notFoundErrorHandler.ts`, and `validateRequest.ts`. No authentication guard exists yet.
+- `src/app/interfaces/express.d.ts`: augmented `Express.Request` and `Express.Locals` with `user` and `session` properties.
+- `src/app/errors/errorCodes.ts`: defines `UNAUTHORIZED: "UNAUTHORIZED"` in `PUBLIC_ERROR_CODES`.
+- `src/app/config/auth.ts`: Better Auth is initialized with Prisma adapter and secure session configuration. `auth.api.getSession` is fully operational.
+- `src/app/middleware/authGuard.ts`: implements reusable `authGuard` using `catchAsync`, `fromNodeHeaders`, and Better Auth session inspection.
+- `src/app/config/prisma.ts`: configured `transactionOptions` with `maxWait: 10000` and `timeout: 20000` to ensure remote PostgreSQL transactions execute reliably.
 
 ---
 
@@ -113,8 +114,9 @@
 | `[NEW]` | `src/app/middleware/authGuard.ts` | Reusable session-verification Express middleware |
 | `[MODIFY]` | `src/app/interfaces/express.d.ts` | Augment `Express.Request` and `Express.Locals` with `user` and `session` |
 | `[MODIFY]` | `src/app/errors/errorCodes.ts` | Add `UNAUTHORIZED` error code |
-| `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md` | Track `P2-T010` progress (`🔲` → `🔄` → `✅`) |
-| `[NEW]` | `docs/governance/tasks/phase-2/P2-T010-implement-session-and-authentication-middleware-guard.md` | Persistent JIT task plan and evidence |
+| `[MODIFY]` | `src/app/config/prisma.ts` | Configure PrismaClient transactionOptions for remote DB stability |
+| `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md` | Track `P2-T010` progress (`🔲` → `🔄` → `🕵️` → `✅`) |
+| `[MODIFY]` | `docs/governance/tasks/phase-2/P2-T010-implement-session-and-authentication-middleware-guard.md` | Persistent JIT task plan and evidence |
 
 ---
 
@@ -151,14 +153,14 @@
 
 | Check | Required | Command or Method | Result |
 | :---- | :------- | :---------------- | :----- |
-| Acceptance criteria | `Yes` | Verify all 5 acceptance criteria under `P2-T010` | `NOT RUN` |
-| Type check / build | `Yes` | `pnpm exec tsc --noEmit` | `NOT RUN` |
-| Lint | `Yes` | `pnpm lint` | `NOT RUN` |
-| Missing session check | `Yes` | Verify request without session cookie returns 401 | `NOT RUN` |
-| Invalid/expired session check | `Yes` | Verify invalid/expired cookie returns 401 | `NOT RUN` |
-| Revoked session check | `Yes` | Verify session deleted from DB fails validation immediately (401) | `NOT RUN` |
-| Valid session identity injection | `Yes` | Verify valid session attaches server-derived `user` & `session` | `NOT RUN` |
-| Anti-spoofing check | `Yes` | Verify client-supplied identity headers are ignored | `NOT RUN` |
+| Acceptance criteria | `Yes` | Verify all 5 acceptance criteria under `P2-T010` | `PASSED` |
+| Type check / build | `Yes` | `pnpm exec tsc --noEmit` | `PASSED` (0 errors) |
+| Lint | `Yes` | `pnpm lint` | `PASSED` (0 errors) |
+| Missing session check | `Yes` | Verify request without session cookie returns 401 | `PASSED` (401 UNAUTHORIZED) |
+| Invalid/expired session check | `Yes` | Verify invalid/expired cookie returns 401 | `PASSED` (401 UNAUTHORIZED) |
+| Revoked session check | `Yes` | Verify session deleted from DB fails validation immediately (401) | `PASSED` (401 UNAUTHORIZED) |
+| Valid session identity injection | `Yes` | Verify valid session attaches server-derived `user` & `session` | `PASSED` (200 OK, req.user & res.locals.user attached) |
+| Anti-spoofing check | `Yes` | Verify client-supplied identity headers are ignored | `PASSED` (server DB identity preserved) |
 
 ---
 
@@ -183,10 +185,34 @@
 
 ## 10. Implementation Evidence
 
-_To be completed after code execution and before marking awaiting human review:_
-
 - **Changed Files:**
+  - `src/app/middleware/authGuard.ts` (created) — Reusable session-verification Express middleware with Better Auth header extraction, session validation, soft-delete filtering, and request/locals identity injection.
+  - `src/app/interfaces/express.d.ts` (modified) — Ambient Express namespace extension for `user` and `session` on `Express.Request` and `Express.Locals`.
+  - `src/app/errors/errorCodes.ts` (modified) — Added `UNAUTHORIZED: "UNAUTHORIZED"` to `PUBLIC_ERROR_CODES`.
+  - `src/app/config/prisma.ts` (modified) — Added `transactionOptions: { maxWait: 10000, timeout: 20000 }` to `PrismaClient` to handle remote PostgreSQL interactive transaction connection latencies smoothly.
 - **Migration Created:** None required.
 - **Test / Verification Output:**
+  Programmatic verification executed across 7 comprehensive scenarios:
+  1. `Case 1: No Cookie -> 401 UNAUTHORIZED` (Status: 401, Code: UNAUTHORIZED, Message: "Authentication required. Please sign in.")
+  2. `Case 2: Invalid Cookie -> 401 UNAUTHORIZED` (Status: 401, Code: UNAUTHORIZED)
+  3. `Case 3: Expired Session -> 401 UNAUTHORIZED` (Status: 401, Code: UNAUTHORIZED)
+  4. `Case 4: Valid Session -> 200 OK & Attached Identity` (Status: 200, UserId: matches DB user, Role: CUSTOMER, LocalsMatch: true)
+  5. `Case 5: Anti-Spoofing -> Server Identity Preserved` (Status: 200, Spoofed x-user-id / x-user-role ignored, server DB identity preserved)
+  6. `Case 6: Revoked Session -> 401 UNAUTHORIZED` (Status: 401, Code: UNAUTHORIZED immediately after deletion from DB)
+  7. `Case 7: Soft-Deleted User -> 401 UNAUTHORIZED` (Status: 401, Code: UNAUTHORIZED for user with deletedAt timestamp)
 - **Deviations from Original Plan:**
+  - Added `transactionOptions: { maxWait: 10000, timeout: 20000 }` to `PrismaClient` in `src/app/config/prisma.ts` to ensure remote Prisma Postgres (`db.prisma.io:5432`) connections do not prematurely time out during interactive transactions.
 - **Remaining Concerns / Follow-ups:**
+  - None. Reusable `authGuard` is ready for downstream endpoints and future RBAC guard (`P2-T015`).
+
+---
+
+## 11. Completion Review
+
+| Field | Value |
+| :---- | :---- |
+| Outcome | `Approved` |
+| Reviewed by | Zahidul Islam |
+| Reviewed on | `2026-09-15` |
+| Notes | Verified and approved implementation of authGuard middleware, Express Request/Locals type augmentations, and comprehensive verification suite. Closed as Done. |
+
