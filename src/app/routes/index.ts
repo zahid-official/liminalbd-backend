@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AuthRoutes } from "../modules/auth/auth.routes.js";
+import { CustomerRoutes } from "../modules/customer/customer.routes.js";
 
 // Module route interface
 interface ModuleRoute {
@@ -15,6 +16,10 @@ const moduleRoutes: ModuleRoute[] = [
   {
     path: "/auth",
     route: AuthRoutes,
+  },
+  {
+    path: "/customers",
+    route: CustomerRoutes,
   },
 ];
 

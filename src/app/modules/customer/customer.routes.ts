@@ -1,0 +1,16 @@
+import { Router } from "express";
+import { validateRequest } from "../../middleware/validateRequest.js";
+import { CustomerController } from "./customer.controller.js";
+import { CustomerValidation } from "./customer.validation.js";
+
+const router: Router = Router();
+
+// Register customer account
+router.post(
+  "/register",
+  validateRequest(CustomerValidation.registerCustomerSchema),
+  CustomerController.registerCustomer,
+);
+
+// Export customer routes
+export const CustomerRoutes = router;

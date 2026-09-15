@@ -12,24 +12,10 @@ import type {
   LinkGoogleQuery,
   LoginWithCredentialsInput,
   LoginWithGoogleQuery,
-  RegisterCustomerInput,
   ResetPasswordInput,
   SendVerificationOtpInput,
   VerifyEmailOtpInput,
 } from "./auth.validation.js";
-
-// Register customer account
-const registerCustomer = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as RegisterCustomerInput;
-  const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.registerCustomer(payload, headers);
-
-  sendResponse(res, {
-    statusCode: status.CREATED,
-    message: "Account created successfully. Please verify your email.",
-    data: result,
-  });
-});
 
 // Send verification OTP
 const sendVerificationOtp = catchAsync(async (req: Request, res: Response) => {
@@ -191,7 +177,6 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
 // Export auth controller
 export const AuthController = {
-  registerCustomer,
   sendVerificationOtp,
   verifyEmailOtp,
   loginWithCredentials,

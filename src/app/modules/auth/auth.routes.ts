@@ -8,13 +8,6 @@ import { AuthValidation } from "./auth.validation.js";
 
 const router: Router = Router();
 
-// Register customer account
-router.post(
-  "/register",
-  validateRequest(AuthValidation.registerCustomerSchema),
-  AuthController.registerCustomer,
-);
-
 // Send verification OTP
 router.post(
   "/send-verification-otp",
