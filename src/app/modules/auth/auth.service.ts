@@ -1,13 +1,15 @@
 import status from "http-status";
-import { auth } from "../../config/auth.js";
-import { prisma } from "../../config/prisma.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
+import { auth } from "../../config/auth.js";
+import { env } from "../../config/env.js";
+import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
-import { env } from "../../config/env.js";
 import type {
+  ForgotPasswordInput,
   LoginWithCredentialsInput,
   RegisterCustomerInput,
+  ResetPasswordInput,
   SendVerificationOtpInput,
   VerifyEmailOtpInput,
 } from "./auth.validation.js";
@@ -354,6 +356,50 @@ const unlinkGoogleAccount = async (userId: string) => {
   };
 };
 
+// Forgot password request
+const forgotPassword = async (
+  payload: ForgotPasswordInput,
+  headers: Headers,
+) => {
+  const { email, redirectTo } = payload;
+  const resetCallbackURL = resolveCallbackURL(redirectTo, "/reset-password");
+
+  await auth.api.requestPasswordReset({
+    body: {
+      email,
+      redirectTo: resetCallbackURL,
+    },
+    headers,
+  });
+
+  return {
+    message:
+      "If an account with that email exists, password reset instructions have been sent.",
+  };
+};
+
+// Reset user password with single-use token
+const resetPassword = async (payload: ResetPasswordInput, headers: Headers) => {
+  const { token, newPassword } = payload;
+
+  const { headers: authHeaders } = await auth.api.resetPassword({
+    body: {
+      token,
+      newPassword,
+    },
+    headers,
+    returnHeaders: true,
+  });
+
+  const setCookies = authHeaders ? authHeaders.getSetCookie() : [];
+
+  return {
+    message:
+      "Password has been reset successfully. Please log in with your new password.",
+    setCookies,
+  };
+};
+
 // Export auth service
 export const AuthService = {
   registerCustomer,
@@ -363,5 +409,6 @@ export const AuthService = {
   loginWithGoogle,
   linkGoogleAccount,
   unlinkGoogleAccount,
+  forgotPassword,
+  resetPassword,
 };
-

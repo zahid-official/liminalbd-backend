@@ -8,10 +8,12 @@ import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { AuthService } from "./auth.service.js";
 import type {
+  ForgotPasswordInput,
   LinkGoogleQuery,
   LoginWithCredentialsInput,
   LoginWithGoogleQuery,
   RegisterCustomerInput,
+  ResetPasswordInput,
   SendVerificationOtpInput,
   VerifyEmailOtpInput,
 } from "./auth.validation.js";
@@ -157,6 +159,36 @@ const unlinkGoogle = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Forgot password request
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const payload = res.locals.validated?.body as ForgotPasswordInput;
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.forgotPassword(payload, headers);
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
+// Reset password using token
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const payload = res.locals.validated?.body as ResetPasswordInput;
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.resetPassword(payload, headers);
+
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
 // Export auth controller
 export const AuthController = {
   registerCustomer,
@@ -167,4 +199,6 @@ export const AuthController = {
   handleOAuthError,
   linkGoogle,
   unlinkGoogle,
+  forgotPassword,
+  resetPassword,
 };

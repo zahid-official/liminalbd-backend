@@ -60,5 +60,19 @@ router.post(
 // Unlink Google account (Authenticated users)
 router.post("/unlink/google", authGuard, AuthController.unlinkGoogle);
 
+// Forgot password request
+router.post(
+  "/forgot-password",
+  validateRequest(AuthValidation.forgotPasswordSchema),
+  AuthController.forgotPassword,
+);
+
+// Reset password using token
+router.post(
+  "/reset-password",
+  validateRequest(AuthValidation.resetPasswordSchema),
+  AuthController.resetPassword,
+);
+
 // Export auth routes
 export const AuthRoutes = router;
