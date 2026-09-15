@@ -16,6 +16,29 @@ const emailSchema = z
       .max(255, { error: "Email address cannot exceed 255 characters" }),
   );
 
+// Shared password complexity validation schema
+const passwordSchema = z
+  .string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Password is required"
+        : "Password must be a valid text string",
+  })
+  .min(8, { error: "Password must be at least 8 characters" })
+  .max(100, { error: "Password cannot exceed 100 characters" })
+  .regex(/[A-Z]/, {
+    error: "Password must include at least one uppercase letter (A-Z)",
+  })
+  .regex(/[a-z]/, {
+    error: "Password must include at least one lowercase letter (a-z)",
+  })
+  .regex(/\d/, {
+    error: "Password must include at least one number (0-9)",
+  })
+  .regex(/[^A-Za-z0-9]/, {
+    error: "Password must include at least one symbol (!@#$%^&*)",
+  });
+
 // Register Customer Schema
 const registerCustomerSchema = {
   body: z.object({
@@ -32,27 +55,7 @@ const registerCustomerSchema = {
 
     email: emailSchema,
 
-    password: z
-      .string({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Password is required"
-            : "Password must be a valid text string",
-      })
-      .min(8, { error: "Password must be at least 8 characters" })
-      .max(100, { error: "Password cannot exceed 100 characters" })
-      .regex(/[A-Z]/, {
-        error: "Password must include at least one uppercase letter (A-Z)",
-      })
-      .regex(/[a-z]/, {
-        error: "Password must include at least one lowercase letter (a-z)",
-      })
-      .regex(/\d/, {
-        error: "Password must include at least one number (0-9)",
-      })
-      .regex(/[^A-Za-z0-9]/, {
-        error: "Password must include at least one symbol (!@#$%^&*)",
-      }),
+    password: passwordSchema,
   }),
 };
 
@@ -123,6 +126,37 @@ const linkGoogleSchema = {
   }),
 };
 
+// Forgot Password Schema
+const forgotPasswordSchema = {
+  body: z.object({
+    email: emailSchema,
+
+    redirectTo: z
+      .string({
+        error: "Redirect URL must be a valid text string",
+      })
+      .trim()
+      .optional(),
+  }),
+};
+
+// Reset Password Schema
+const resetPasswordSchema = {
+  body: z.object({
+    token: z
+      .string({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Reset token is required"
+            : "Reset token must be a valid text string",
+      })
+      .trim()
+      .min(1, { error: "Reset token cannot be empty" }),
+
+    newPassword: passwordSchema,
+  }),
+};
+
 // Inferred input types from validation schemas
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
 export type SendVerificationOtpInput = z.infer<
@@ -134,6 +168,8 @@ export type LoginWithCredentialsInput = z.infer<
 >;
 export type LoginWithGoogleQuery = z.infer<typeof loginWithGoogleSchema.query>;
 export type LinkGoogleQuery = z.infer<typeof linkGoogleSchema.query>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema.body>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema.body>;
 
 // Export validation schemas
 export const AuthValidation = {
@@ -143,6 +179,8 @@ export const AuthValidation = {
   loginWithCredentialsSchema,
   loginWithGoogleSchema,
   linkGoogleSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };
 
 

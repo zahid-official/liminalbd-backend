@@ -134,6 +134,15 @@ const auth = betterAuth({
     enabled: true,
     autoSignIn: false, // Do not auto sign-in unverified user on registration
     requireEmailVerification: false, // Enforced centrally via databaseHooks for compound-state precedence
+    resetPasswordTokenExpiresIn: 60 * 15, // 15 minutes token lifetime
+    revokeSessionsOnPasswordReset: true, // Invalidate all active user sessions on password reset
+    async sendResetPassword({ user, url }) {
+      await AuthMailer.sendPasswordResetLink({
+        email: user.email,
+        name: user.name || "Customer",
+        resetUrl: url,
+      });
+    },
   },
 
   emailVerification: {
