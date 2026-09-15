@@ -2,10 +2,13 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { Request, Response } from "express";
 import status from "http-status";
 import { env } from "../../config/env.js";
+import { AppError } from "../../errors/AppError.js";
+import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { AuthService } from "./auth.service.js";
 import type {
+  LinkGoogleQuery,
   LoginWithCredentialsInput,
   LoginWithGoogleQuery,
   RegisterCustomerInput,
@@ -99,6 +102,61 @@ const handleOAuthError = catchAsync(async (req: Request, res: Response) => {
   res.redirect(`${env.FRONTEND_URL}/login?error=${encodeURIComponent(error)}`);
 });
 
+// Link Google account for authenticated customer
+const linkGoogle = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  if (!user) {
+    throw new AppError(
+      status.UNAUTHORIZED,
+      PUBLIC_ERROR_CODES.UNAUTHORIZED,
+      "Authentication required. Please sign in.",
+    );
+  }
+
+  const headers = fromNodeHeaders(req.headers);
+  const query = res.locals.validated?.query as LinkGoogleQuery | undefined;
+
+  const result = await AuthService.linkGoogleAccount(
+    user.id,
+    user.role,
+    headers,
+    query?.redirectTo,
+  );
+
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: "Google account linking initialized",
+    data: {
+      url: result.url,
+      redirect: result.redirect,
+    },
+  });
+});
+
+// Unlink Google account from authenticated user
+const unlinkGoogle = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  if (!user) {
+    throw new AppError(
+      status.UNAUTHORIZED,
+      PUBLIC_ERROR_CODES.UNAUTHORIZED,
+      "Authentication required. Please sign in.",
+    );
+  }
+
+  const result = await AuthService.unlinkGoogleAccount(user.id);
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
 // Export auth controller
 export const AuthController = {
   registerCustomer,
@@ -107,4 +165,6 @@ export const AuthController = {
   loginWithCredentials,
   loginWithGoogle,
   handleOAuthError,
+  linkGoogle,
+  unlinkGoogle,
 };

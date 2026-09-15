@@ -1,6 +1,7 @@
 import { toNodeHandler } from "better-auth/node";
 import { Router } from "express";
 import { auth } from "../../config/auth.js";
+import { authGuard } from "../../middleware/authGuard.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthValidation } from "./auth.validation.js";
@@ -47,6 +48,17 @@ router.get("/callback/google", toNodeHandler(auth));
 
 // OAuth error handler
 router.get("/error", AuthController.handleOAuthError);
+
+// Link Google account (Authenticated users only)
+router.post(
+  "/link/google",
+  authGuard,
+  validateRequest(AuthValidation.linkGoogleSchema),
+  AuthController.linkGoogle,
+);
+
+// Unlink Google account (Authenticated users)
+router.post("/unlink/google", authGuard, AuthController.unlinkGoogle);
 
 // Export auth routes
 export const AuthRoutes = router;

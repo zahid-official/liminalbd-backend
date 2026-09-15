@@ -256,10 +256,10 @@ const loginWithGoogle = async (headers: Headers, redirectTo?: string) => {
   };
 };
 
-// Initiate Google account linking for an authenticated customer
+// Link Google account for authenticated user
 const linkGoogleAccount = async (
   userId: string,
-  role: string,
+  role: string | null | undefined,
   headers: Headers,
   redirectTo?: string,
 ) => {
