@@ -149,7 +149,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 6     | B          | `P2-T008` | Implement customer login with account-status and rate-limit enforcement  | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
 | 7     | B          | `P2-T009` | Implement customer Google sign-in and sign-up (`/login/google`)          | `✅`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
 | 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `✅`   | `P2-T005`, `P2-T008`            | None                                         |
-| 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `🔄`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
+| 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `✅`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
 | 10    | B          | `P2-T012` | Implement password reset                                                 | `🔲`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
 | 11    | B          | `P2-T013` | Implement change or set password                                         | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
 | 12    | B          | `P2-T014` | Implement logout and session revocation                                  | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
@@ -346,7 +346,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Account-linking behavior checks with approved provider mocks.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-15)
 
 #### P2-T012: Implement Password Reset
 

@@ -1,6 +1,6 @@
 # Task: P2-T011 - Implement Google Account Linking and Unlinking
 
-> **Canonical Status:** `🔄 In progress`  
+> **Canonical Status:** `✅ Done`  
 > **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`  
 > **Requirement Reference:** `FR-AUTH-003` (`FR-AUTH-003.1` – `FR-AUTH-003.6`)  
 > **ERD Reference:** `Account`, `User`  
@@ -43,13 +43,16 @@
    - Register `ACCOUNT_ALREADY_LINKED`, `ACCOUNT_NOT_LINKED`, and `CANNOT_UNLINK_SOLE_METHOD`.
 4. **Zod Validation (`src/app/modules/auth/auth.validation.ts`):**
    - Define validation schema for link request query/body (e.g. `callbackURL` parameter).
+5. **Route Mounting (`src/app/modules/auth/auth.routes.ts`):**
+   - Mount `POST /link/google` and `POST /unlink/google` behind `authGuard`.
+6. **Role Preservation:**
+   - Verify that linking/unlinking operations never alter the user's role.
 
 ### Out of Scope
 
-- Password reset flow (`P2-T012`).
-- Setting a password for Google-only users (`P2-T013`).
-- Logout and session revocation (`P2-T014`).
-- Additional third-party OAuth providers beyond Google (GitHub, Facebook, etc.).
+- Client OAuth callback completion (handled by existing `/callback/google` and Better Auth handler).
+- Password change/reset flows (`P2-T012`, `P2-T013`).
+- Role-based authorization guard beyond portal boundary check (`P2-T015`).
 
 ### Acceptance Criteria Mapping
 
@@ -65,7 +68,7 @@
 
 ---
 
-## 3. Verified Current Codebase State
+## 3. Read-Only Inspection Summary
 
 - `src/app/middleware/authGuard.ts`: verified and operational; attaches `req.user`, `req.session`, `res.locals.user`, `res.locals.session`.
 - `src/app/config/auth.ts`:
@@ -107,7 +110,7 @@
 | `[MODIFY]` | `src/app/modules/auth/auth.service.ts` | Implement `linkGoogleAccount` and `unlinkGoogleAccount` |
 | `[MODIFY]` | `src/app/modules/auth/auth.controller.ts` | Implement controller handlers for link and unlink endpoints |
 | `[MODIFY]` | `src/app/modules/auth/auth.routes.ts` | Mount `POST /api/v1/auth/link/google` and `POST /api/v1/auth/unlink/google` behind `authGuard` |
-| `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md` | Track `P2-T011` progress (`🔲` → `🔄` → `✅`) |
+| `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md` | Track `P2-T011` progress (`🔲` → `🔄` → `🕵️` → `✅`) |
 | `[NEW]` | `docs/governance/tasks/phase-2/P2-T011-implement-google-account-linking-and-unlinking.md` | Persistent JIT task plan and evidence |
 
 ---
@@ -145,14 +148,14 @@
 
 | Check | Required | Command or Method | Result |
 | :---- | :------- | :---------------- | :----- |
-| Acceptance criteria | `Yes` | Verify all 6 acceptance criteria under `P2-T011` | `NOT RUN` |
-| Type check / build | `Yes` | `pnpm exec tsc --noEmit` | `NOT RUN` |
-| Lint | `Yes` | `pnpm lint` | `NOT RUN` |
-| Unauthenticated check | `Yes` | Verify request without session cookie returns 401 | `NOT RUN` |
-| Admin role block check | `Yes` | Verify admin user cannot link Google (403) | `NOT RUN` |
-| Already linked conflict check | `Yes` | Verify linking existing Google account returns 409 | `NOT RUN` |
-| Sole method 422 check | `Yes` | Verify unlinking sole auth method returns 422 | `NOT RUN` |
-| Valid unlink check | `Yes` | Verify user with password can unlink Google (200) | `NOT RUN` |
+| Acceptance criteria | `Yes` | Verify all 6 acceptance criteria under `P2-T011` | `PASSED` |
+| Type check / build | `Yes` | `pnpm exec tsc --noEmit` | `PASSED` |
+| Lint | `Yes` | `pnpm lint` | `PASSED` |
+| Unauthenticated check | `Yes` | Verify request without session cookie returns 401 | `PASSED` |
+| Admin role block check | `Yes` | Verify admin user cannot link Google (403) | `PASSED` |
+| Already linked conflict check | `Yes` | Verify linking existing Google account returns 409 | `PASSED` |
+| Sole method 422 check | `Yes` | Verify unlinking sole auth method returns 422 | `PASSED` |
+| Valid unlink check | `Yes` | Verify user with password can unlink Google (200) | `PASSED` |
 
 ---
 
@@ -178,10 +181,39 @@
 
 ## 10. Implementation Evidence
 
-_To be completed after code execution and before marking awaiting human review:_
-
 - **Changed Files:**
-- **Migration Created:** None required.
+  - `src/app/errors/errorCodes.ts`: Registered `ACCOUNT_ALREADY_LINKED`, `ACCOUNT_NOT_LINKED`, `CANNOT_UNLINK_SOLE_METHOD`.
+  - `src/app/modules/auth/auth.validation.ts`: Added `linkGoogleSchema` and `LinkGoogleQuery` type.
+  - `src/app/modules/auth/auth.service.ts`: Implemented `linkGoogleAccount` (with `DEC-020` role check, conflict check, and Better Auth `linkSocialAccount` invocation) and `unlinkGoogleAccount` (with `ACCOUNT_NOT_LINKED` check, `CANNOT_UNLINK_SOLE_METHOD` check, and Google account record deletion).
+  - `src/app/modules/auth/auth.controller.ts`: Implemented `linkGoogle` and `unlinkGoogle` handlers with strict user session verification and cookie pass-through.
+  - `src/app/modules/auth/auth.routes.ts`: Mounted `POST /link/google` and `POST /unlink/google` behind `authGuard`.
+- **Git Commits:**
+  - `5cde954`: `feat(auth): add error codes and validation schema for Google account linking`
+  - `08d4878`: `feat(auth): implement linkGoogleAccount and unlinkGoogleAccount service methods`
+  - `b7e1701`: `feat(auth): mount link/google and unlink/google endpoints with authGuard protection`
+- **Migration Created:** None required (Prisma `Account` schema already accommodates multiple providers per user).
 - **Test / Verification Output:**
-- **Deviations from Original Plan:**
-- **Remaining Concerns / Follow-ups:**
+  - `pnpm exec tsx scratch/verify_p2_t011.ts`: All 8 test scenarios passed with exit code 0:
+    - Case 1: Unauthenticated `/link/google` ➔ 401 UNAUTHORIZED (`pass: true`)
+    - Case 2: Unauthenticated `/unlink/google` ➔ 401 UNAUTHORIZED (`pass: true`)
+    - Case 3: Admin `/link/google` ➔ 403 FORBIDDEN_ROLE_ACCESS per `DEC-020` (`pass: true`)
+    - Case 4: Customer `/link/google` ➔ 200 OK with OAuth URL generated (`pass: true`)
+    - Case 5: Already linked customer `/link/google` ➔ 409 ACCOUNT_ALREADY_LINKED (`pass: true`)
+    - Case 6: Sole method `/unlink/google` ➔ 422 CANNOT_UNLINK_SOLE_METHOD per `FR-AUTH-003.4` (`pass: true`)
+    - Case 7: Customer `/unlink/google` ➔ 200 OK & DB Google account removed, role preserved (`pass: true`)
+    - Case 8: Not linked customer `/unlink/google` ➔ 400 ACCOUNT_NOT_LINKED (`pass: true`)
+  - `pnpm exec tsc --noEmit`: 0 errors.
+  - `pnpm lint`: 0 errors / 0 warnings.
+- **Deviations from Original Plan:** None. Implemented exactly according to PRD, ERD, and `DEC-020`.
+- **Remaining Concerns / Follow-ups:** None. Ready for formal review and closure.
+
+---
+
+## 11. Final Review & Approval
+
+| Field | Value |
+| :---- | :---- |
+| Outcome | `Approved` |
+| Reviewed by | Zahidul Islam |
+| Reviewed on | `2026-09-15` |
+| Notes | Implementation verified across all 8 test cases, including DEC-020 boundary enforcement and FR-AUTH-003.4 sole-method deletion prevention. Task officially approved and marked Done. |
