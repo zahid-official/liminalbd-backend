@@ -28,13 +28,14 @@
 
 - Backend uses Express 5, TypeScript 6, Prisma 7, PostgreSQL and pnpm with ESM and NodeNext resolution.
 - Application includes CORS, body/cookie parsing, standardized root health endpoint (`sendResponse`), `/api/v1` routing, not-found handling (`notFoundErrorHandler`) and sanitized centralized error handling (`globalErrorHandler`).
-- Shared response helper `sendResponse` and async controller wrapper `catchAsync` are established under `src/app/utils/`.
+- Shared response helper `sendResponse`, async controller wrapper `catchAsync`, compensating rollback `rollbackOrphanUser`, and safe origin redirect `resolveCallbackURL` are established under `src/app/utils/` (`DEC-021`).
+- Shared primitive Zod validation schemas (`emailSchema`, `passwordSchema`) are centralized under `src/app/validations/common.validation.ts` (`DEC-021`).
 - Typed error system (`AppError`, `ConfigurationError`, public error codes, `handleBetterAuthError`, `handlePrismaError`) and source-qualified Zod validation middleware (`validateRequest`, `res.locals.validated`) are established under `src/app/errors/` and `src/app/middleware/`.
 - Environment loading enforces strict validation via Zod under `src/app/config/env.ts` requiring `NODE_ENV`, `PORT`, `DATABASE_URL` and `FRONTEND_URL`.
 - Prisma Client uses the PostgreSQL adapter (`@prisma/adapter-pg`) with configured `transactionOptions` (`maxWait: 10000`, `timeout: 20000`) in `src/app/config/prisma.ts` for reliable remote PostgreSQL transaction execution.
 - Server lifecycle handling includes startup errors, shutdown signals, unhandled rejections and uncaught exceptions.
 - Better Auth is configured behind internal application boundary (`src/app/config/auth.ts`) with custom database adapter, secure session configuration (`P2-T005`), and `emailOTP` plugin with 15-minute `cookieCache` (`P2-T007`).
-- Public customer registration is implemented at `POST /api/v1/auth/register` (`P2-T006`) with strict Zod validation, Better Auth user creation, atomic/compensated `Customer` record linkage, duplicate check, and privilege escalation prevention.
+- Public customer registration is established in the dedicated `customer` module (`src/app/modules/customer/`) at `POST /api/v1/customers/register` (`P2-T006`, `DEC-021`) with strict Zod validation, Better Auth user creation, atomic/compensated `Customer` record linkage, duplicate check, and privilege escalation prevention.
 - Email verification and OTP subsystem is established (`P2-T007`): standalone universal transport `sendEmail` (`src/app/shared/email/email.service.ts`), branded React Email OTP template `VerificationEmail.tsx`, dedicated `AuthMailer` (`src/app/shared/email/mailers/auth.mailer.ts`), and endpoints `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp`.
 - Credential login is implemented at `POST /api/v1/auth/login` (`P2-T008`) and Google OAuth at `POST /api/v1/auth/login/google` (`P2-T009`); per `DEC-020`, both routes are dedicated exclusively to customer authentication (`role: CUSTOMER`), with centralized session-hook status guards (`deletedAt` anti-enumeration per `DEC-018`, `SUSPENDED`, `DEACTIVATED`), privileged role rejection (`FORBIDDEN_ROLE_ACCESS`), deterministic compound-state precedence, secure cookie transport, flat sanitized user response, and network rate limiting delegated to reverse proxy (`DEC-019`). Administrative authentication will be handled via dedicated admin endpoints in Workstream C.
 - Reusable session authentication middleware guard (`authGuard`) is established under `src/app/middleware/authGuard.ts` (`P2-T010`), enforcing `HTTP 401 Unauthorized` (`PUBLIC_ERROR_CODES.UNAUTHORIZED`) on missing, expired, revoked, or soft-deleted user sessions, and injecting server-verified identity context into `req.user`, `req.session`, `res.locals.user`, and `res.locals.session`, with ambient TypeScript augmentations in `src/app/interfaces/express.d.ts`.
@@ -61,7 +62,7 @@ These are verified observations only. They do not authorize fixes outside an app
 - Create custom interfaces or types only when a real application-level contract is needed.
 - New files follow `03-CODING-STANDARDS.md`; existing files are not renamed solely for stylistic cleanup.
 - Better Auth owns authentication/session mechanics; application code owns RBAC, authorization, ownership, account status and business rules.
-- Shared infrastructure: `src/app/utils/` for stateless reusable helpers (e.g., `catchAsync`, `sendResponse`), `src/app/shared/` for cross-cutting constants and domain contracts.
+- Shared infrastructure: `src/app/utils/` for stateless reusable helpers (e.g., `catchAsync`, `sendResponse`, `rollbackOrphanUser`, `resolveCallbackURL`), `src/app/validations/` for primitive cross-cutting validation schemas (`common.validation.ts`), and `src/app/shared/` for cross-cutting constants and domain contracts.
 - Shared validation, errors, response helpers and logging should be reused rather than recreated per module.
 
 ## 5. Security and Data State

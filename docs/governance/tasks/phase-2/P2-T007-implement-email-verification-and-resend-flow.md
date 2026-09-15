@@ -22,7 +22,7 @@
 
 1. **Email Verification Trigger on Registration (`FR-AUTH-004.1`):**
    - Configured Better Auth `emailOTP` plugin with `sendVerificationOnSignUp: false` and `overrideDefaultEmailVerification: true`.
-   - When a customer registers via `POST /api/v1/auth/register`, `AuthService.registerCustomer` explicitly triggers 6-digit OTP generation (5 min validity) via `auth.api.sendVerificationOTP` after the User account and Customer profile are successfully created (with compensating rollback on profile creation failure).
+   - When a customer registers via `POST /api/v1/customers/register` (originally `POST /api/v1/auth/register`, refactored to Customer module under `DEC-021`), `CustomerService.registerCustomer` explicitly triggers 6-digit OTP generation (5 min validity) via `auth.api.sendVerificationOTP` after the User account and Customer profile are successfully created (with compensating rollback on profile creation failure).
 2. **Email Verification Completion (`FR-AUTH-004.2`, `FR-AUTH-004.3`):**
    - Exposed endpoint `POST /api/v1/auth/verify-email-otp`.
    - Validated incoming payload (`email`, `otp` exactly 6 digits) via Zod schema using `validateRequest`.

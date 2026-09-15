@@ -20,6 +20,28 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-021: Domain Extraction of Customer Registration, Centralization of Common Validations, and Global Utility Promotion
+
+**Recorded:** 2026-09-15  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Domain Extraction of Customer Registration:** Public customer self-registration (`registerCustomer`) is transferred out of the generic `auth` module and established within the dedicated `customer` domain module (`src/app/modules/customer/`), exposed at `POST /api/v1/customers/register`. The `auth` module remains strictly focused on IAM/credential verification, session management, OAuth handshakes, password lifecycle, and verification flows.
+2. **Centralization of Reusable Primitive Validations:** Shared credential and primitive Zod validation rules (`emailSchema`, `passwordSchema`) are centralized in `src/app/validations/common.validation.ts` as the single source of truth, eliminating cross-module schema duplication across `auth`, `customer`, and future administrative modules.
+3. **Promotion of Cross-Cutting System Utilities:** Compensating user rollback (`rollbackOrphanUser`) and trusted origin redirect resolution (`resolveCallbackURL`) are promoted from `src/app/modules/auth/` to global application utilities under `src/app/utils/`, decoupling domain services from internal module dependencies.
+
+**Why:**
+- **Single Responsibility & Domain Boundaries:** Mixing customer entity creation (profile persistence, customer lifecycle) with authentication primitives bloats the `auth` module and establishes bad precedents for forthcoming administrative provisioning (`createAdmin`).
+- **DRY & Security Consistency:** Centralized schema rules prevent divergent validation criteria (e.g., password complexity, email normalization) across different entry points.
+- **Decoupled Architecture:** `CustomerService` must not depend on internal helper files within `src/app/modules/auth/`; system-level compensating rollbacks and redirect validation belong in global application utilities.
+
+**Consequences:**
+- Public customer registration route is now mounted at `POST /api/v1/customers/register`.
+- `auth.service.ts`, `auth.controller.ts`, and `auth.routes.ts` no longer define or expose customer registration.
+- `customer.validation.ts` and `auth.validation.ts` import primitive schemas from `src/app/validations/common.validation.ts`.
+- `rollbackOrphanUser` and `resolveCallbackURL` are consumed globally from `src/app/utils/`.
+- `MEMORY.md`, parent phase file `phase-2-auth-rbac.md`, and task file `P2-T006` are updated to synchronize with this architectural structure.
+
 ### DEC-020: Dedicated Customer Authentication Boundary and Separation of Administrative Login Portals
 
 **Recorded:** 2026-09-14
@@ -70,7 +92,7 @@ Statuses:
 **Recorded:** 2026-09-13
 **Status:** `ACCEPTED`
 
-**Decision:** Maintain a minimal, frictionless public customer registration contract (`POST /api/v1/auth/register`) consisting exclusively of identity and credential fields: `name` (min 2, max 100), `email` (RFC-compliant, max 255), and `password` (min 8, max 100 with complexity). Do not accept or persist `contactNumber` or `address` during public customer registration. Defer collection, validation, and persistence of customer contact numbers and addresses exclusively to the Customer Profile Update flow (`P2-T024`).
+**Decision:** Maintain a minimal, frictionless public customer registration contract (`POST /api/v1/customers/register` per `DEC-021`, originally `POST /api/v1/auth/register`) consisting exclusively of identity and credential fields: `name` (min 2, max 100), `email` (RFC-compliant, max 255), and `password` (min 8, max 100 with complexity). Do not accept or persist `contactNumber` or `address` during public customer registration. Defer collection, validation, and persistence of customer contact numbers and addresses exclusively to the Customer Profile Update flow (`P2-T024`).
 
 **Why:** Requiring or prompting for phone numbers and physical addresses during initial account creation introduces unnecessary onboarding friction and drops conversion rates. In an e-commerce and interior studio customer journey, contact and shipping address details are contextual and properly collected during profile completion or checkout, not during authentication signup. This aligns with human product governance (`AGENTS.md` Section 1) and honors the original design assumption recorded during `P2-T006` planning (`docs/governance/tasks/phase-2/P2-T006-implement-email-password-customer-registration.md` Section 8).
 
