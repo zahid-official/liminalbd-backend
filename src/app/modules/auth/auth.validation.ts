@@ -111,6 +111,18 @@ const loginWithGoogleSchema = {
   }),
 };
 
+// Link Google Account Schema
+const linkGoogleSchema = {
+  query: z.object({
+    redirectTo: z
+      .string({
+        error: "Redirect URL must be a valid text string",
+      })
+      .trim()
+      .optional(),
+  }),
+};
+
 // Inferred input types from validation schemas
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
 export type SendVerificationOtpInput = z.infer<
@@ -121,6 +133,7 @@ export type LoginWithCredentialsInput = z.infer<
   typeof loginWithCredentialsSchema.body
 >;
 export type LoginWithGoogleQuery = z.infer<typeof loginWithGoogleSchema.query>;
+export type LinkGoogleQuery = z.infer<typeof linkGoogleSchema.query>;
 
 // Export validation schemas
 export const AuthValidation = {
@@ -129,5 +142,7 @@ export const AuthValidation = {
   verifyEmailOtpSchema,
   loginWithCredentialsSchema,
   loginWithGoogleSchema,
+  linkGoogleSchema,
 };
+
 
