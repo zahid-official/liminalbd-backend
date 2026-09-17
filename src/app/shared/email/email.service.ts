@@ -51,11 +51,6 @@ const sendEmail = async ({
       subject,
       html: emailHtml,
       text: plainText,
-      headers: {
-        "X-Priority": "1", // High priority transactional OTP
-        "X-MSMail-Priority": "High",
-        Importance: "High",
-      },
       ...(attachments && attachments.length > 0 ? { attachments } : {}),
     };
 
