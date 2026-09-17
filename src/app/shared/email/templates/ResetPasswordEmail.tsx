@@ -172,7 +172,7 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
                 <Link
                   href={resetUrl}
                   target="_blank"
-                  className="font-mono text-[12px] text-liminal-olive-dark no-underline break-all block leading-[1.5]"
+                  className="font-mono text-[12px] text-liminal-olive-dark no-underline break-all leading-[1.5]"
                   style={{
                     userSelect: "all",
                     WebkitUserSelect: "all",

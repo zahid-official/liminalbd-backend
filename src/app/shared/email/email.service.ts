@@ -4,8 +4,12 @@ import nodemailer from "nodemailer";
 import { render } from "react-email";
 import { env } from "../../config/env.js";
 
-// Initialize Nodemailer SMTP Transporter
+// Initialize Nodemailer SMTP Transporter with connection pooling
 const transporter = nodemailer.createTransport({
+  pool: true, // Reuses connections instead of reconnecting
+  maxConnections: 5, // Max concurrent SMTP connections
+  maxMessages: 100, // Messages per connection before recycling
+  
   host: env.SMTP_HOST,
   port: env.SMTP_PORT,
   secure: env.SMTP_PORT === 465,
