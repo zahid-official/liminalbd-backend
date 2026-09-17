@@ -3,7 +3,6 @@ import { auth } from "../../config/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
-import { rollbackOrphanUser } from "../../utils/rollbackOrphanUser.js";
 import type { RegisterCustomerInput } from "./customer.validation.js";
 
 // Register customer account
@@ -40,23 +39,6 @@ const registerCustomer = async (
       status.INTERNAL_SERVER_ERROR,
       PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR,
       "Failed to register user account",
-    );
-  }
-
-  // Create Customer profile with compensating rollback
-  try {
-    await prisma.customer.create({
-      data: {
-        userId: authResult.user.id,
-      },
-    });
-  } catch (error) {
-    await rollbackOrphanUser(authResult.user.id, error);
-
-    throw new AppError(
-      status.INTERNAL_SERVER_ERROR,
-      PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR,
-      "Failed to complete customer registration",
     );
   }
 

@@ -68,7 +68,7 @@
 
 ## 3. Verified Current Codebase State
 
-- `src/app/middleware/authGuard.ts`: Injects `req.user`, `req.session`, `res.locals.user`, and `res.locals.session`.
+- `src/app/middleware/authGuard.ts`: Injects `res.locals.user` and `res.locals.session` (`AuthUser`, `AuthSession` from `src/app/modules/auth/auth.interface.ts` per `DEC-022`).
 - `src/app/validations/common.validation.ts`: Provides centralized `passwordSchema` (min 8, max 100, regex complexity).
 - `src/app/config/auth.ts`: Better Auth configured with `emailAndPassword.enabled: true`. Better Auth API exposes `auth.api.changePassword` and `auth.api.setPassword`.
 - `src/app/modules/auth/auth.service.ts`: Exposes authentication workflows; uses `fromNodeHeaders` and `resolveCallbackURL`.

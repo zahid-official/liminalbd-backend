@@ -110,6 +110,7 @@ Also:
 - Validate all externally supplied body, params, query and relevant external payloads at the application boundary.
 - Use Zod and the shared validation mechanism.
 - Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers read validated input using typed assertions (e.g., `res.locals.validated?.body as InputType`) rather than unvalidated raw input.
+- Store authenticated identity context exclusively in `res.locals.user` and `res.locals.session`; controllers read authenticated identity using typed assertions (e.g., `const user = res.locals.user as AuthUser`). Never mutate Express `req` (`req.user`, `req.session`) to maintain strict incoming HTTP request immutability (`DEC-014`, `DEC-022`).
 - Structure validation issue details with separated source and clean field names (e.g., `source: "body"`, `field: "email"`), adhering to `DEC-016`.
 - Keep schemas aligned with approved requirements.
 - Do not duplicate the same validation rule across layers without a boundary-specific reason.

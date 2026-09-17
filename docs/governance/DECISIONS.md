@@ -20,6 +20,28 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-022: Centralize Customer Profile Creation in Better Auth Database Hook and Standardize Identity Context on Response Locals
+
+**Recorded:** 2026-09-17  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Centralize 1-to-1 Profile Creation:** Centralize Customer profile creation exclusively within Better Auth's `databaseHooks.user.create.after` in `src/app/config/auth.ts` using `prisma.customer.upsert`. Remove manual profile creation and compensating user rollbacks from `customer.service.ts`.
+2. **Retire Compensating Rollback Utility:** Delete `src/app/utils/rollbackOrphanUser.ts`. Because foreign-key constraints on profiles enforce `onDelete: Restrict`, database-level lifecycle hooks provide guaranteed atomicity across all authentication channels (public email signup and Google OAuth signup) without fragile manual rollbacks.
+3. **Preserve HTTP Request Immutability (DEC-014 Enforcement):** Standardize server-derived authentication identity and session context exclusively onto `res.locals.user` and `res.locals.session` (`AuthUser`, `AuthSession` exported from `src/app/modules/auth/auth.interface.ts`). Remove `req.user` and `req.session` mutations from `authGuard.ts` and ambient Express augmentation in `src/app/interfaces/express.d.ts` to uphold strict immutability of incoming HTTP requests.
+
+**Why:**
+- **Universal Multi-Channel Consistency:** Google OAuth signup and public email/password signup both create user entities with `role: CUSTOMER`. Attaching profile creation to `databaseHooks.user.create.after` guarantees that a `Customer` profile record is always created regardless of which entry point initialized user provisioning.
+- **Eliminate Unique Constraint Conflicts:** Manual `prisma.customer.create` in `customer.service.ts` collided with the hook-created record, throwing P2002 unique constraint conflicts and triggering erroneous 500 error responses.
+- **Architectural Immutability:** Mutating the incoming `Request` object (`req.user`) violates `DEC-014`. Placing identity state on `res.locals` maintains a clean, uniform mental model where all server-scoped, validated, or authenticated data resides on `res.locals`.
+
+**Consequences:**
+- `customer.service.ts` only invokes `auth.api.signUpEmail` and dispatches email OTP; manual customer profile creation is removed.
+- `src/app/utils/rollbackOrphanUser.ts` is deleted and removed from global utility registries.
+- `authGuard.ts` attaches identity context strictly to `res.locals.user` and `res.locals.session`.
+- Downstream controllers access user identity via typed assertion: `const user = res.locals.user as AuthUser`.
+- `MEMORY.md`, `phase-2-auth-rbac.md`, and task files (`P2-T006`, `P2-T010`, `P2-T013`) are synchronized with this decision.
+
 ### DEC-021: Domain Extraction of Customer Registration, Centralization of Common Validations, and Global Utility Promotion
 
 **Recorded:** 2026-09-15  

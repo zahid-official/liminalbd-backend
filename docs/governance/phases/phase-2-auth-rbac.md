@@ -256,7 +256,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Always assign `CUSTOMER`; ignore or reject client role/status/ownership input and never create a privileged account.
 - Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract (pure User identity attributes under `DEC-017` and `PRD.md` line 140).
 - Never store or log a plain-text password; cover success and meaningful failure paths.
-- *(Architectural Note under DEC-021: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customers/register`, using primitive schemas from `src/app/validations/common.validation.ts` and rollback utility from `src/app/utils/rollbackOrphanUser.ts`).*
+- *(Architectural Note under DEC-021 & DEC-022: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customers/register`, using primitive schemas from `src/app/validations/common.validation.ts`, with 1-to-1 `Customer` profile creation centralized via Better Auth's `databaseHooks.user.create.after`).*
 
 **Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts.
 
