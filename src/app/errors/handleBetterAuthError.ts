@@ -50,12 +50,12 @@ const authErrorMap = {
   },
   TOKEN_EXPIRED: {
     status: status.BAD_REQUEST,
-    code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,
-    message: "Invalid or expired verification code",
+    code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_TOKEN,
+    message: "Invalid or expired verification token",
   },
   INVALID_TOKEN: {
     status: status.BAD_REQUEST,
-    code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_OTP,
+    code: PUBLIC_ERROR_CODES.INVALID_OR_EXPIRED_TOKEN,
     message: "Invalid or expired verification token",
   },
   TOO_MANY_ATTEMPTS: {

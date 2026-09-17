@@ -111,7 +111,9 @@ Better Auth communicates server-side failures by throwing instances of `APIError
   | `ACCOUNT_SUSPENDED` | `403 Forbidden` | `ACCOUNT_SUSPENDED` | `"Your account has been suspended. Please contact support."` |
   | `ACCOUNT_DEACTIVATED` | `403 Forbidden` | `ACCOUNT_DEACTIVATED` | `"Your account is deactivated. Please contact support."` |
   | `INVALID_OTP` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` | `"Invalid or expired verification code"` |
-  | `TOKEN_EXPIRED` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` | `"Invalid or expired verification code"` |
+  | `OTP_EXPIRED` | `400 Bad Request` | `INVALID_OR_EXPIRED_OTP` | `"Invalid or expired verification code"` |
+  | `TOKEN_EXPIRED` | `400 Bad Request` | `INVALID_OR_EXPIRED_TOKEN` | `"Invalid or expired verification token"` |
+  | `INVALID_TOKEN` | `400 Bad Request` | `INVALID_OR_EXPIRED_TOKEN` | `"Invalid or expired verification token"` |
   | `USER_NOT_FOUND` | `404 Not Found` | `USER_NOT_FOUND` | `"No account found with this email address"` |
   | `USER_ALREADY_EXISTS` | `409 Conflict` | `USER_ALREADY_EXISTS` | `"User with this email already exists"` |
   | Unknown 4xx `APIError` | `4xx` (`error.statusCode` or `400`) | `VALIDATION_ERROR` (`INVALID_CREDENTIALS` if 401) | Fixed safe message (`"Authentication request failed"`) |
