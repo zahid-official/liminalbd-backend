@@ -78,6 +78,7 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
           },
         }}
       >
+        {/* Meta information and styles */}
         <Head>
           <meta name="color-scheme" content="light" />
           <meta name="supported-color-schemes" content="light" />
@@ -92,7 +93,11 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
           </style>
         </Head>
 
-        <Preview>Reset your password for Liminal Interior Design Studio</Preview>
+        {/* Preview */}
+        <Preview>
+          Secure password recovery link for your Liminal Studio account. Valid
+          for 15 minutes.
+        </Preview>
 
         <Body className="bg-[#F8FAFD] font-sans m-0 py-24 px-4">
           {/* Main Envelope Container */}
@@ -112,7 +117,7 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
             <Section className="px-10 pt-10 pb-2 text-liminal-olive">
               <Section className="text-center mb-6">
                 <Text className="inline-block px-4 py-3 bg-liminal-olive-dark text-liminal-white rounded-full text-[10.5px] font-bold tracking-[0.25em] uppercase m-0 leading-none">
-                  PASSWORD RESET REQUEST
+                  PASSWORD RECOVERY
                 </Text>
               </Section>
 
@@ -125,23 +130,31 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
               </Text>
 
               <Text className="text-[15px] leading-[1.5] m-0">
-                We received a request to reset your password for your Liminal Studio
-                account. Click the button below to set a new password.
+                We received a request to reset the password associated with your
+                Liminal Studio account. You can securely choose a new password
+                using the button below.
               </Text>
             </Section>
 
-            {/* CTA Action Button */}
-            <Section className="px-6 sm:px-10 py-6 text-center">
+            {/* Reset Password Box */}
+            <Section className="px-6 sm:px-10 py-4">
               <Section className="max-w-[440px] mx-auto bg-[#F8F9F6] border border-liminal-border rounded-xl py-6 px-4 text-center">
-                <Link
-                  href={resetUrl}
-                  target="_blank"
-                  className="inline-block px-8 py-3.5 bg-liminal-olive-dark text-liminal-white rounded-lg text-[13px] font-semibold tracking-[0.05em] uppercase no-underline shadow-[0_4px_12px_rgba(42,61,26,0.15)]"
-                >
-                  Reset Password
-                </Link>
+                <Text className="text-[10px] font-bold uppercase tracking-[0.25em] text-liminal-secondary m-0 mb-2.5">
+                  Secure Reset Link
+                </Text>
 
-                <Text className="text-[11.5px] text-liminal-olive font-medium m-0 mt-4">
+                {/* Reset Button */}
+                <Section className="mb-3">
+                  <Link
+                    href={resetUrl}
+                    target="_blank"
+                    className="inline-block px-6 py-3 bg-liminal-olive-dark text-liminal-white rounded-md text-[11px] font-semibold tracking-[0.12em] uppercase no-underline shadow-[0_2px_8px_rgba(42,61,26,0.15)]"
+                  >
+                    Reset Password
+                  </Link>
+                </Section>
+
+                <Text className="text-[11.5px] text-liminal-olive font-medium m-0">
                   Valid for{" "}
                   <strong className="text-liminal-black">15 minutes</strong>
                   <span className="px-1">&bull;</span>
@@ -150,18 +163,24 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
               </Section>
             </Section>
 
-            {/* Fallback Direct Link */}
-            <Section className="px-10 py-2 text-left">
-              <Text className="text-[12px] leading-[1.6] text-liminal-olive m-0 break-all">
-                If the button above does not work, please copy and paste the following link into your browser:
-                <br />
+            {/* Fallback Direct Link Snippet Container */}
+            <Section className="px-6 sm:px-10 py-3 text-left">
+              <Text className="text-[13px] leading-[1.5] text-liminal-olive m-0 mb-1.5 ml-1">
+                Alternatively, you can use the direct link below:
+              </Text>
+              <Section className="bg-[#F8F9F6] border border-liminal-border rounded-md p-3">
                 <Link
                   href={resetUrl}
-                  className="text-liminal-secondary underline font-medium"
+                  target="_blank"
+                  className="font-mono text-[12px] text-liminal-olive-dark no-underline break-all block leading-[1.5]"
+                  style={{
+                    userSelect: "all",
+                    WebkitUserSelect: "all",
+                  }}
                 >
                   {resetUrl}
                 </Link>
-              </Text>
+              </Section>
             </Section>
 
             {/* Security Notice */}
@@ -172,8 +191,9 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
                     <strong className="text-liminal-black font-bold pr-0.5">
                       Security Notice:
                     </strong>{" "}
-                    If you did not request a password reset, please ignore this email.
-                    Your password will remain unchanged and your account is secure.
+                    If you did not request this change, you can safely disregard
+                    this email. Your account credentials remain secure and
+                    unchanged.
                   </Text>
                 </Column>
               </Row>
@@ -208,7 +228,6 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
                               width="20"
                               height="20"
                               alt={social.name}
-                              className="opacity-85 hover:opacity-100"
                             />
                           </Link>
                         </td>
@@ -225,7 +244,8 @@ const ResetPasswordEmail = ({ name, resetUrl }: ResetPasswordEmailProps) => {
                 House Building, Sector 3, Uttara, Dhaka, Bangladesh
               </Text>
               <Text className="text-[10px] text-liminal-olive/80 m-0 mt-1.5 pb-4">
-                &copy; {new Date().getFullYear()} Liminal Interior Design.
+                &copy; {new Date().getFullYear()} Liminal Interior Design. All
+                rights reserved.
               </Text>
             </Section>
           </Container>

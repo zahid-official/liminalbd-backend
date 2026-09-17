@@ -80,6 +80,7 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
           },
         }}
       >
+        {/* Meta information and styles */}
         <Head>
           <meta name="color-scheme" content="light" />
           <meta name="supported-color-schemes" content="light" />
@@ -94,6 +95,7 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
           </style>
         </Head>
 
+        {/* Preview */}
         <Preview>
           {otp} is your verification code for Liminal Interior Design Studio
         </Preview>
@@ -134,13 +136,14 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
               </Text>
             </Section>
 
+            {/* OTP Display Box */}
             <Section className="px-6 sm:px-10 py-4">
               <Section className="max-w-[440px] mx-auto bg-[#F8F9F6] border border-liminal-border rounded-xl py-6 px-4 text-center">
                 <Text className="text-[10px] font-bold uppercase tracking-[0.25em] text-liminal-secondary m-0 mb-2.5">
                   One-Time Verification Code
                 </Text>
 
-                {/* OTP Display Box */}
+                {/* OTP */}
                 <Section className="mb-3">
                   <table
                     align="center"
@@ -176,6 +179,7 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
               </Section>
             </Section>
 
+            {/* Security Notice */}
             <Section className="px-10 py-4 text-left">
               <Row className="bg-[#FBFCFB] border-l-2 border-liminal-secondary p-4 rounded-r-md">
                 <Column>
@@ -220,7 +224,6 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
                               width="20"
                               height="20"
                               alt={social.name}
-                              className="opacity-85 hover:opacity-100"
                             />
                           </Link>
                         </td>
@@ -237,7 +240,8 @@ const VerificationEmail = ({ name, otp }: VerificationEmailProps) => {
                 House Building, Sector 3, Uttara, Dhaka, Bangladesh
               </Text>
               <Text className="text-[10px] text-liminal-olive/80 m-0 mt-1.5 pb-4">
-                &copy; {new Date().getFullYear()} Liminal Interior Design.
+                &copy; {new Date().getFullYear()} Liminal Interior Design. All
+                rights reserved.
               </Text>
             </Section>
           </Container>
