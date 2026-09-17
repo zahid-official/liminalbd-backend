@@ -2,10 +2,9 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { Request, Response } from "express";
 import status from "http-status";
 import { env } from "../../config/env.js";
-import { AppError } from "../../errors/AppError.js";
-import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+import type { AuthUser } from "./auth.interface.js";
 import { AuthService } from "./auth.service.js";
 import type {
   ForgotPasswordInput,
@@ -92,15 +91,7 @@ const handleOAuthError = catchAsync(async (req: Request, res: Response) => {
 
 // Link Google account for authenticated customer
 const linkGoogle = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user;
-  if (!user) {
-    throw new AppError(
-      status.UNAUTHORIZED,
-      PUBLIC_ERROR_CODES.UNAUTHORIZED,
-      "Authentication required. Please sign in.",
-    );
-  }
-
+  const user = res.locals.user as AuthUser;
   const headers = fromNodeHeaders(req.headers);
   const query = res.locals.validated?.query as LinkGoogleQuery | undefined;
 
@@ -126,16 +117,8 @@ const linkGoogle = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Unlink Google account from authenticated user
-const unlinkGoogle = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user;
-  if (!user) {
-    throw new AppError(
-      status.UNAUTHORIZED,
-      PUBLIC_ERROR_CODES.UNAUTHORIZED,
-      "Authentication required. Please sign in.",
-    );
-  }
-
+const unlinkGoogle = catchAsync(async (_req: Request, res: Response) => {
+  const user = res.locals.user as AuthUser;
   const result = await AuthService.unlinkGoogleAccount(user.id);
 
   sendResponse(res, {

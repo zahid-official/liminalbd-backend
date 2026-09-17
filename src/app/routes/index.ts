@@ -18,7 +18,7 @@ const moduleRoutes: ModuleRoute[] = [
     route: AuthRoutes,
   },
   {
-    path: "/customers",
+    path: "/customer",
     route: CustomerRoutes,
   },
 ];

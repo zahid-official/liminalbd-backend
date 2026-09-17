@@ -1,16 +1,8 @@
-import type { auth } from "../config/auth.js";
+import type { AuthSession, AuthUser } from "../modules/auth/auth.interface.js";
 
-type AuthUser = typeof auth.$Infer.Session.user;
-type AuthSession = typeof auth.$Infer.Session.session;
-
-// Express request and locals ambient type augmentation
+// Express locals ambient type augmentation for validated input and authenticated context
 declare global {
   namespace Express {
-    interface Request {
-      user?: AuthUser;
-      session?: AuthSession;
-    }
-
     interface Locals {
       validated?: {
         body?: unknown;
@@ -22,4 +14,3 @@ declare global {
     }
   }
 }
-

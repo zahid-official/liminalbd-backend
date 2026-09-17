@@ -28,11 +28,9 @@ const authGuard = catchAsync(
       );
     }
 
-    req.user = sessionData.user;
-    req.session = sessionData.session;
+    // Attach authenticated user and session to response locals
     res.locals.user = sessionData.user;
     res.locals.session = sessionData.session;
-
     next();
   },
 );

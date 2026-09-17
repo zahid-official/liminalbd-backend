@@ -78,7 +78,7 @@ const validateRequest = <TSchema extends RequestValidationSchema>(
       return;
     }
 
-    // Attach trusted, parsed data to Express response locals
+    // Attach validated data to response locals
     res.locals.validated = validatedData as ValidatedRequest<TSchema>;
     next();
   };

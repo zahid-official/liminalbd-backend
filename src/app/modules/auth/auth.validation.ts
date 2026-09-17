@@ -125,5 +125,3 @@ export const AuthValidation = {
   forgotPasswordSchema,
   resetPasswordSchema,
 };
-
-

@@ -151,7 +151,6 @@ const linkGoogleAccount = async (
   headers: Headers,
   redirectTo?: string,
 ) => {
-  // Enforce customer portal boundary (DEC-020)
   if (role !== UserRole.CUSTOMER) {
     throw new AppError(
       status.FORBIDDEN,
