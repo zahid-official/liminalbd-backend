@@ -28,6 +28,11 @@ const authErrorMap = {
     code: PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED,
     message: "Please verify your email before logging in",
   },
+  FORBIDDEN_ROLE_ACCESS: {
+    status: status.FORBIDDEN,
+    code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+    message: "Access denied. This login portal is reserved for customers.",
+  },
   ACCOUNT_SUSPENDED: {
     status: status.FORBIDDEN,
     code: PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,

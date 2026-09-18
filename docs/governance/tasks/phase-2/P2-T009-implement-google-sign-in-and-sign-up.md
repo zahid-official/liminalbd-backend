@@ -61,7 +61,7 @@
 | Assign `CUSTOMER` role & create `Customer` profile for new Google users | Step 2 & 3 | Inspect database: new Google user has `role: CUSTOMER` and related `Customer` record |
 | Treat Google identity as email-verified (`emailVerified: true`) | Step 2 | New user created via Google has `emailVerified: true` |
 | Prevent duplicate accounts via customer account linking | Step 2 & 4 | Signing in with Google on existing customer email links `Account` without duplicate `User` |
-| Reject privileged accounts (`ADMIN`, `SUPER_ADMIN`) on customer Google login | Step 2 & 4 | Existing `ADMIN`/`SUPER_ADMIN` email returns `HTTP 403 Forbidden` on Google login |
+| Reject privileged accounts (`ADMIN`, `SUPER_ADMIN`) on customer Google login | Step 2 & 4 | Existing `ADMIN`/`SUPER_ADMIN` rejected via `FORBIDDEN_ROLE_ACCESS` (browser callback safely redirects with 302 to `${env.FRONTEND_URL}/login?error=FORBIDDEN_ROLE_ACCESS`) |
 | Enforce account status restrictions (suspended/deactivated/deleted) | Step 2 & 4 | Suspended or deactivated Google users rejected with 403; soft-deleted rejected with 401 |
 
 ---
@@ -267,7 +267,7 @@ Per `DEC-020` and user architectural direction:
 - **Deviations from Original Plan:**
   - Replaced body payload for `/login/google` with query-based `redirectTo` (`POST /api/v1/auth/login/google?redirectTo=...`) validated through `validateRequest` middleware, improving frontend ergonomics without requiring a JSON body.
   - Implemented open-redirect defense against protocol-relative URLs (`//attacker.com`) and automated relative-path resolution (`/path` ➔ `${env.FRONTEND_URL}/path`).
-  - Mounted Better Auth `/error` handler under `/api/v1/auth/error` to handle OAuth failures gracefully.
+  - Mounted Better Auth `/error` handler under `/api/v1/auth/error` to handle OAuth failures gracefully via safe browser 302 redirect (`${env.FRONTEND_URL}/login?error=<CODE>`) rather than breaking client browser navigation with raw JSON errors.
 - **Remaining Concerns / Follow-ups:** None. Ready for closure review.
 
 ---

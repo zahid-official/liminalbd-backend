@@ -61,10 +61,14 @@ const auth = betterAuth({
         before: async (session) => {
           const user = await prisma.user.findUnique({
             where: { id: session.userId },
-            select: { status: true, deletedAt: true, emailVerified: true },
+            select: {
+              role: true,
+              status: true,
+              deletedAt: true,
+              emailVerified: true,
+            },
           });
 
-          // Priority 2: Soft-deleted -> generic invalid credentials (anti-enumeration per DEC-018)
           if (!user || user.deletedAt !== null) {
             throw new APIError("UNAUTHORIZED", {
               code: PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
@@ -72,7 +76,14 @@ const auth = betterAuth({
             });
           }
 
-          // Priority 3: Administrative Sanction (Suspended / Deactivated)
+          if (user.role !== UserRole.CUSTOMER) {
+            throw new APIError("FORBIDDEN", {
+              code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+              message:
+                "Access denied. This login portal is reserved for customers.",
+            });
+          }
+
           if (user.status === UserStatus.SUSPENDED) {
             throw new APIError("FORBIDDEN", {
               code: PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,
@@ -88,7 +99,6 @@ const auth = betterAuth({
             });
           }
 
-          // Priority 4: Unverified Email
           if (!user.emailVerified) {
             throw new APIError("FORBIDDEN", {
               code: PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED,
