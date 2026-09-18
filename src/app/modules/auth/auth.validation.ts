@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   emailSchema,
   passwordSchema,
+  redirectUrlSchema,
 } from "../../validations/common.validation.js";
 
 // Send Verification OTP Schema
@@ -50,24 +51,14 @@ const loginWithCredentialsSchema = {
 // Login With Google Schema
 const loginWithGoogleSchema = {
   query: z.object({
-    redirectTo: z
-      .string({
-        error: "Redirect URL must be a valid text string",
-      })
-      .trim()
-      .optional(),
+    redirectTo: redirectUrlSchema,
   }),
 };
 
 // Link Google Account Schema
 const linkGoogleSchema = {
   query: z.object({
-    redirectTo: z
-      .string({
-        error: "Redirect URL must be a valid text string",
-      })
-      .trim()
-      .optional(),
+    redirectTo: redirectUrlSchema,
   }),
 };
 
@@ -75,13 +66,7 @@ const linkGoogleSchema = {
 const forgotPasswordSchema = {
   body: z.object({
     email: emailSchema,
-
-    redirectTo: z
-      .string({
-        error: "Redirect URL must be a valid text string",
-      })
-      .trim()
-      .optional(),
+    redirectTo: redirectUrlSchema,
   }),
 };
 
@@ -96,7 +81,8 @@ const resetPasswordSchema = {
             : "Reset token must be a valid text string",
       })
       .trim()
-      .min(1, { error: "Reset token cannot be empty" }),
+      .min(1, { error: "Reset token cannot be empty" })
+      .max(256, { error: "Reset token is invalid" }),
 
     newPassword: passwordSchema,
   }),

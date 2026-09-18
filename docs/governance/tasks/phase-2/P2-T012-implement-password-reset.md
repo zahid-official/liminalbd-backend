@@ -42,12 +42,12 @@
    - `forgotPasswordSchema`: validates `email` (standard email format) and optional `redirectTo` string.
    - `resetPasswordSchema`: validates `token` (non-empty string) and `newPassword` (satisfying system password policy: min 8, max 100, uppercase, lowercase, number, special char).
 4. **Service Methods (`src/app/modules/auth/auth.service.ts`):**
-   - `forgotPassword(email, headers, redirectTo)`:
-     - Resolves frontend reset callback URL.
+   - `forgotPassword(payload, headers)`:
+     - Resolves frontend reset callback URL from `payload.redirectTo`.
      - Calls `auth.api.requestPasswordReset`.
      - Returns constant generic response message regardless of user existence or provider setup (`FR-AUTH-006.3`).
-   - `resetPassword(token, newPassword, headers)`:
-     - Calls `auth.api.resetPassword({ body: { token, newPassword }, headers })`.
+   - `resetPassword(payload, headers)`:
+     - Calls `auth.api.resetPassword({ body: { token: payload.token, newPassword: payload.newPassword }, headers })`.
      - Clears any existing cookies if returned, and returns standardized success response.
 5. **Controller & Routes (`src/app/modules/auth/auth.controller.ts`, `auth.routes.ts`):**
    - Implement `forgotPassword` and `resetPassword` controller handlers.
@@ -63,7 +63,7 @@
 
 ---
 
-## 3. Read-Only Inspection Summary
+## 3. Read-Only Inspection Summary (Pre-Implementation Baseline Snapshot)
 
 - `src/app/config/auth.ts`: `emailAndPassword.enabled: true`. Currently lacks `sendResetPassword` callback and `revokeSessionsOnPasswordReset`.
 - `src/app/shared/email/mailers/auth.mailer.ts`: already contains `sendVerificationOtp`. Can cleanly add `sendPasswordResetLink`.
@@ -81,7 +81,6 @@
   ```json
   {
     "success": true,
-    "statusCode": 200,
     "message": "If an account with that email exists, password reset instructions have been sent.",
     "data": null
   }
@@ -192,7 +191,8 @@
   - `pnpm exec tsc --noEmit`: 0 errors.
   - `pnpm lint`: 0 errors / 0 warnings.
 - **Deviations from Original Plan:** None. Implemented strictly according to PRD `FR-AUTH-006`, ERD, and governance guidelines.
-- **Remaining Concerns / Follow-ups:** None. Ready for human review and task closure.
+- **Remaining Concerns / Follow-ups:**
+  - Password-reset email delivery currently runs synchronously within the request lifecycle. A durable background task runner is recommended for a future infrastructure phase to remove SMTP-dependent response-time differences and provide reliable delivery retries.
 
 ---
 

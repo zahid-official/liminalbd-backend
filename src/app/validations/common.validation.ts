@@ -38,3 +38,12 @@ export const passwordSchema = z
   .regex(/[^A-Za-z0-9]/, {
     error: "Password must include at least one symbol (!@#$%^&*)",
   });
+
+// Shared redirect URL validation schema with standard maximum URL length
+export const redirectUrlSchema = z
+  .string({
+    error: "Redirect URL must be a valid text string",
+  })
+  .trim()
+  .max(2048, { error: "Redirect URL cannot exceed 2048 characters" })
+  .optional();
