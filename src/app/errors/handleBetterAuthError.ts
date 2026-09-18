@@ -14,9 +14,9 @@ const authErrorMap = {
     message: "Invalid email or password",
   },
   INVALID_PASSWORD: {
-    status: status.UNAUTHORIZED,
+    status: status.BAD_REQUEST,
     code: PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
-    message: "Invalid email or password",
+    message: "Incorrect current password",
   },
   INVALID_CREDENTIALS: {
     status: status.UNAUTHORIZED,
@@ -42,6 +42,18 @@ const authErrorMap = {
     status: status.FORBIDDEN,
     code: PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
     message: "Your account is deactivated. Please contact support.",
+  },
+  CREDENTIAL_ACCOUNT_NOT_FOUND: {
+    status: status.FORBIDDEN,
+    code: PUBLIC_ERROR_CODES.PASSWORD_CHANGE_NOT_ALLOWED,
+    message:
+      "Password change is not permitted for the current authentication state.",
+  },
+  PASSWORD_ALREADY_SET: {
+    status: status.BAD_REQUEST,
+    code: PUBLIC_ERROR_CODES.CONFLICT,
+    message:
+      "A password has already been set for this account. Please use change password.",
   },
   INVALID_OTP: {
     status: status.BAD_REQUEST,

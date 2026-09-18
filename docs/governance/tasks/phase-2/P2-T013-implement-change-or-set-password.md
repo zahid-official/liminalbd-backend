@@ -46,7 +46,7 @@
    - Resets `needPasswordChange: false` on the User record upon successful password creation.
 3. **Error Code Mapping (`src/app/errors/handleBetterAuthError.ts`):**
    - Ensure Better Auth `INVALID_PASSWORD` error code maps to `HTTP 400 Bad Request` with `PUBLIC_ERROR_CODES.INVALID_CREDENTIALS` and clear message: `"Incorrect current password"`.
-   - Ensure Better Auth `PASSWORD_ALREADY_SET` or related errors map to `HTTP 400 Bad Request`.
+   - Ensure Better Auth `CREDENTIAL_ACCOUNT_NOT_FOUND` maps to `HTTP 403 Forbidden` with `PUBLIC_ERROR_CODES.PASSWORD_CHANGE_NOT_ALLOWED` for accounts without a password attempting password change per PRD `FR-AUTH-007`.
 
 ### Out of Scope
 
@@ -151,7 +151,7 @@
 | Type check / build | `Yes` | `pnpm exec tsc --noEmit` | `PASS` |
 | Lint | `Yes` | `pnpm lint` | `PASS` |
 | Unauthenticated check | `Yes` | Verify missing/invalid session returns 401 | `PASS` |
-| Wrong current password | `Yes` | Verify incorrect current password returns 401 (OWASP Anti-Enumeration) | `PASS` |
+| Wrong current password | `Yes` | Verify incorrect current password returns 400 Bad Request (`FR-AUTH-007.1`) | `PASS` |
 | Password policy check | `Yes` | Verify weak new password returns 400 | `PASS` |
 | Change password flow | `Yes` | Verify valid change password allows login with new credentials | `PASS` |
 | Google user set password | `Yes` | Verify Google user sets password while preserving Google account | `PASS` |
@@ -191,7 +191,7 @@
     - Case 1: Unauthenticated access to `/change-password` and `/set-password` rejected with 401 (`pass: true`)
     - Case 2: Weak password rejected by centralized password policy with 400 `VALIDATION_ERROR` (`pass: true`)
     - Case 3: Reusing current password as new password rejected by schema refinement with 400 `VALIDATION_ERROR` (`pass: true`)
-    - Case 4: Incorrect current password rejected with generic 401 `INVALID_CREDENTIALS` per OWASP Anti-Enumeration standard (`pass: true`)
+    - Case 4: Incorrect current password rejected with 400 Bad Request (`INVALID_CREDENTIALS`) per PRD `FR-AUTH-007.1` (`pass: true`)
     - Case 5: Valid password change succeeds with 200 OK and `needPasswordChange` cleared to `false` in DB (`pass: true`)
     - Case 6: Credential verification confirms old password rejected (401) and new password authenticates (200 OK) (`pass: true`)
     - Case 7: Session revocation policy verified — secondary session revoked (401) upon password change (`pass: true`)
@@ -199,7 +199,7 @@
     - Case 9: Account with existing password blocked from calling `/set-password` with 400 `CONFLICT` (`pass: true`)
   - `pnpm exec tsc --noEmit`: Exited with code 0 (zero errors).
   - `pnpm lint`: Exited with code 0 (zero errors / zero warnings).
-- **Deviations from Original Plan:** None. Maintained strict request immutability (`res.locals.user`), centralized customer profile lifecycle (`DEC-022`), and OWASP Anti-Enumeration standards.
+- **Deviations from Original Plan:** None. Maintained strict request immutability (`res.locals.user`), centralized customer profile lifecycle (`DEC-022`), and canonical PRD HTTP 400 error mapping for incorrect current password (`FR-AUTH-007.1`).
 - **Remaining Concerns / Follow-ups:** None. Ready for human review and task closure.
 
 ---
