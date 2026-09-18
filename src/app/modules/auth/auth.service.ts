@@ -6,10 +6,12 @@ import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import { resolveCallbackURL } from "../../utils/resolveCallbackURL.js";
 import type {
+  ChangePasswordInput,
   ForgotPasswordInput,
   LoginWithCredentialsInput,
   ResetPasswordInput,
   SendVerificationOtpInput,
+  SetPasswordInput,
   VerifyEmailOtpInput,
 } from "./auth.validation.js";
 
@@ -63,8 +65,6 @@ const verifyEmailOtp = async (
       returnHeaders: true,
     });
 
-  const setCookies = authHeaders.getSetCookie();
-
   return {
     user: {
       id: authResult.user.id,
@@ -74,7 +74,7 @@ const verifyEmailOtp = async (
       role: authResult.user.role,
       status: authResult.user.status,
     },
-    setCookies,
+    setCookies: authHeaders?.getSetCookie() ?? [],
   };
 };
 
@@ -95,7 +95,7 @@ const loginWithCredentials = async (
       returnHeaders: true,
     });
 
-  // Enforce customer portal boundary (DEC-020)
+  // Enforce customer portal boundary
   if (authResult.user.role !== UserRole.CUSTOMER) {
     if (authResult.token) {
       await prisma.session.deleteMany({
@@ -119,7 +119,7 @@ const loginWithCredentials = async (
       role: authResult.user.role,
       status: authResult.user.status,
     },
-    setCookies: authHeaders.getSetCookie(),
+    setCookies: authHeaders?.getSetCookie() ?? [],
   };
 };
 
@@ -140,7 +140,7 @@ const loginWithGoogle = async (headers: Headers, redirectTo?: string) => {
   return {
     url: authResult.url,
     redirect: authResult.redirect,
-    setCookies: authHeaders.getSetCookie(),
+    setCookies: authHeaders?.getSetCookie() ?? [],
   };
 };
 
@@ -191,7 +191,7 @@ const linkGoogleAccount = async (
   return {
     url: authResult.url,
     redirect: authResult.redirect,
-    setCookies: authHeaders.getSetCookie(),
+    setCookies: authHeaders?.getSetCookie() ?? [],
   };
 };
 
@@ -276,12 +276,82 @@ const resetPassword = async (payload: ResetPasswordInput, headers: Headers) => {
     returnHeaders: true,
   });
 
-  const setCookies = authHeaders ? authHeaders.getSetCookie() : [];
-
   return {
     message:
       "Password has been reset successfully. Please log in with your new password.",
-    setCookies,
+    setCookies: authHeaders?.getSetCookie() ?? [],
+  };
+};
+
+// Change existing user password
+const changePassword = async (
+  userId: string,
+  payload: ChangePasswordInput,
+  headers: Headers,
+) => {
+  const { currentPassword, newPassword, revokeOtherSessions } = payload;
+
+  const { headers: authHeaders } = await auth.api.changePassword({
+    body: {
+      currentPassword,
+      newPassword,
+      revokeOtherSessions,
+    },
+    headers,
+    returnHeaders: true,
+  });
+
+  // Clear needPasswordChange flag on user record
+  await prisma.user.update({
+    where: { id: userId },
+    data: { needPasswordChange: false },
+  });
+
+  return {
+    message: "Password has been changed successfully.",
+    setCookies: authHeaders?.getSetCookie() ?? [],
+  };
+};
+
+// Set password for Google-only OAuth accounts
+const setPassword = async (
+  userId: string,
+  payload: SetPasswordInput,
+  headers: Headers,
+) => {
+  const { newPassword } = payload;
+
+  const existingPasswordAccount = await prisma.account.findFirst({
+    where: {
+      userId,
+      providerId: "credential",
+      password: { not: null },
+    },
+  });
+
+  if (existingPasswordAccount) {
+    throw new AppError(
+      status.BAD_REQUEST,
+      PUBLIC_ERROR_CODES.CONFLICT,
+      "A password has already been set for this account. Please use change password.",
+    );
+  }
+
+  const { headers: authHeaders } = await auth.api.setPassword({
+    body: { newPassword },
+    headers,
+    returnHeaders: true,
+  });
+
+  // Clear needPasswordChange flag on user record
+  await prisma.user.update({
+    where: { id: userId },
+    data: { needPasswordChange: false },
+  });
+
+  return {
+    message: "Password has been set successfully.",
+    setCookies: authHeaders?.getSetCookie() ?? [],
   };
 };
 
@@ -295,4 +365,6 @@ export const AuthService = {
   unlinkGoogleAccount,
   forgotPassword,
   resetPassword,
+  changePassword,
+  setPassword,
 };
