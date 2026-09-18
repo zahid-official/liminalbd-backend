@@ -177,7 +177,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 - **Test / Verification Output:**
   - `pnpm lint`: Passed (0 errors, 0 warnings).
   - `pnpm exec tsc --noEmit`: Passed (`tsc` completed with 0 errors).
-  - Executable Contract Checks (All 8 scenarios verified):
+  - Executable Contract Checks (All 9 scenarios verified):
     1. Validation Gate: POST `{}` -> HTTP 400 (`VALIDATION_ERROR`, missing email and password fields).
     2. Missing User Gate: POST non-existent user -> HTTP 401 (`INVALID_CREDENTIALS`, timing-equalized via Better Auth dummy password hash applied).
     3. Wrong Password on Unverified User: POST unverified email with wrong password -> HTTP 401 (`INVALID_CREDENTIALS`, account state not leaked).

@@ -152,7 +152,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `✅`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
 | 10    | B          | `P2-T012` | Implement password reset                                                 | `✅`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
 | 11    | B          | `P2-T013` | Implement change or set password                                         | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
-| 12    | B          | `P2-T014` | Implement logout and session revocation                                  | `🔄`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
+| 12    | B          | `P2-T014` | Implement logout and session revocation                                  | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
 | 13    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `🔲`   | `P2-T010`                       | None                                         |
 | 14    | C          | `P2-T016` | Implement the audit-log application boundary                             | `🔲`   | `P2-T001`, `P2-T010`            | None                                         |
 | 15    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
@@ -400,7 +400,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Session persistence and revocation behavior checks.
 
-**Human review:** `Pending`
+**Human review:** `Approved (2026-09-18)`
 
 ### Workstream C: RBAC and Admin Management
 
@@ -669,7 +669,7 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | Outcome        | `Pending`                                                                                                            |
 | Approved by    | `Pending`                                                                                                            |
 | Approved on    | `Pending`                                                                                                            |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, and `P2-T013` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`) |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
