@@ -98,8 +98,7 @@ const linkGoogle = catchAsync(async (req: Request, res: Response) => {
   const query = res.locals.validated?.query as LinkGoogleQuery | undefined;
 
   const result = await AuthService.linkGoogleAccount(
-    user.id,
-    user.role,
+    user,
     headers,
     query?.redirectTo,
   );

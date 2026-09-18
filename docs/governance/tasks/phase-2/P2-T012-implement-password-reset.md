@@ -173,7 +173,7 @@
 - **Changed Files:**
   - `src/app/shared/email/templates/ResetPasswordEmail.tsx`: Luxury studio branded React Email template for password reset link delivery.
   - `src/app/shared/email/mailers/auth.mailer.ts`: Added `sendPasswordResetLink` mailer method.
-  - `src/app/config/auth.ts`: Configured `emailAndPassword.sendResetPassword` callback, `resetPasswordTokenExpiresIn: 60 * 15` (15m lifetime), `revokeSessionsOnPasswordReset: true` for automatic session revocation, and `onPasswordReset` hook to reset `needPasswordChange: false`.
+  - `src/app/config/auth.ts`: Configured `emailAndPassword.sendResetPassword` callback (with immediate dangling token invalidation for ineligible accounts via `prisma.verification.deleteMany`), `resetPasswordTokenExpiresIn: 60 * 15` (15m lifetime), `revokeSessionsOnPasswordReset: true` for automatic session revocation, and `onPasswordReset` hook to reset `needPasswordChange: false`.
   - `src/app/modules/auth/auth.validation.ts`: Added `forgotPasswordSchema` and `resetPasswordSchema` with inferred types `ForgotPasswordInput` and `ResetPasswordInput`.
   - `src/app/modules/auth/auth.service.ts`: Implemented `forgotPassword` and `resetPassword` service methods with anti-enumeration protection and cookie pass-through.
   - `src/app/modules/auth/auth.controller.ts`: Implemented `forgotPassword` and `resetPassword` controller handlers.

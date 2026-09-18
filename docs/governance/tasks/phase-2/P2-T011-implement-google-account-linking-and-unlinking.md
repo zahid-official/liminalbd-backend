@@ -91,7 +91,7 @@
   - `ACCOUNT_NOT_LINKED: "ACCOUNT_NOT_LINKED"` (HTTP 400)
   - `CANNOT_UNLINK_SOLE_METHOD: "CANNOT_UNLINK_SOLE_METHOD"` (HTTP 422)
 - **Service Logic (`AuthService.ts`):**
-  - `linkGoogleAccount(userId, role, callbackURL, headers)`:
+  - `linkGoogleAccount(user, headers, redirectTo)`:
     - Check role !== CUSTOMER ➔ throw `FORBIDDEN_ROLE_ACCESS` (HTTP 403).
     - Tier 1 Conflict Check: Check if Google account exists for `userId` in `prisma.account` ➔ throw `ACCOUNT_ALREADY_LINKED` (HTTP 409).
     - Call `auth.api.linkSocialAccount({ body: { provider: "google", callbackURL }, headers })`.
@@ -160,14 +160,18 @@
 | Admin role block check | `Yes` | Verify admin user cannot link Google (403) | `PASSED` |
 | Already linked conflict check (Tier 1) | `Yes` | Verify linking existing Google account returns 409 | `PASSED` |
 | Cross-user conflict check (Tier 2) | `Yes` | Verify cross-user callback conflict halts linkage and redirects with error | `PASSED` |
-| Sole method 422 check | `Yes` | Verify unlinking sole auth method returns 422 | `PASSED` |
+| Not-linked unlink check | `Yes` | Verify unlinking when no Google account is linked returns 400 (`ACCOUNT_NOT_LINKED`) | `PASSED` |
+| Sole method 422 check | `Yes` | Verify unlinking sole auth method returns 422 (`CANNOT_UNLINK_SOLE_METHOD`) | `PASSED` |
 | Valid unlink check | `Yes` | Verify user with password can unlink Google (200) | `PASSED` |
+| Role preservation check | `Yes` | Verify linking/unlinking preserves user role without escalation | `PASSED` |
+| Composite uniqueness & migration check | `Yes` | Migration `20260918165500_add_account_provider_unique_constraints` applied and verified (`DEC-023`) | `PASSED` |
+| Approved session assurance check | `Yes` | Live DB session verification with `disableCookieCache: true` via `authGuard` | `PASSED` |
 
 ---
 
 ## 8. Assumptions & Blockers
 
-- **Active Blockers:** None. `P2-B001` (customer registration) and `P2-B003` (Google customer portal boundary) were resolved in preceding tasks (`P2-T008`, `P2-T009`). `P2-B005` (recent-authentication and post-password-change policy) was scoped across `P2-T011`–`P2-T013`, with standard session assurance verified for `P2-T011` and formally finalized under `P2-T012` and `P2-T013`.
+- **Active Blockers:** None. `P2-B001` (customer registration) and `P2-B003` (Google customer portal boundary) were resolved in preceding tasks (`P2-T008`, `P2-T009`). `P2-B005` (sensitive operation session assurance and post-password-change policy) was scoped across `P2-T011`–`P2-T013`, with live database session assurance (bypassing client cookie cache via `authGuard` `disableCookieCache: true` per `DEC-022`) approved and verified for `P2-T011`, and post-password session revocation policies formally finalized under `P2-T012` and `P2-T013`.
 - **Design Assumptions:**
   - Unlinking removes the Google provider record from `Account` table, preventing future Google sign-in unless re-linked, while retaining the customer profile and user entity.
   - Per `FR-AUTH-003.4`, a user cannot unlink Google if they do not have a password or alternative credential method.

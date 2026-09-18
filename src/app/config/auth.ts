@@ -156,7 +156,7 @@ const auth = betterAuth({
     requireEmailVerification: false, // Enforced centrally via databaseHooks for compound-state precedence
     resetPasswordTokenExpiresIn: 60 * 15, // 15 minutes token lifetime
     revokeSessionsOnPasswordReset: true, // Invalidate all active user sessions on password reset
-    async sendResetPassword({ user, url }) {
+    async sendResetPassword({ user, url, token }) {
       // Check user lifecycle and credential status before dispatching email
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
@@ -170,18 +170,21 @@ const auth = betterAuth({
         },
       });
 
-      // Ignore soft-deleted or non-active accounts without leaking status
-      if (
-        !dbUser ||
-        dbUser.deletedAt !== null ||
-        dbUser.status !== UserStatus.ACTIVE
-      ) {
-        return;
-      }
+      const credentialAccount = dbUser?.accounts[0];
 
-      // Google-only accounts check - do not dispatch reset link if no password credential
-      const credentialAccount = dbUser.accounts[0];
-      if (!credentialAccount || !credentialAccount.password) {
+      const canResetPassword =
+        dbUser !== null &&
+        dbUser.deletedAt === null &&
+        dbUser.status === UserStatus.ACTIVE &&
+        Boolean(credentialAccount?.password);
+
+      // Invalidate token immediately for ineligible accounts (Google-only, suspended, soft-deleted)
+      if (!canResetPassword) {
+        await prisma.verification.deleteMany({
+          where: {
+            identifier: `reset-password:${token}`,
+          },
+        });
         return;
       }
 

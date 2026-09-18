@@ -5,6 +5,7 @@ import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import { resolveCallbackURL } from "../../utils/resolveCallbackURL.js";
+import type { AuthUser } from "./auth.interface.js";
 import type {
   ChangePasswordInput,
   ForgotPasswordInput,
@@ -146,11 +147,12 @@ const loginWithGoogle = async (headers: Headers, redirectTo?: string) => {
 
 // Link Google account for authenticated user
 const linkGoogleAccount = async (
-  userId: string,
-  role: string | null | undefined,
+  user: AuthUser,
   headers: Headers,
   redirectTo?: string,
 ) => {
+  const { id: userId, role } = user;
+
   if (role !== UserRole.CUSTOMER) {
     throw new AppError(
       status.FORBIDDEN,
