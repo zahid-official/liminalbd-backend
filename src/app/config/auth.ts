@@ -5,8 +5,8 @@ import { emailOTP } from "better-auth/plugins";
 import { UserRole, UserStatus } from "../../generated/prisma/enums.js";
 import { PUBLIC_ERROR_CODES } from "../errors/errorCodes.js";
 import { AuthMailer } from "../shared/email/mailers/auth.mailer.js";
-import { prisma } from "./prisma.js";
 import { env } from "./env.js";
+import { prisma } from "./prisma.js";
 
 // Central Better Auth authentication and lifecycle configuration
 const auth = betterAuth({
@@ -36,6 +36,7 @@ const auth = betterAuth({
         },
       },
     },
+
     account: {
       create: {
         before: async (account) => {
@@ -56,6 +57,7 @@ const auth = betterAuth({
         },
       },
     },
+
     session: {
       create: {
         before: async (session, context) => {
@@ -77,11 +79,10 @@ const auth = betterAuth({
           }
 
           // Path guard for Google callback
+          const googleCallbackPath = new URL(env.GOOGLE_CALLBACK_URL).pathname;
           const requestPath = context?.request
             ? new URL(context.request.url).pathname
             : undefined;
-
-          const googleCallbackPath = new URL(env.GOOGLE_CALLBACK_URL).pathname;
 
           if (
             requestPath === googleCallbackPath &&
@@ -149,15 +150,15 @@ const auth = betterAuth({
     },
   },
 
-  // Primary Authentication Strategies
+  // Authentication Strategies
   emailAndPassword: {
     enabled: true,
     autoSignIn: false, // Do not auto sign-in unverified user on registration
-    requireEmailVerification: false, // Enforced centrally via databaseHooks for compound-state precedence
+    requireEmailVerification: false,
     resetPasswordTokenExpiresIn: 60 * 15, // 15 minutes token lifetime
     revokeSessionsOnPasswordReset: true, // Invalidate all active user sessions on password reset
+
     async sendResetPassword({ user, url, token }) {
-      // Check user lifecycle and credential status before dispatching email
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
         select: {
@@ -171,14 +172,13 @@ const auth = betterAuth({
       });
 
       const credentialAccount = dbUser?.accounts[0];
-
       const canResetPassword =
         dbUser !== null &&
         dbUser.deletedAt === null &&
         dbUser.status === UserStatus.ACTIVE &&
         Boolean(credentialAccount?.password);
 
-      // Invalidate token immediately for ineligible accounts (Google-only, suspended, soft-deleted)
+      // Invalidate token immediately for ineligible accounts
       if (!canResetPassword) {
         await prisma.verification.deleteMany({
           where: {
@@ -195,8 +195,8 @@ const auth = betterAuth({
       });
     },
 
+    // Clear needPasswordChange flag upon successful password reset
     async onPasswordReset({ user }) {
-      // Clear needPasswordChange flag upon successful password reset
       await prisma.user.update({
         where: { id: user.id },
         data: { needPasswordChange: false },
@@ -224,13 +224,13 @@ const auth = betterAuth({
     },
   },
 
-  // Session Lifecycle & Cookie Security Transport
+  // Session Lifecycle
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day sliding renewal
     cookieCache: {
       enabled: true,
-      maxAge: 15 * 60, // 15 minutes in seconds
+      maxAge: 60 * 15, // 15 minutes
     },
   },
 
@@ -253,10 +253,11 @@ const auth = betterAuth({
     emailOTP({
       overrideDefaultEmailVerification: true,
       otpLength: 6,
-      expiresIn: 5 * 60, // 5 minutes in seconds
+      expiresIn: 60 * 5, // 5 minutes
       sendVerificationOnSignUp: false,
+
+      // Dispatch branded OTP email for unverified user accounts
       async sendVerificationOTP({ email, otp, type }) {
-        // Dispatch branded OTP email for unverified user accounts
         if (type === "email-verification") {
           const user = await prisma.user.findUnique({
             where: { email },
@@ -266,7 +267,7 @@ const auth = betterAuth({
           if (user && !user.emailVerified) {
             await AuthMailer.sendVerificationOtp({
               email,
-              name: user.name,
+              name: user.name || "Customer",
               otp,
             });
           }

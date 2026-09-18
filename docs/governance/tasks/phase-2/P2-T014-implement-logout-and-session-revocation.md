@@ -32,16 +32,16 @@
 
 1. **Current Session Logout (`POST /api/v1/auth/logout`):**
    - Protected by `authGuard` (requires valid active session).
-   - Invokes Better Auth `auth.api.signOut({ headers, asResponse: true })` to invalidate the active session in PostgreSQL and generate cookie clearance headers.
+   - Invokes Better Auth `auth.api.revokeSession({ body: { token: sessionToken }, headers })` to invalidate the active session in PostgreSQL and `auth.api.signOut({ headers, returnHeaders: true })` to generate cookie clearance headers.
    - Forwards `set-cookie` header (`better-auth.session_token=; Max-Age=0...`) to client.
-   - Returns standardized success response: `{ success: true, statusCode: 200, message: "Successfully logged out.", data: null }`.
+   - Returns standardized success response: `{ success: true, message: "Successfully logged out.", data: null }`.
    - Replay prevention: subsequent requests using the invalidated session token are rejected with `401 Unauthorized` (`PUBLIC_ERROR_CODES.UNAUTHORIZED`).
 
 2. **All Sessions Revocation (`POST /api/v1/auth/logout-all`):**
    - Protected by `authGuard` (requires valid active session).
-   - Invokes Better Auth `auth.api.revokeSessions({ headers, asResponse: true })` and `auth.api.signOut({ headers, asResponse: true })` to delete every active session belonging to `res.locals.user.id` from PostgreSQL.
+   - Invokes Better Auth `auth.api.revokeSessions({ headers })` and `auth.api.signOut({ headers, returnHeaders: true })` to delete every active session belonging to `res.locals.user.id` from PostgreSQL.
    - Forwards cookie clearance header to client.
-   - Returns standardized success response: `{ success: true, statusCode: 200, message: "Successfully logged out from all devices.", data: null }`.
+   - Returns standardized success response: `{ success: true, message: "Successfully logged out from all devices.", data: null }`.
    - Replay prevention: every active session for that user (both the current session and any secondary sessions) receives `401 Unauthorized` on subsequent requests.
 
 3. **Tenant & Identity Isolation:**
@@ -75,13 +75,13 @@ _Findings from read-only repository inspection before writing code:_
   - Injects `res.locals.user` and `res.locals.session`.
   - Rejects missing, expired, or invalid sessions with `401 Unauthorized`.
 - **Better Auth APIs (`src/app/config/auth.ts`):**
-  - Exposes `auth.api.signOut({ headers, asResponse: true })` for current session invalidation and cookie clearing.
-  - Exposes `auth.api.revokeSessions({ headers, asResponse: true })` for revoking all active sessions for the user.
+  - Exposes `auth.api.signOut({ headers, returnHeaders: true })` for current session invalidation and cookie clearing.
+  - Exposes `auth.api.revokeSessions({ headers })` for revoking all active sessions for the user.
 - **Service Layer Pattern (`src/app/modules/auth/auth.service.ts`):**
   - Uses `fromNodeHeaders(req.headers)` to construct standard Fetch API `Headers` for Better Auth operations.
   - Standardized pattern: `setCookies: authHeaders?.getSetCookie() ?? []`.
 - **Controller Layer Pattern (`src/app/modules/auth/auth.controller.ts`):**
-  - Uses `catchAsync`, iterates `result.setCookies` to append to `res.appendHeader("set-cookie", cookie)`, and returns `sendResponse`.
+  - Uses `catchAsync`, forwards `res.setHeader("set-cookie", result.setCookies)`, and returns `sendResponse`.
 - **Route Mounting (`src/app/modules/auth/auth.routes.ts`):**
   - Mounts routes under `/api/v1/auth`.
 
@@ -90,7 +90,7 @@ _Findings from read-only repository inspection before writing code:_
 ## 4. Implementation Approach
 
 - **Applicable Architecture Flow:**
-  `Route (authGuard) → Controller → Service → Better Auth API (signOut / revokeSessions) → PostgreSQL (Prisma adapter)`
+  `Route (authGuard) → Controller → Service → Better Auth API (revokeSession / revokeSessions / signOut) → PostgreSQL (Prisma adapter)`
 
 - **Data / Schema Impact:**
   - No database migration required.
@@ -101,12 +101,12 @@ _Findings from read-only repository inspection before writing code:_
     - Headers: `Cookie: better-auth.session_token=...`
     - Body: empty `{}`
     - Response: `200 OK`, `Set-Cookie: better-auth.session_token=; Max-Age=0...`
-    - Envelope: `{ success: true, statusCode: 200, message: "Successfully logged out.", data: null }`
+    - Envelope: `{ success: true, message: "Successfully logged out.", data: null }`
   - `POST /api/v1/auth/logout-all`:
     - Headers: `Cookie: better-auth.session_token=...`
     - Body: empty `{}`
     - Response: `200 OK`, `Set-Cookie: better-auth.session_token=; Max-Age=0...`
-    - Envelope: `{ success: true, statusCode: 200, message: "Successfully logged out from all devices.", data: null }`
+    - Envelope: `{ success: true, message: "Successfully logged out from all devices.", data: null }`
 
 - **Security & Authorization Considerations:**
   - Both endpoints are strictly guarded by `authGuard`.
@@ -133,13 +133,14 @@ _Findings from read-only repository inspection before writing code:_
 
 2. **Step 2 (Service Layer):**
    - In `src/app/modules/auth/auth.service.ts`:
-     - Implement `logout(headers: Headers)`:
-       - Calls `auth.api.signOut({ headers, asResponse: true })`.
+     - Implement `logout(sessionToken: string, headers: Headers)`:
+       - Calls `auth.api.revokeSession({ body: { token: sessionToken }, headers })` to enforce authoritative DB deletion and propagate errors.
+       - Calls `auth.api.signOut({ headers, returnHeaders: true })` to generate cookie clearance headers.
        - Extracts `setCookies: authHeaders?.getSetCookie() ?? []`.
        - Returns `{ message: "Successfully logged out.", setCookies }`.
      - Implement `logoutAll(headers: Headers)`:
-       - Calls `auth.api.revokeSessions({ headers, asResponse: true })`.
-       - Calls `auth.api.signOut({ headers, asResponse: true })` to guarantee cookie clearance headers.
+       - Calls `auth.api.revokeSessions({ headers })`.
+       - Calls `auth.api.signOut({ headers, returnHeaders: true })` to guarantee cookie clearance headers.
        - Extracts `setCookies`.
        - Returns `{ message: "Successfully logged out from all devices.", setCookies }`.
 
@@ -171,7 +172,7 @@ _Findings from read-only repository inspection before writing code:_
 
 | Check | Required | Command or Method | Result |
 | :--- | :--- | :--- | :--- |
-| Acceptance criteria | `Yes` | `scratch/verify_p2_t014.ts` (4 scenarios, multiple assertions) | `PASS` |
+| Acceptance criteria | `Yes` | `scratch/verify_p2_t014.ts` (5 scenarios, multiple assertions) | `PASS` |
 | Type check / build | `Yes` | `pnpm tsc --noEmit` | `PASS` |
 | Lint | `Yes` | `pnpm lint` | `PASS` |
 | Tests | `Yes` | Executable verification script against local server & DB | `PASS` |
@@ -203,16 +204,17 @@ _Findings from read-only repository inspection before writing code:_
 ## 10. Implementation Evidence
 
 - **Changed Files:**
-  - `src/app/modules/auth/auth.service.ts`: Added `logout(headers)` (invoking `auth.api.signOut`, returning `setCookies`) and `logoutAll(headers)` (invoking `auth.api.revokeSessions` and `auth.api.signOut`, returning `setCookies`).
-  - `src/app/modules/auth/auth.controller.ts`: Added `logout` and `logoutAll` controller handlers with cookie forwarding and standardized response envelope.
+  - `src/app/modules/auth/auth.service.ts`: Added `logout(sessionToken, headers)` (invoking `auth.api.revokeSession` for authoritative DB deletion and `auth.api.signOut` for cookie cleanup, returning `setCookies`) and `logoutAll(headers)` (invoking `auth.api.revokeSessions` and `auth.api.signOut`, returning `setCookies`).
+  - `src/app/modules/auth/auth.controller.ts`: Added `logout` and `logoutAll` controller handlers with server-verified session token forwarding (`res.locals.session.token`), cookie forwarding, and standardized response envelope.
   - `src/app/modules/auth/auth.routes.ts`: Mounted `POST /api/v1/auth/logout` and `POST /api/v1/auth/logout-all` behind `authGuard`.
 - **Migration Created:** None required (reuses existing Better Auth `session` table).
 - **Test / Verification Output:**
-  - `scratch/verify_p2_t014.ts`: All 4 scenarios executed and passed with exit code 0 against local dev server and PostgreSQL:
+  - `scratch/verify_p2_t014.ts`: All 5 scenarios executed and passed with exit code 0 against local dev server and PostgreSQL:
     - Scenario 1: Unauthenticated access to `/logout` and `/logout-all` rejected with 401 Unauthorized (`pass: true`).
     - Scenario 2: Single-session logout `/logout` successfully revokes active session from database, emits cookie clearance headers (`better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`), and blocks token replay with 401 Unauthorized (`pass: true`).
     - Scenario 3: Multi-session logout-all `/logout-all` revokes all active sessions for that user across all devices from database (0 remaining sessions in DB), emits cookie clearance headers, and blocks replay on all previous sessions with 401 Unauthorized (`pass: true`).
     - Scenario 4: Cross-user session isolation confirmed — User A calling `/logout-all` leaves User B's active sessions completely intact and operational (`pass: true`).
+    - Scenario 5: Database failure resilience during logout verified — simulated session deletion failure properly bubbles up (throwing Internal Server Error), prevents false-positive 200 OK responses, leaves the active DB session intact, and normal logout succeeds when database recovers (`pass: true`).
   - `pnpm tsc --noEmit`: Exited with code 0 (zero errors).
   - `pnpm lint`: Exited with code 0 (zero errors / zero warnings).
 - **Deviations from Original Plan:** None.

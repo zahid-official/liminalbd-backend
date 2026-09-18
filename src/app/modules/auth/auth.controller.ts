@@ -4,7 +4,7 @@ import status from "http-status";
 import { env } from "../../config/env.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
-import type { AuthUser } from "./auth.interface.js";
+import type { AuthSession, AuthUser } from "./auth.interface.js";
 import { AuthService } from "./auth.service.js";
 import type {
   ChangePasswordInput,
@@ -197,8 +197,9 @@ const setPassword = catchAsync(async (req: Request, res: Response) => {
 
 // Logout current session
 const logout = catchAsync(async (req: Request, res: Response) => {
+  const session = res.locals.session as AuthSession;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.logout(headers);
+  const result = await AuthService.logout(session.token, headers);
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);

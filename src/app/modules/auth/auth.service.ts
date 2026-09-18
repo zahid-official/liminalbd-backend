@@ -362,7 +362,15 @@ const setPassword = async (
 };
 
 // Logout current session
-const logout = async (headers: Headers) => {
+const logout = async (sessionToken: string, headers: Headers) => {
+  await auth.api.revokeSession({
+    body: {
+      token: sessionToken,
+    },
+    headers,
+  });
+
+  // Clear Better Auth session and cached-session cookies
   const { headers: authHeaders } = await auth.api.signOut({
     headers,
     returnHeaders: true,
