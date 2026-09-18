@@ -104,25 +104,30 @@ const resetPasswordSchema = {
 
 // Change Password Schema
 const changePasswordSchema = {
-  body: z.object({
-    currentPassword: z
-      .string({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Current password is required"
-            : "Current password must be a valid text string",
-      })
-      .min(1, { error: "Current password cannot be empty" })
-      .max(100, { error: "Current password cannot exceed 100 characters" }),
+  body: z
+    .object({
+      currentPassword: z
+        .string({
+          error: (issue) =>
+            issue.input === undefined
+              ? "Current password is required"
+              : "Current password must be a valid text string",
+        })
+        .min(1, { error: "Current password cannot be empty" })
+        .max(100, { error: "Current password cannot exceed 100 characters" }),
 
-    newPassword: passwordSchema,
+      newPassword: passwordSchema,
 
-    revokeOtherSessions: z
-      .boolean({
-        error: "Revoke other sessions must be a boolean",
-      })
-      .default(true),
-  }),
+      revokeOtherSessions: z
+        .boolean({
+          error: "Revoke other sessions must be a boolean",
+        })
+        .default(true),
+    })
+    .refine((data) => data.currentPassword !== data.newPassword, {
+      message: "New password must be different from current password",
+      path: ["newPassword"],
+    }),
 };
 
 // Set Password Schema
