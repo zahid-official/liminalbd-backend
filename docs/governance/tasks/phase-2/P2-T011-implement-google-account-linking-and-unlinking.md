@@ -71,13 +71,13 @@
 
 ---
 
-## 3. Read-Only Inspection Summary
+## 3. Verified Codebase State (Pre-Implementation Baseline Snapshot)
 
-- `src/app/middleware/authGuard.ts`: verified and operational; attaches `req.user`, `req.session`, `res.locals.user`, `res.locals.session`.
+- `src/app/middleware/authGuard.ts`: verified and operational; attaches authenticated user and session context strictly to `res.locals.user` and `res.locals.session` per `DEC-022`.
 - `src/app/config/auth.ts`:
   - `accountLinking.enabled: true` and `trustedProviders: ["google"]`.
   - `databaseHooks.account.create.before`: blocks administrative accounts from linking Google (`FORBIDDEN_ROLE_ACCESS`).
-- `src/app/modules/auth/auth.controller.ts` & `auth.service.ts`: handles customer registration, OTP verification, credential login, and Google OAuth login. Account link/unlink endpoints are not yet implemented.
+- `src/app/modules/auth/auth.controller.ts` & `auth.service.ts`: handles customer registration, OTP verification, credential login, and Google OAuth login. Account link/unlink endpoints are not yet implemented at baseline.
 - `prisma/schema/auth.prisma`: `Account` model stores `providerId` (`"credential"` or `"google"`), `userId`, `accountId`.
 
 ---
@@ -167,11 +167,11 @@
 
 ## 8. Assumptions & Blockers
 
-- **Active Blockers:** None. `P2-B001`, `P2-B003`, and `P2-B005` were resolved in preceding foundation and auth tasks (`P2-T008`, `P2-T009`, `P2-T010`).
+- **Active Blockers:** None. `P2-B001` (customer registration) and `P2-B003` (Google customer portal boundary) were resolved in preceding tasks (`P2-T008`, `P2-T009`). `P2-B005` (recent-authentication and post-password-change policy) was scoped across `P2-T011`–`P2-T013`, with standard session assurance verified for `P2-T011` and formally finalized under `P2-T012` and `P2-T013`.
 - **Design Assumptions:**
   - Unlinking removes the Google provider record from `Account` table, preventing future Google sign-in unless re-linked, while retaining the customer profile and user entity.
   - Per `FR-AUTH-003.4`, a user cannot unlink Google if they do not have a password or alternative credential method.
-  - Account linking adheres to a two-tier conflict protection model: Tier 1 pre-flight validation prevents initiating requests when Google is already linked (HTTP 409), and Tier 2 OAuth callback validation prevents binding identities owned by other users via safe HTTP 302 error redirect.
+  - Account linking adheres to a two-tier conflict protection model: Tier 1 pre-flight validation prevents initiating requests when Google is already linked (HTTP 409), and Tier 2 OAuth callback validation prevents binding identities owned by other users via safe HTTP 302 error redirect, physically backed by database-level composite unique constraints under `DEC-023`.
 
 ---
 
@@ -192,13 +192,16 @@
   - `src/app/errors/errorCodes.ts`: Registered `ACCOUNT_ALREADY_LINKED`, `ACCOUNT_NOT_LINKED`, `CANNOT_UNLINK_SOLE_METHOD`.
   - `src/app/modules/auth/auth.validation.ts`: Added `linkGoogleSchema` and `LinkGoogleQuery` type.
   - `src/app/modules/auth/auth.service.ts`: Implemented `linkGoogleAccount` (with `DEC-020` role check, Tier 1 pre-flight conflict check, and Better Auth `linkSocialAccount` invocation) and `unlinkGoogleAccount` (with `ACCOUNT_NOT_LINKED` check, `CANNOT_UNLINK_SOLE_METHOD` check, and Google account record deletion).
-  - `src/app/modules/auth/auth.controller.ts`: Implemented `linkGoogle` and `unlinkGoogle` handlers with strict user session verification and cookie pass-through.
+  - `src/app/modules/auth/auth.controller.ts`: Implemented `linkGoogle` handler (with OAuth state cookie pass-through to client) and `unlinkGoogle` handler (database record removal with clean JSON response).
   - `src/app/modules/auth/auth.routes.ts`: Mounted `POST /link/google` and `POST /unlink/google` behind `authGuard`.
+  - `prisma/schema/auth.prisma`: Enforced `@@unique([providerId, accountId])` and `@@unique([userId, providerId])` under `DEC-023`.
+  - `prisma/migrations/20260918165500_add_account_provider_unique_constraints/migration.sql`: Created and deployed migration for composite unique indexes.
 - **Git Commits:**
   - `5cde954`: `feat(auth): add error codes and validation schema for Google account linking`
   - `08d4878`: `feat(auth): implement linkGoogleAccount and unlinkGoogleAccount service methods`
   - `b7e1701`: `feat(auth): mount link/google and unlink/google endpoints with authGuard protection`
-- **Migration Created:** None required (Prisma `Account` schema already accommodates multiple providers per user).
+  - `19afbc2`: `feat(auth): add account composite unique constraints and record DEC-023`
+- **Migration Created:** `20260918165500_add_account_provider_unique_constraints` (enforces `account_providerId_accountId_key` and `account_userId_providerId_key`).
 - **Test / Verification Output:**
   - `pnpm exec tsx scratch/verify_p2_t011.ts`: All test scenarios passed with exit code 0:
     - Case 1: Unauthenticated `/link/google` ➔ 401 UNAUTHORIZED (`pass: true`)
@@ -212,8 +215,12 @@
     - Case 8: Not linked customer `/unlink/google` ➔ 400 ACCOUNT_NOT_LINKED (`pass: true`)
   - `pnpm exec tsc --noEmit`: 0 errors.
   - `pnpm lint`: 0 errors / 0 warnings.
-- **Deviations from Original Plan:** None. Implemented exactly according to PRD, ERD, and `DEC-020`.
-- **Remaining Concerns / Follow-ups:** None. Ready for formal review and closure.
+- **Deviations from Original Plan:**
+  - Standardized authenticated identity context exclusively on `res.locals.user` and `res.locals.session` per `DEC-022`, retiring `req.user` and `req.session` to guarantee HTTP request immutability (`DEC-014`).
+  - Implemented Two-Tier Account Linking Protection: Tier 1 pre-flight check at `POST /api/v1/auth/link/google` rejects already-linked profiles with `HTTP 409 Conflict`, while Tier 2 callback validation blocks cross-user collision via safe browser 302 redirect (`DEC-020`).
+  - Added database-level composite unique constraints `@@unique([providerId, accountId])` and `@@unique([userId, providerId])` under `DEC-023` via migration `20260918165500_add_account_provider_unique_constraints` to guarantee physical race-condition prevention in concurrent linking scenarios.
+- **Remaining Concerns / Follow-ups:**
+  - None. Two-tier conflict defense, role preservation, and database-level uniqueness guarantees are fully established and verified.
 
 ---
 
@@ -224,4 +231,4 @@
 | Outcome | `Approved` |
 | Reviewed by | Zahidul Islam |
 | Reviewed on | `2026-09-15` (re-verified 2026-09-18) |
-| Notes | Implementation verified across all test cases, including DEC-020 boundary enforcement, FR-AUTH-003.4 sole-method deletion prevention, and two-tier account linking conflict protection (pre-flight 409 and callback cross-user ownership defense). Task officially approved and marked Done. |
+| Notes | Implementation verified across all test cases, including DEC-020 boundary enforcement, FR-AUTH-003.4 sole-method deletion prevention, and two-tier account linking conflict protection (pre-flight 409 and callback cross-user ownership defense physically backed by DEC-023 database composite unique constraints). Task officially approved and marked Done. |

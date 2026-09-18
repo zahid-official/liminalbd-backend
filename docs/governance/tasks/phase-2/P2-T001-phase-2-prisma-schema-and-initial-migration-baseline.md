@@ -49,6 +49,9 @@ The following field contract is the approved implementation contract for this ta
 | `Customer`     | `userId String @id`; `contactNumber String?`; `address String?`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`                                                                                                                                                                                                 |
 | `AuditLog`     | `id String @id @default(uuid())`; `actorId String?`; `action AuditAction`; `entityType AuditEntityType`; `entityId String?`; `previousValue Json?`; `newValue Json?`; `metadata Json?`; `createdAt DateTime @default(now())`                                                                                                           |
 
+> [!NOTE]
+> **Post-Baseline Evolution (`DEC-023`):** The `Account` model contract was subsequently evolved to enforce composite unique constraints: `@@unique([providerId, accountId])` and `@@unique([userId, providerId])` through migration `20260918165500_add_account_provider_unique_constraints` to guarantee race-condition prevention during concurrent account linking.
+
 | Enum              | Approved values                                                                                                 |
 | :---------------- | :-------------------------------------------------------------------------------------------------------------- |
 | `UserRole`        | `SUPER_ADMIN`, `ADMIN`, `CUSTOMER`                                                                              |

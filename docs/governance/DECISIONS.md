@@ -20,6 +20,25 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-023: Enforce Database-Level Composite Unique Constraints on Authentication Accounts
+
+**Recorded:** 2026-09-18  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Global Provider Identity Uniqueness:** Enforce `@@unique([providerId, accountId])` on the `Account` model in `prisma/schema/auth.prisma`. This guarantees at the database engine level that an external identity (e.g. Google subject ID) cannot be simultaneously bound to more than one user account during concurrent OAuth callback race conditions.
+2. **User-Provider Uniqueness:** Enforce `@@unique([userId, providerId])` on the `Account` model in `prisma/schema/auth.prisma`. This guarantees at the database engine level that a user can never possess duplicate accounts under the same authentication provider (e.g. preventing concurrent linking requests from creating duplicate Google accounts under a single user profile).
+3. **Migration & Client Generation:** Applied via migration `20260918165500_add_account_provider_unique_constraints` with zero data conflicts across existing accounts.
+
+**Why:**
+- **Better Auth Core Specification Alignment:** Better Auth's internal database adapter explicitly relies on `findAccountOwnerByKey({ providerId, accountId })` returning a unique record. Without this constraint, concurrent callback race conditions could inject duplicate external account identities, throwing runtime errors.
+- **Data Integrity & Deterministic Unlinking:** Application-level uniqueness checks alone are vulnerable to time-of-check to time-of-use (TOCTOU) race conditions. Enforcing `@@unique([userId, providerId])` at the database level ensures that `unlinkGoogleAccount` always operates on a strictly deterministic 1-to-1 account mapping per provider.
+
+**Consequences:**
+- The PostgreSQL `account` table enforces composite unique indexes: `account_providerId_accountId_key` and `account_userId_providerId_key`.
+- Any simultaneous attempt to bind the same external identity to multiple users, or bind multiple identities of the same provider to a single user, will be rejected by PostgreSQL with code `P2002` (Unique constraint violation).
+- `MEMORY.md`, `phase-2-auth-rbac.md`, and `P2-T011` are synchronized with this decision.
+
 ### DEC-022: Centralize Customer Profile Creation in Better Auth Database Hook and Standardize Identity Context on Response Locals
 
 **Recorded:** 2026-09-17  
