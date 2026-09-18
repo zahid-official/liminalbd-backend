@@ -7,12 +7,14 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import type { AuthUser } from "./auth.interface.js";
 import { AuthService } from "./auth.service.js";
 import type {
+  ChangePasswordInput,
   ForgotPasswordInput,
   LinkGoogleQuery,
   LoginWithCredentialsInput,
   LoginWithGoogleQuery,
   ResetPasswordInput,
   SendVerificationOtpInput,
+  SetPasswordInput,
   VerifyEmailOtpInput,
 } from "./auth.validation.js";
 
@@ -158,6 +160,42 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Change password for authenticated user
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+  const user = res.locals.user as AuthUser;
+  const payload = res.locals.validated?.body as ChangePasswordInput;
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.changePassword(user.id, payload, headers);
+
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
+// Set initial password for authenticated user without password
+const setPassword = catchAsync(async (req: Request, res: Response) => {
+  const user = res.locals.user as AuthUser;
+  const payload = res.locals.validated?.body as SetPasswordInput;
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.setPassword(user.id, payload, headers);
+
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
 // Export auth controller
 export const AuthController = {
   sendVerificationOtp,
@@ -169,4 +207,6 @@ export const AuthController = {
   unlinkGoogle,
   forgotPassword,
   resetPassword,
+  changePassword,
+  setPassword,
 };

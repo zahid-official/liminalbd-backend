@@ -67,5 +67,21 @@ router.post(
   AuthController.resetPassword,
 );
 
+// Change password (Authenticated users)
+router.post(
+  "/change-password",
+  authGuard,
+  validateRequest(AuthValidation.changePasswordSchema),
+  AuthController.changePassword,
+);
+
+// Set initial password (Authenticated users without password)
+router.post(
+  "/set-password",
+  authGuard,
+  validateRequest(AuthValidation.setPasswordSchema),
+  AuthController.setPassword,
+);
+
 // Export auth routes
 export const AuthRoutes = router;
