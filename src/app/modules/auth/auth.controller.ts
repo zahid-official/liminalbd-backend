@@ -196,6 +196,38 @@ const setPassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Logout current session
+const logout = catchAsync(async (req: Request, res: Response) => {
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.logout(headers);
+
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
+// Logout all active sessions across all devices
+const logoutAll = catchAsync(async (req: Request, res: Response) => {
+  const headers = fromNodeHeaders(req.headers);
+  const result = await AuthService.logoutAll(headers);
+
+  if (result.setCookies.length > 0) {
+    res.setHeader("set-cookie", result.setCookies);
+  }
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
 // Export auth controller
 export const AuthController = {
   sendVerificationOtp,
@@ -209,4 +241,6 @@ export const AuthController = {
   resetPassword,
   changePassword,
   setPassword,
+  logout,
+  logoutAll,
 };

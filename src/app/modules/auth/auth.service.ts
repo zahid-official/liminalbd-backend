@@ -355,6 +355,36 @@ const setPassword = async (
   };
 };
 
+// Logout current session
+const logout = async (headers: Headers) => {
+  const { headers: authHeaders } = await auth.api.signOut({
+    headers,
+    returnHeaders: true,
+  });
+
+  return {
+    message: "Successfully logged out.",
+    setCookies: authHeaders?.getSetCookie() ?? [],
+  };
+};
+
+// Logout all active sessions
+const logoutAll = async (headers: Headers) => {
+  await auth.api.revokeSessions({
+    headers,
+  });
+
+  const { headers: authHeaders } = await auth.api.signOut({
+    headers,
+    returnHeaders: true,
+  });
+
+  return {
+    message: "Successfully logged out from all devices.",
+    setCookies: authHeaders?.getSetCookie() ?? [],
+  };
+};
+
 // Export auth service
 export const AuthService = {
   sendVerificationOtp,
@@ -367,4 +397,6 @@ export const AuthService = {
   resetPassword,
   changePassword,
   setPassword,
+  logout,
+  logoutAll,
 };

@@ -83,5 +83,11 @@ router.post(
   AuthController.setPassword,
 );
 
+// Logout current session (Authenticated users)
+router.post("/logout", authGuard, AuthController.logout);
+
+// Logout all active sessions (Authenticated users)
+router.post("/logout-all", authGuard, AuthController.logoutAll);
+
 // Export auth routes
 export const AuthRoutes = router;
