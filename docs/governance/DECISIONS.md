@@ -34,7 +34,7 @@ Statuses:
 - **Universal Multi-Channel Consistency:** Google OAuth signup and public email/password signup both create user entities with `role: CUSTOMER`. Attaching profile creation to `databaseHooks.user.create.after` guarantees that a `Customer` profile record is created regardless of which entry point initialized user provisioning.
 - **Eliminate Unique Constraint Conflicts:** Manual `prisma.customer.create` in `customer.service.ts` collided with the hook-created record, throwing P2002 unique constraint conflicts and triggering erroneous 500 error responses.
 - **Architectural Immutability:** Mutating the incoming `Request` object (`req.user`) violates `DEC-014`. Placing identity state on `res.locals` maintains a clean, uniform mental model where all server-scoped, validated, or authenticated data resides on `res.locals`.
-- **Post-Commit Lifecycle & Resilience Awareness:** Note that Better Auth executes `user.create.after` via `queueAfterTransactionHook` post-commit. While this does not provide database-level transaction atomicity with user insertion, it eliminates fragile manual rollback scripts, with complete profile resilience guaranteed by JIT lazy self-healing during customer profile operations (`P2-T023`, `P2-T024`).
+- **Post-Commit Lifecycle & Resilience Awareness:** Note that Better Auth executes `user.create.after` via `queueAfterTransactionHook` post-commit. While this does not provide database-level transaction atomicity with user insertion, it eliminates fragile manual rollback scripts; profile resilience will be completed through approved JIT lazy self-healing during `P2-T023` and `P2-T024`.
 
 **Consequences:**
 - `customer.service.ts` only invokes `auth.api.signUpEmail` and dispatches email OTP; manual customer profile creation is removed.
@@ -79,7 +79,7 @@ Statuses:
 
 **Consequences:**
 - `POST /api/v1/auth/login` verifies that the authenticated user possesses the `CUSTOMER` role. Any attempt to log in with an `ADMIN` or `SUPER_ADMIN` account returns `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`), and any newly created session is immediately revoked.
-- `POST /api/v1/auth/login/google` and Google OAuth callback reject any account with an administrative role (`ADMIN`, `SUPER_ADMIN`) with `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`). Public Google sign-up will only ever create accounts with `role: CUSTOMER`.
+- `POST /api/v1/auth/login/google` and Google OAuth callback reject any account with an administrative role (`ADMIN`, `SUPER_ADMIN`) with `FORBIDDEN_ROLE_ACCESS` (browser callbacks surface the denial via safe 302 redirect to `${env.FRONTEND_URL}/login?error=FORBIDDEN_ROLE_ACCESS`, while API calls return HTTP 403). Public Google sign-up will only ever create accounts with `role: CUSTOMER`.
 - Task plan `P2-T009`, parent phase file `phase-2-auth-rbac.md`, and `MEMORY.md` are synchronized with this policy.
 
 ### DEC-019: Delegation of Authentication Rate Limiting to Reverse Proxy / API Gateway Tier

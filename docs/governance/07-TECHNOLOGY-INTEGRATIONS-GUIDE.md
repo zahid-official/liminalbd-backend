@@ -82,9 +82,8 @@ Liminal Backend operates strictly under a **cookie-only session architecture**:
 
 - **Session Cookie Cache (`session_data`):**
   - Configuration: `session.cookieCache: { enabled: true, maxAge: 15 * 60 }`.
-  - Behavior: Stores signed, tamper-proof session data in client cookie cache for 15 minutes.
-  - Performance: Eliminates database lookups for session verification during rapid sequential requests.
-  - Revalidation Constraint: Revoked sessions or status changes (`SUSPENDED`/`DEACTIVATED`) take up to 15 minutes to reflect across other active devices unless explicitly invalidated.
+  - Behavior: Stores signed, tamper-proof session data in client cookie cache for up to 15 minutes.
+  - Guard Authoritative Bypass: Protected application endpoints enforced by `authGuard` (`src/app/middleware/authGuard.ts`) pass `query: { disableCookieCache: true }` to `auth.api.getSession`, bypassing client cookie cache to ensure immediate revocation enforcement (`FR-AUTH-009.4`) and live soft-delete (`deletedAt`) checks against the authoritative PostgreSQL database records.
 
 ### 2.5 Error Resolution and Exception Standard
 

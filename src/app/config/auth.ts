@@ -58,7 +58,7 @@ const auth = betterAuth({
     },
     session: {
       create: {
-        before: async (session) => {
+        before: async (session, context) => {
           const user = await prisma.user.findUnique({
             where: { id: session.userId },
             select: {
@@ -76,11 +76,21 @@ const auth = betterAuth({
             });
           }
 
-          if (user.role !== UserRole.CUSTOMER) {
+          // Path guard for Google callback
+          const requestPath = context?.request
+            ? new URL(context.request.url).pathname
+            : undefined;
+
+          const googleCallbackPath = new URL(env.GOOGLE_CALLBACK_URL).pathname;
+
+          if (
+            requestPath === googleCallbackPath &&
+            user.role !== UserRole.CUSTOMER
+          ) {
             throw new APIError("FORBIDDEN", {
               code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
               message:
-                "Access denied. This login portal is reserved for customers.",
+                "Access denied. Administrative accounts cannot use Google sign-in.",
             });
           }
 

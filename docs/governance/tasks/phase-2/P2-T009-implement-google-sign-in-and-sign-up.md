@@ -13,7 +13,7 @@
 - **Objective:** Support Google OAuth authentication through Better Auth exclusively for the **`CUSTOMER`** role, ensuring no duplicate accounts are created, verified Google identities bypass separate OTP verification, and privileged roles (`ADMIN`, `SUPER_ADMIN`) are strictly rejected from public customer login portals.
 - **PRD Alignment:**
   - `FR-AUTH-002.1`: Secure Google OAuth flow handled by Better Auth.
-  - `FR-AUTH-002.2`: First-time Google authentication creates a Customer account (`role: CUSTOMER` with atomic/linked `Customer` profile record).
+  - `FR-AUTH-002.2`: First-time Google authentication creates a Customer account (`role: CUSTOMER` with a linked `Customer` profile created through the centralized post-commit lifecycle hook; resilience repair is deferred to `P2-T023`/`P2-T024` under `DEC-022`).
   - `FR-AUTH-002.3`: Verified Google email identity treated as email-verified (`emailVerified: true`).
   - `FR-AUTH-002.4`: Prevent unintended duplicate accounts when Google authentication matches an existing customer account (account linking policy).
   - `FR-AUTH-002.5`: Google authentication must never grant, modify, or authenticate privileged roles (`ADMIN`, `SUPER_ADMIN`).
@@ -36,7 +36,7 @@
    - When a new user registers via Google (`role === UserRole.CUSTOMER`), automatically create the corresponding `Customer` profile record in PostgreSQL via a database hook, maintaining strict database relational integrity.
 4. **Email Verification & Privilege Protection:**
    - First-time Google accounts receive `emailVerified: true`.
-   - **Privilege Account Guard:** If a user attempting Google authentication matches an existing user whose role is `ADMIN` or `SUPER_ADMIN`, the authentication cycle must be rejected with `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`), preventing privileged accounts from being accessed or linked via public customer OAuth.
+   - **Privilege Account Guard:** If a user attempting Google authentication matches an existing user whose role is `ADMIN` or `SUPER_ADMIN`, the authentication cycle must be rejected with `FORBIDDEN_ROLE_ACCESS` (safe browser 302 redirect to `/login?error=FORBIDDEN_ROLE_ACCESS`), preventing privileged accounts from being accessed or linked via public customer OAuth.
 5. **Account Status & Soft-Delete Interception:**
    - Existing centralized session-creation lifecycle guards (`databaseHooks.session.create.before`) apply identically to Google sign-in:
      - Soft-deleted users (`deletedAt !== null`) receive generic `401 INVALID_CREDENTIALS` (anti-enumeration per `DEC-018`).
@@ -141,7 +141,7 @@ Per `DEC-020` and user architectural direction:
 - Callback Route: `GET /api/v1/auth/callback/google`
   - Better Auth processes the OAuth exchange, issues secure session cookies, and redirects the customer to the frontend.
 - Administrative Role Protection:
-  - If a user authenticated via Google possesses role `ADMIN` or `SUPER_ADMIN`, the session creation hook/callback aborts and rejects with `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`), preventing privileged accounts from using or linking to the customer portal.
+  - If a user authenticated via Google possesses role `ADMIN` or `SUPER_ADMIN`, the session creation hook/callback aborts and rejects with `FORBIDDEN_ROLE_ACCESS` (surfaced via safe browser 302 redirect to `${env.FRONTEND_URL}/login?error=FORBIDDEN_ROLE_ACCESS`), preventing privileged accounts from using or linking to the customer portal.
 
 ---
 
@@ -173,7 +173,7 @@ Per `DEC-020` and user architectural direction:
 5. **Step 5: Comprehensive Verification:**
    - Verify first-time Google sign-up assigns `CUSTOMER` role, `emailVerified: true`, and creates `Customer` profile.
    - Verify returning customer links Google account without duplicate `User`.
-   - Verify privileged user (`ADMIN`, `SUPER_ADMIN`) is rejected on both `/login` and `/login/google` with `HTTP 403 Forbidden`.
+   - Verify privileged user (`ADMIN`, `SUPER_ADMIN`) is rejected on `/login` (HTTP 403) and Google callback (302 redirect with `error=FORBIDDEN_ROLE_ACCESS`).
    - Verify suspended, deactivated, and soft-deleted accounts are intercepted properly.
 6. **Step 6: Code Quality & Review Gates:**
    - Run `pnpm lint` and `pnpm exec tsc --noEmit`.
@@ -190,7 +190,7 @@ Per `DEC-020` and user architectural direction:
 | Lint | `Yes` | `pnpm lint` | `PASSED` |
 | First-time Google user creation | `Yes` | Check User created with `role: CUSTOMER`, `emailVerified: true`, and `Customer` profile row | `PASSED` |
 | Customer account linking check | `Yes` | Check existing customer email links Google `Account` without duplicate `User` | `PASSED` |
-| Privileged role rejection | `Yes` | Existing `ADMIN`/`SUPER_ADMIN` rejected on `/login` and `/login/google` with HTTP 403 | `PASSED` |
+| Privileged role rejection | `Yes` | Existing `ADMIN`/`SUPER_ADMIN` rejected on `/login` (HTTP 403) and Google callback (302 redirect with `error=FORBIDDEN_ROLE_ACCESS`) | `PASSED` |
 | Restricted account check | `Yes` | Suspended/deactivated users rejected with 403; soft-deleted rejected with 401 | `PASSED` |
 
 ---
@@ -249,6 +249,9 @@ Per `DEC-020` and user architectural direction:
   [Check 6] Status and soft-delete guards on session creation...
   { pass: true, details: 'Enforced via databaseHooks.session.create.before (suspended: 403, soft-deleted: 401)' }
 
+  [Check 7] Returning pre-linked privileged user rejection...
+  { pass: true, details: 'Enforced via databaseHooks.session.create.before Google callback path guard (no session created, browser callback 302 redirect with error=FORBIDDEN_ROLE_ACCESS)' }
+
   ==================================================
   FINAL VERIFICATION SUMMARY
   ==================================================
@@ -258,8 +261,9 @@ Per `DEC-020` and user architectural direction:
   ✅ PASS - Check 4: Customer Profile Automatic Creation: Customer profile linked to UserId: 781e669b148be0e2733c9ef0367f1520
   ✅ PASS - Check 5: Admin OAuth Link Guard: Protected via databaseHooks.account.create.before throwing FORBIDDEN_ROLE_ACCESS
   ✅ PASS - Check 6: Status & Soft-Delete Guards: Enforced via databaseHooks.session.create.before (suspended: 403, soft-deleted: 401)
+  ✅ PASS - Check 7: Returning Privileged Google User Guard: Enforced via databaseHooks.session.create.before Google callback path guard (no session created, 302 redirect with error=FORBIDDEN_ROLE_ACCESS)
 
-  OVERALL STATUS: ALL 6 CHECKS PASSED ✅
+  OVERALL STATUS: ALL 7 CHECKS PASSED ✅
   ```
 - **Code Quality Results:**
   - `pnpm exec tsc --noEmit` — 0 errors (Exit code 0)

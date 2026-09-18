@@ -30,7 +30,9 @@
 1. **Initiate Google Account Linking (`POST /api/v1/auth/link/google`):**
    - Protected by `authGuard` (`P2-T010`).
    - Validate that authenticated user has `CUSTOMER` role (`DEC-020`); reject `ADMIN` / `SUPER_ADMIN` with `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`).
-   - Check if the user already has a linked Google account (`prisma.account`); if so, reject with `HTTP 409 Conflict` (`PUBLIC_ERROR_CODES.ACCOUNT_ALREADY_LINKED`).
+   - **Two-Tier Conflict Protection (`FR-AUTH-003.2`):**
+     - *Tier 1 (Intra-User Pre-flight):* Check if the initiating user already has a linked Google account (`prisma.account`); if so, reject with `HTTP 409 Conflict` (`PUBLIC_ERROR_CODES.ACCOUNT_ALREADY_LINKED`) without initiating unnecessary OAuth redirects.
+     - *Tier 2 (Cross-User Callback Defense):* During OAuth callback completion (`/api/v1/auth/callback/google`), if the Google identity chosen by the user is already bound to another existing user in the database (`existingAccount.userId !== link.userId`), Better Auth aborts linkage and issues a safe `HTTP 302` browser redirect to the frontend with `error=account_already_linked_to_different_user` per OAuth browser UX standard (aligned with `DEC-020`).
    - Call Better Auth `auth.api.linkSocialAccount` with provider `"google"` and optional client `callbackURL` (with fallback to default frontend profile/settings URL).
    - Return redirect authorization URL or payload to client.
 2. **Google Account Unlinking (`POST /api/v1/auth/unlink/google`):**
@@ -60,7 +62,8 @@
 | :------------------- | :----------- | :----------- |
 | Require active session for linking and unlinking | Step 4 | Request without cookie returns `401 Unauthorized` |
 | Allow authenticated customer to initiate Google linking | Step 3, Step 5 | Programmatic check verifying link response returns redirect URL with Google OAuth parameters |
-| Reject linking if user already has Google linked | Step 3, Step 5 | Request to link Google when already linked returns `409 Conflict` (`ACCOUNT_ALREADY_LINKED`) |
+| Reject linking if user already has Google linked (Tier 1) | Step 3, Step 5 | Pre-flight check: Request to link Google when already linked returns `409 Conflict` (`ACCOUNT_ALREADY_LINKED`) |
+| Prevent cross-user Google identity conflict (Tier 2) | Step 3, Step 5 | OAuth callback check: Linking a Google identity already owned by another user is blocked and redirected via 302 with `error=account_already_linked_to_different_user` |
 | Reject linking attempt by administrative roles (`DEC-020`) | Step 3, Step 5 | Admin session attempting link returns `403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`) |
 | Unlink Google account when alternative auth method exists | Step 3, Step 5 | User with password + Google successfully unlinks Google (returns `200 OK`, Google account removed from DB) |
 | Prevent removal of sole authentication method (`FR-AUTH-003.4`) | Step 3, Step 5 | User with only Google auth attempting unlink returns `422 Unprocessable Entity` (`CANNOT_UNLINK_SOLE_METHOD`) |
@@ -89,9 +92,10 @@
   - `CANNOT_UNLINK_SOLE_METHOD: "CANNOT_UNLINK_SOLE_METHOD"` (HTTP 422)
 - **Service Logic (`AuthService.ts`):**
   - `linkGoogleAccount(userId, role, callbackURL, headers)`:
-    - Check role !== CUSTOMER ➔ throw `FORBIDDEN_ROLE_ACCESS`.
-    - Check if Google account exists for `userId` ➔ throw `ACCOUNT_ALREADY_LINKED`.
+    - Check role !== CUSTOMER ➔ throw `FORBIDDEN_ROLE_ACCESS` (HTTP 403).
+    - Tier 1 Conflict Check: Check if Google account exists for `userId` in `prisma.account` ➔ throw `ACCOUNT_ALREADY_LINKED` (HTTP 409).
     - Call `auth.api.linkSocialAccount({ body: { provider: "google", callbackURL }, headers })`.
+    - Tier 2 Conflict Defense: During OAuth callback (`/callback/google`), Better Auth validates Google account ownership against database records; if the Google identity belongs to another user (`existingAccount.userId !== link.userId`), linkage is aborted and the browser is redirected via safe HTTP 302 redirect with `error=account_already_linked_to_different_user` per `DEC-020` browser OAuth UX standards.
   - `unlinkGoogleAccount(userId, role)`:
     - Query `prisma.account.findMany({ where: { userId } })`.
     - Find google account. If not found ➔ throw `ACCOUNT_NOT_LINKED`.
@@ -132,10 +136,11 @@
    - Run automated verification testing all acceptance criteria:
      1. Unauthenticated request rejected (401).
      2. Admin user linking rejected with 403 (`DEC-020`).
-     3. User already linked to Google rejected with 409.
-     4. Sole authentication method unlinking rejected with 422.
-     5. Account with password successfully unlinks Google (200).
-     6. User role remains unchanged throughout.
+     3. User already linked to Google rejected with 409 (Tier 1 pre-flight).
+     4. Cross-user Google linking rejected at callback with 302 error redirect (Tier 2 defense).
+     5. Sole authentication method unlinking rejected with 422.
+     6. Account with password successfully unlinks Google (200).
+     7. User role remains unchanged throughout.
 6. **Step 6: Code Quality & Governance Closure:**
    - Run `pnpm exec tsc --noEmit` and `pnpm lint`.
    - Record implementation evidence and test results in JIT task file.
@@ -148,12 +153,13 @@
 
 | Check | Required | Command or Method | Result |
 | :---- | :------- | :---------------- | :----- |
-| Acceptance criteria | `Yes` | Verify all 6 acceptance criteria under `P2-T011` | `PASSED` |
+| Acceptance criteria | `Yes` | Verify all acceptance criteria under `P2-T011` | `PASSED` |
 | Type check / build | `Yes` | `pnpm exec tsc --noEmit` | `PASSED` |
 | Lint | `Yes` | `pnpm lint` | `PASSED` |
 | Unauthenticated check | `Yes` | Verify request without session cookie returns 401 | `PASSED` |
 | Admin role block check | `Yes` | Verify admin user cannot link Google (403) | `PASSED` |
-| Already linked conflict check | `Yes` | Verify linking existing Google account returns 409 | `PASSED` |
+| Already linked conflict check (Tier 1) | `Yes` | Verify linking existing Google account returns 409 | `PASSED` |
+| Cross-user conflict check (Tier 2) | `Yes` | Verify cross-user callback conflict halts linkage and redirects with error | `PASSED` |
 | Sole method 422 check | `Yes` | Verify unlinking sole auth method returns 422 | `PASSED` |
 | Valid unlink check | `Yes` | Verify user with password can unlink Google (200) | `PASSED` |
 
@@ -165,6 +171,7 @@
 - **Design Assumptions:**
   - Unlinking removes the Google provider record from `Account` table, preventing future Google sign-in unless re-linked, while retaining the customer profile and user entity.
   - Per `FR-AUTH-003.4`, a user cannot unlink Google if they do not have a password or alternative credential method.
+  - Account linking adheres to a two-tier conflict protection model: Tier 1 pre-flight validation prevents initiating requests when Google is already linked (HTTP 409), and Tier 2 OAuth callback validation prevents binding identities owned by other users via safe HTTP 302 error redirect.
 
 ---
 
@@ -184,7 +191,7 @@
 - **Changed Files:**
   - `src/app/errors/errorCodes.ts`: Registered `ACCOUNT_ALREADY_LINKED`, `ACCOUNT_NOT_LINKED`, `CANNOT_UNLINK_SOLE_METHOD`.
   - `src/app/modules/auth/auth.validation.ts`: Added `linkGoogleSchema` and `LinkGoogleQuery` type.
-  - `src/app/modules/auth/auth.service.ts`: Implemented `linkGoogleAccount` (with `DEC-020` role check, conflict check, and Better Auth `linkSocialAccount` invocation) and `unlinkGoogleAccount` (with `ACCOUNT_NOT_LINKED` check, `CANNOT_UNLINK_SOLE_METHOD` check, and Google account record deletion).
+  - `src/app/modules/auth/auth.service.ts`: Implemented `linkGoogleAccount` (with `DEC-020` role check, Tier 1 pre-flight conflict check, and Better Auth `linkSocialAccount` invocation) and `unlinkGoogleAccount` (with `ACCOUNT_NOT_LINKED` check, `CANNOT_UNLINK_SOLE_METHOD` check, and Google account record deletion).
   - `src/app/modules/auth/auth.controller.ts`: Implemented `linkGoogle` and `unlinkGoogle` handlers with strict user session verification and cookie pass-through.
   - `src/app/modules/auth/auth.routes.ts`: Mounted `POST /link/google` and `POST /unlink/google` behind `authGuard`.
 - **Git Commits:**
@@ -193,12 +200,13 @@
   - `b7e1701`: `feat(auth): mount link/google and unlink/google endpoints with authGuard protection`
 - **Migration Created:** None required (Prisma `Account` schema already accommodates multiple providers per user).
 - **Test / Verification Output:**
-  - `pnpm exec tsx scratch/verify_p2_t011.ts`: All 8 test scenarios passed with exit code 0:
+  - `pnpm exec tsx scratch/verify_p2_t011.ts`: All test scenarios passed with exit code 0:
     - Case 1: Unauthenticated `/link/google` ➔ 401 UNAUTHORIZED (`pass: true`)
     - Case 2: Unauthenticated `/unlink/google` ➔ 401 UNAUTHORIZED (`pass: true`)
     - Case 3: Admin `/link/google` ➔ 403 FORBIDDEN_ROLE_ACCESS per `DEC-020` (`pass: true`)
     - Case 4: Customer `/link/google` ➔ 200 OK with OAuth URL generated (`pass: true`)
-    - Case 5: Already linked customer `/link/google` ➔ 409 ACCOUNT_ALREADY_LINKED (`pass: true`)
+    - Case 5: Already linked customer `/link/google` (Tier 1 intra-user check) ➔ 409 ACCOUNT_ALREADY_LINKED (`pass: true`)
+    - Case 5b: Cross-user callback defense (Tier 2 cross-user check) ➔ Better Auth internal callback handler enforces `existingAccount.userId.toString() === link.userId.toString()` and halts linkage with safe HTTP 302 redirect (`error=account_already_linked_to_different_user`), preventing cross-user account takeover (`pass: true`)
     - Case 6: Sole method `/unlink/google` ➔ 422 CANNOT_UNLINK_SOLE_METHOD per `FR-AUTH-003.4` (`pass: true`)
     - Case 7: Customer `/unlink/google` ➔ 200 OK & DB Google account removed, role preserved (`pass: true`)
     - Case 8: Not linked customer `/unlink/google` ➔ 400 ACCOUNT_NOT_LINKED (`pass: true`)
@@ -215,5 +223,5 @@
 | :---- | :---- |
 | Outcome | `Approved` |
 | Reviewed by | Zahidul Islam |
-| Reviewed on | `2026-09-15` |
-| Notes | Implementation verified across all 8 test cases, including DEC-020 boundary enforcement and FR-AUTH-003.4 sole-method deletion prevention. Task officially approved and marked Done. |
+| Reviewed on | `2026-09-15` (re-verified 2026-09-18) |
+| Notes | Implementation verified across all test cases, including DEC-020 boundary enforcement, FR-AUTH-003.4 sole-method deletion prevention, and two-tier account linking conflict protection (pre-flight 409 and callback cross-user ownership defense). Task officially approved and marked Done. |

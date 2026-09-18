@@ -305,7 +305,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 **Acceptance Criteria:**
 
 - Complete Google sign-in/sign-up through the approved customer provider route (`/login/google` and `/callback/google`).
-- Enforce customer-exclusive portal access (`DEC-020`): reject any existing `ADMIN` or `SUPER_ADMIN` user attempting Google authentication with HTTP 403 Forbidden (`FORBIDDEN_ROLE_ACCESS`).
+- Enforce customer-exclusive portal access (`DEC-020`): reject any existing `ADMIN` or `SUPER_ADMIN` user attempting Google authentication with `FORBIDDEN_ROLE_ACCESS` (surfaced on browser callback via safe 302 redirect to `${env.FRONTEND_URL}/login?error=FORBIDDEN_ROLE_ACCESS`).
 - Create first-time public Google users as `CUSTOMER` and populate only approved trusted profile fields, automatically creating a `Customer` profile record.
 - Treat a verified Google email as verified where the approved policy permits.
 - Apply the approved matching/linking policy for customers without unintended duplicate accounts.

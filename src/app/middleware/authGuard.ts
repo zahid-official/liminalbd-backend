@@ -10,17 +10,18 @@ import { catchAsync } from "../utils/catchAsync.js";
 const authGuard = catchAsync(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const headers = fromNodeHeaders(req.headers);
-    const sessionData = await auth.api.getSession({ headers });
+    const sessionData = await auth.api.getSession({
+      headers,
+      query: {
+        disableCookieCache: true,
+      },
+    });
 
-    if (!sessionData?.session || !sessionData?.user) {
-      throw new AppError(
-        status.UNAUTHORIZED,
-        PUBLIC_ERROR_CODES.UNAUTHORIZED,
-        "Authentication required. Please sign in.",
-      );
-    }
-
-    if (sessionData.user.deletedAt) {
+    if (
+      !sessionData?.session ||
+      !sessionData?.user ||
+      sessionData.user.deletedAt
+    ) {
       throw new AppError(
         status.UNAUTHORIZED,
         PUBLIC_ERROR_CODES.UNAUTHORIZED,
