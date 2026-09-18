@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-16
+**Last verified:** 2026-09-18
 
 ## 1. Governance and Phase State
 
@@ -20,9 +20,9 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, and `P2-T012` are `✅ Done`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, and `P2-T013` are `✅ Done`.
 - No future phase has approved implementation scope.
-- Next eligible candidates: `P2-T013` (Change or set password), `P2-T014` (Logout and session revocation), or `P2-T015` (RBAC guard).
+- Next eligible candidates: `P2-T014` (Logout and session revocation) or `P2-T015` (RBAC guard).
 
 ## 2. Current Codebase State
 
@@ -41,6 +41,7 @@
 - Reusable session authentication middleware guard (`authGuard`) is established under `src/app/middleware/authGuard.ts` (`P2-T010`), enforcing `HTTP 401 Unauthorized` (`PUBLIC_ERROR_CODES.UNAUTHORIZED`) on missing, expired, revoked, or soft-deleted user sessions, and injecting server-verified identity context exclusively into `res.locals.user` and `res.locals.session` (`AuthUser`, `AuthSession` from `src/app/modules/auth/auth.interface.ts`), preserving request immutability per `DEC-014` with ambient TypeScript augmentations in `src/app/interfaces/express.d.ts`.
 - Google account linking and unlinking (`P2-T011`) is implemented at `POST /api/v1/auth/link/google` and `POST /api/v1/auth/unlink/google`, protected by `authGuard`; enforces customer portal boundaries (`DEC-020`, 403 `FORBIDDEN_ROLE_ACCESS`), duplicate account detection (409 `ACCOUNT_ALREADY_LINKED`), non-linked account detection (400 `ACCOUNT_NOT_LINKED`), and prevents removal of the sole authentication method per `FR-AUTH-003.4` (422 `CANNOT_UNLINK_SOLE_METHOD`) while strictly preserving user roles.
 - Password reset flow (`P2-T012`) is established at `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` via Better Auth; enforces anti-enumeration (constant generic response for non-existent and Google-only accounts), branded HTML reset email delivery (`AuthMailer.sendPasswordResetLink`), 15-minute single-use token expiration, password policy validation, session revocation on password reset (`revokeSessionsOnPasswordReset: true`), and resets `needPasswordChange` to `false`.
+- Change and set password endpoints (`P2-T013`) are established at `POST /api/v1/auth/change-password` and `POST /api/v1/auth/set-password` protected by `authGuard`; enforces centralized password policy (`passwordSchema`), rejects current password reuse via schema `.refine()`, protects against enumeration via generic 401 `INVALID_CREDENTIALS` on incorrect current password per OWASP standards, resets `needPasswordChange` to `false`, revokes secondary active sessions by default, prevents duplicate password initialization on credentialed accounts, and strictly preserves linked Google OAuth accounts.
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
@@ -87,7 +88,7 @@ These are verified observations only. They do not authorize fixes outside an app
 
 ## 7. Next Action
 
-- Select the next planning candidate from Phase 2 task index (e.g., `P2-T013`, `P2-T014`, or `P2-T015`).
+- Select the next planning candidate from Phase 2 task index (e.g., `P2-T014` or `P2-T015`).
 - Perform read-only inspection, prepare JIT task plan, resolve prerequisites, and submit for human approval.
 - Mark task as `🔄 In progress` only after explicit human approval.
 - If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.
