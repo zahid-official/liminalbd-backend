@@ -102,6 +102,36 @@ const resetPasswordSchema = {
   }),
 };
 
+// Change Password Schema
+const changePasswordSchema = {
+  body: z.object({
+    currentPassword: z
+      .string({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Current password is required"
+            : "Current password must be a valid text string",
+      })
+      .min(1, { error: "Current password cannot be empty" })
+      .max(100, { error: "Current password cannot exceed 100 characters" }),
+
+    newPassword: passwordSchema,
+
+    revokeOtherSessions: z
+      .boolean({
+        error: "Revoke other sessions must be a boolean",
+      })
+      .default(true),
+  }),
+};
+
+// Set Password Schema
+const setPasswordSchema = {
+  body: z.object({
+    newPassword: passwordSchema,
+  }),
+};
+
 // Inferred input types from validation schemas
 export type SendVerificationOtpInput = z.infer<
   typeof sendVerificationOtpSchema.body
@@ -114,6 +144,8 @@ export type LoginWithGoogleQuery = z.infer<typeof loginWithGoogleSchema.query>;
 export type LinkGoogleQuery = z.infer<typeof linkGoogleSchema.query>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema.body>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema.body>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema.body>;
+export type SetPasswordInput = z.infer<typeof setPasswordSchema.body>;
 
 // Export validation schemas
 export const AuthValidation = {
@@ -124,4 +156,6 @@ export const AuthValidation = {
   linkGoogleSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
+  setPasswordSchema,
 };
