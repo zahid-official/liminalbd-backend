@@ -87,8 +87,8 @@
   3. If successful, clear `needPasswordChange: false` on the User record.
   4. Returns standardized success message and forwards updated session cookies if emitted.
 - **Set Password Logic:**
-  1. Service checks if user already has an active password credential (`account.findFirst({ where: { userId, providerId: "credential", password: { not: null } } })`).
-  2. If a password credential already exists, throw `AppError(400, PUBLIC_ERROR_CODES.CONFLICT, "A password has already been set for this account. Please use change password.")`.
+  1. Service checks if user already has an active password credential via composite unique index (`prisma.account.findUnique({ where: { userId_providerId: { userId, providerId: "credential" } }, select: { password: true } })`).
+  2. If a password credential already exists (`existingCredentialAccount?.password`), throw `AppError(400, PUBLIC_ERROR_CODES.CONFLICT, "A password has already been set for this account. Please use change password.")`.
   3. Otherwise, calls `auth.api.setPassword({ body: { newPassword }, headers })`.
   4. Clears `needPasswordChange: false` on the User record.
   5. Returns standardized success message.
@@ -103,6 +103,7 @@
 | `[MODIFY]` | `src/app/modules/auth/auth.service.ts` | Implement `changePassword` and `setPassword` service methods |
 | `[MODIFY]` | `src/app/modules/auth/auth.controller.ts` | Implement `changePassword` and `setPassword` controller handlers |
 | `[MODIFY]` | `src/app/modules/auth/auth.routes.ts` | Mount `POST /change-password` and `POST /set-password` behind `authGuard` |
+| `[MODIFY]` | `src/app/errors/errorCodes.ts` | Register `PASSWORD_CHANGE_NOT_ALLOWED` public error code |
 | `[MODIFY]` | `src/app/errors/handleBetterAuthError.ts` | Map Better Auth password errors to HTTP 400 per PRD |
 | `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md` | Track `P2-T013` progress (`🔲` → `🔄` → `✅`) |
 | `[NEW]` | `docs/governance/tasks/phase-2/P2-T013-implement-change-or-set-password.md` | JIT task plan and execution evidence |
@@ -182,9 +183,11 @@
 
 - **Changed Files:**
   - `src/app/modules/auth/auth.validation.ts`: Added `changePasswordSchema` (with `.refine()` enforcing new password differs from current password) and `setPasswordSchema` with inferred types `ChangePasswordInput` and `SetPasswordInput`.
-  - `src/app/modules/auth/auth.service.ts`: Implemented `changePassword` (invoking Better Auth `changePassword`, clearing `needPasswordChange: false`, inlining `setCookies`) and `setPassword` (guarding against accounts with existing passwords, setting initial password, clearing `needPasswordChange: false`, preserving Google OAuth link). Standardized `setCookies` across all auth service methods.
+  - `src/app/modules/auth/auth.service.ts`: Implemented `changePassword` (invoking Better Auth `changePassword`, clearing `needPasswordChange: false`, inlining `setCookies`) and `setPassword` (guarding against accounts with existing passwords, querying composite unique `userId_providerId`, setting initial password, clearing `needPasswordChange: false`, preserving Google OAuth link). Standardized `setCookies` across all auth service methods.
   - `src/app/modules/auth/auth.controller.ts`: Implemented `changePassword` and `setPassword` controller handlers with cookie forwarding and standardized JSON response envelope.
   - `src/app/modules/auth/auth.routes.ts`: Mounted `POST /api/v1/auth/change-password` and `POST /api/v1/auth/set-password` behind `authGuard` and `validateRequest`.
+  - `src/app/errors/errorCodes.ts`: Registered `PASSWORD_CHANGE_NOT_ALLOWED` public error code.
+  - `src/app/errors/handleBetterAuthError.ts`: Mapped `INVALID_PASSWORD` to 400 Bad Request (`FR-AUTH-007.1`), `CREDENTIAL_ACCOUNT_NOT_FOUND` to 403 Forbidden (`PASSWORD_CHANGE_NOT_ALLOWED`), and `PASSWORD_ALREADY_SET` to 400 Bad Request (`CONFLICT`).
 - **Migration Created:** None required (reuses existing Better Auth `user`, `account`, and `session` schemas).
 - **Test / Verification Output:**
   - `scratch/verify_p2_t013.ts`: All 9 test scenarios executed and passed with exit code 0:
@@ -200,7 +203,8 @@
   - `pnpm exec tsc --noEmit`: Exited with code 0 (zero errors).
   - `pnpm lint`: Exited with code 0 (zero errors / zero warnings).
 - **Deviations from Original Plan:** None. Maintained strict request immutability (`res.locals.user`), centralized customer profile lifecycle (`DEC-022`), and canonical PRD HTTP 400 error mapping for incorrect current password (`FR-AUTH-007.1`).
-- **Remaining Concerns / Follow-ups:** None. Ready for human review and task closure.
+- **Remaining Concerns / Follow-ups:**
+  - Password mutation (via Better Auth API) and User `needPasswordChange` cleanup currently execute sequentially across two database operations. While fully reliable under normal conditions, future architectural hardening could synchronize `needPasswordChange` via an account lifecycle hook or an approved transactional boundary to eliminate partial-success windows.
 
 ---
 

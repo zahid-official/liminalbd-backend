@@ -323,15 +323,19 @@ const setPassword = async (
 ) => {
   const { newPassword } = payload;
 
-  const existingPasswordAccount = await prisma.account.findFirst({
+  const existingCredentialAccount = await prisma.account.findUnique({
     where: {
-      userId,
-      providerId: "credential",
-      password: { not: null },
+      userId_providerId: {
+        userId,
+        providerId: "credential",
+      },
+    },
+    select: {
+      password: true,
     },
   });
 
-  if (existingPasswordAccount) {
+  if (existingCredentialAccount?.password) {
     throw new AppError(
       status.BAD_REQUEST,
       PUBLIC_ERROR_CODES.CONFLICT,
