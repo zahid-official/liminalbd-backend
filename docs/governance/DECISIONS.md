@@ -20,7 +20,40 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-025: Adopt Vitest as the Immediate Test Framework, Superseding DEC-013 Jest Deferral
+
+**Recorded:** 2026-09-19  
+**Status:** `ACCEPTED`  
+**Supersedes:** `DEC-013` (Jest/testing portion only; Docker deferral remains in force)
+
+**Decision:**
+1. **Immediate Testing Integration:** Integrate Vitest as the canonical test framework during Phase 2, before RBAC work begins, rather than deferring to project-completion tooling.
+2. **Vitest Over Jest:** Adopt Vitest instead of Jest. Jest is permanently dropped from future tooling consideration.
+3. **Separate Test Directory:** Tests live under `tests/unit/` and `tests/integration/` at the repository root, keeping source files clean and providing a clear structural boundary between unit and integration concerns.
+4. **Explicit Imports:** Vitest is configured with `globals: false`; test files must explicitly import `describe`, `it`, `expect`, `vi`, etc. from `'vitest'`. This aligns with the project's explicit import conventions.
+5. **V8 Coverage:** `@vitest/coverage-v8` is the coverage provider (uses Node's built-in V8; no binary overhead).
+6. **HTTP Integration Testing:** `supertest` is the HTTP-level test helper for integration tests against the Express app.
+7. **Logger Mocked in Tests:** The shared Pino logger (`src/app/config/logger.ts`) is mocked globally in `tests/setup.ts` using `vi.mock` to prevent test output pollution and avoid side effects.
+8. **`pnpm test` is now active:** The placeholder `echo "Error: no test specified"` test script is replaced with `vitest run`.
+
+**Why:**
+- The team identified that a working test foundation is operationally necessary before RBAC and audit work begins, to allow incremental verification of access-control rules.
+- Vitest's native ESM support and zero-config TypeScript integration eliminate the complex `ts-jest` / Babel transform setup that Jest requires under `"type": "module"` + `"module": "NodeNext"` + `"verbatimModuleSyntax": true`.
+- Vitest is API-compatible with Jest, enabling future migration of any Jest patterns without relearning the assertion API.
+
+**Consequences:**
+- `P2-T029` is added to the Phase 2 task index as a completed prerequisite task in Workstream A.
+- `03-CODING-STANDARDS.md` Section 18 is updated to reflect Vitest as the active test framework.
+- `MEMORY.md` is updated to reflect the active testing infrastructure.
+- Docker remains deferred under `DEC-013`.
+- `pnpm test` now executes `vitest run`; `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates a V8 coverage report.
+- The `tests/` root directory is the canonical location for all test files. Placing test files inside `src/` is not permitted without an approved deviation.
+- Importing `vitest` directly in source files (outside `tests/`) is prohibited.
+
+---
+
 ### DEC-024: Adopt Pino as the Immediate Project Logger, Superseding DEC-013 Logging Deferral
+
 
 **Recorded:** 2026-09-19  
 **Status:** `ACCEPTED`  
@@ -209,14 +242,14 @@ Statuses:
 
 **Recorded:** 2026-09-06
 **Status:** `ACCEPTED`  
-*(Partially superseded by `DEC-024`: logging deferral superseded; Winston permanently dropped and Pino integrated in Phase 2 under `P2-T028`. Docker and Jest deferral remain in force.)*
+*(Partially superseded by `DEC-024` and `DEC-025`: logging and testing deferrals superseded; Winston permanently dropped and Pino integrated in Phase 2 under `P2-T028`; Jest permanently dropped and Vitest integrated in Phase 2 under `P2-T029`. Only Docker deferral remains in force.)*
 
 **Decision:** Exclude Docker configuration, Jest setup and Winston integration from Phase 2 and all remaining feature implementation phases. Introduce them later through dedicated, human-approved project-completion tooling tasks after product feature implementation is complete. Retire Phase 2 task IDs `P2-T003` and `P2-T004` without reusing them.
 
 **Why:** The team has chosen to keep current feature delivery focused on application behavior and postpone containerization, automated-test infrastructure and structured logging until the complete product implementation can define their final requirements coherently.
 
 **Consequences:** Phase tasks may close without Jest suites when their approved build, lint, executable/manual acceptance and security checks pass. The placeholder test script remains accepted temporary state. Existing lifecycle `console.*` logging is tolerated only as the documented temporary baseline; new ad hoc debug logging and sensitive-data logging remain prohibited. Docker files remain absent. The later project-completion tooling plan must implement and verify Docker, Jest and Winston across the completed application before production readiness is claimed.  
-*(Note: Under `DEC-024`, structured logging was accelerated into Phase 2 using Pino under `P2-T028`. Winston was permanently dropped and all `console.*` statements across server lifecycle and global error handling were fully eliminated.)*
+*(Note: Under `DEC-024`, structured logging was accelerated into Phase 2 using Pino under `P2-T028`. Winston was permanently dropped and all `console.*` statements were fully eliminated. Under `DEC-025`, testing infrastructure was accelerated into Phase 2 using Vitest under `P2-T029`. Jest was permanently dropped, tests were established in `tests/`, and `pnpm test` now executes `vitest run`.)*
 
 ### DEC-012: Defer Docker Configuration
 

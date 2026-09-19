@@ -19,7 +19,7 @@ const app: Application = express();
 
 // CORS configuration
 const allowedOrigins =
-  env.NODE_ENV === "development"
+  env.NODE_ENV === "development" || env.NODE_ENV === "test"
     ? [env.FRONTEND_URL, "http://localhost:3000"]
     : [env.FRONTEND_URL];
 

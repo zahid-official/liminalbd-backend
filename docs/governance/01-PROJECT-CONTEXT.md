@@ -56,10 +56,10 @@ The backend technology direction includes:
 - Nodemailer / SMTP
 - Pino
 - Zod
-- Jest
+- Vitest
 - pnpm
 
-Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions. Pino structured logging was integrated during Phase 2 under `DEC-024` (superseding the logging portion of `DEC-013`). Docker and Jest remain deferred to project-completion tooling work under `DEC-013`.
+Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions. Pino structured logging was integrated during Phase 2 under `DEC-024` and Vitest testing framework was integrated under `DEC-025` (superseding the logging and testing portions of `DEC-013`). Docker remains deferred to project-completion tooling work under `DEC-013`.
 
 ## 5. Architecture Direction
 

@@ -54,7 +54,7 @@ These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 - A custom password, token, OAuth or session implementation that duplicates Better Auth.
 - Granular permission administration beyond an extensible role-based design.
 - New roles, unapproved account states or business behavior not defined by the PRD/ERD.
-- Docker and Jest setup. These are deferred to dedicated project-completion tooling work under `DEC-013` (structured logging was integrated in Phase 2 via Pino under `DEC-024` / `P2-T028`; Winston was permanently dropped).
+- Docker setup. This is deferred to dedicated project-completion tooling work under `DEC-013` (structured logging was integrated in Phase 2 via Pino under `DEC-024` / `P2-T028` with Winston dropped; testing framework was integrated in Phase 2 via Vitest under `DEC-025` / `P2-T029` with Jest dropped).
 
 ---
 
@@ -141,32 +141,33 @@ Implementation must not begin until every readiness item is satisfied and the se
 
 | Order | Workstream | Task ID   | Task                                                                     | Status | Depends On                      | Blocked By                                   |
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
-| 0     | A          | `P2-T028` | Integrate Pino structured logging                                        | `✅`   | None                            | None                                         |
-| 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
-| 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
-| 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
-| 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `✅`   | `P2-T005`                       | None                                         |
-| 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `✅`   | `P2-T006`                       | None                                         |
-| 6     | B          | `P2-T008` | Implement customer login with account-status and rate-limit enforcement  | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
-| 7     | B          | `P2-T009` | Implement customer Google sign-in and sign-up (`/login/google`)          | `✅`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
-| 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `✅`   | `P2-T005`, `P2-T008`            | None                                         |
-| 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `✅`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
-| 10    | B          | `P2-T012` | Implement password reset                                                 | `✅`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
-| 11    | B          | `P2-T013` | Implement change or set password                                         | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
-| 12    | B          | `P2-T014` | Implement logout and session revocation                                  | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
-| 13    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `🔲`   | `P2-T010`                       | None                                         |
-| 14    | C          | `P2-T016` | Implement the audit-log application boundary                             | `🔲`   | `P2-T001`, `P2-T010`            | None                                         |
-| 15    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
-| 16    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
-| 17    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔲`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
-| 18    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
-| 19    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔲`   | `P2-T019`                       | `P2-B001`                                    |
-| 20    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
-| 21    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `🔲`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
-| 22    | D          | `P2-T024` | Implement Customer profile and email updates                             | `🔲`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
-| 23    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔲`   | `P2-T022`                       | `P2-B001`                                    |
-| 24    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
-| 25    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
+| 0     | A          | `P2-T029` | Integrate Vitest testing framework                                       | `✅`   | None                            | None                                         |
+| 1     | A          | `P2-T028` | Integrate Pino structured logging                                        | `✅`   | None                            | None                                         |
+| 2     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
+| 3     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
+| 4     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
+| 5     | B          | `P2-T006` | Implement email/password Customer registration                           | `✅`   | `P2-T005`                       | None                                         |
+| 6     | B          | `P2-T007` | Implement email verification and resend flow                             | `✅`   | `P2-T006`                       | None                                         |
+| 7     | B          | `P2-T008` | Implement customer login with account-status and rate-limit enforcement  | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
+| 8     | B          | `P2-T009` | Implement customer Google sign-in and sign-up (`/login/google`)          | `✅`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
+| 9     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `✅`   | `P2-T005`, `P2-T008`            | None                                         |
+| 10    | B          | `P2-T011` | Implement Google account linking and unlinking                           | `✅`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
+| 11    | B          | `P2-T012` | Implement password reset                                                 | `✅`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
+| 12    | B          | `P2-T013` | Implement change or set password                                         | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
+| 13    | B          | `P2-T014` | Implement logout and session revocation                                  | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
+| 14    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `🔲`   | `P2-T010`                       | None                                         |
+| 15    | C          | `P2-T016` | Implement the audit-log application boundary                             | `🔲`   | `P2-T001`, `P2-T010`            | None                                         |
+| 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 17    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
+| 18    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔲`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
+| 19    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
+| 20    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔲`   | `P2-T019`                       | `P2-B001`                                    |
+| 21    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 22    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `🔲`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
+| 23    | D          | `P2-T024` | Implement Customer profile and email updates                             | `🔲`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
+| 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔲`   | `P2-T022`                       | `P2-B001`                                    |
+| 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
+| 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
 
 Workstreams organize one phase; they are not sub-phases and do not permit parallel implementation. Execute tasks in order unless the plan is explicitly re-approved. Update status only in this index.
 
@@ -179,6 +180,27 @@ For every task, `build`, `lint`, task-specific executable or manual verification
 Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-provider evidence is required by `P2-T027` before phase completion.
 
 ### Workstream A: Phase Prerequisites
+
+#### P2-T029: Integrate Vitest Testing Framework
+
+**Requirements:** `DEC-025`  
+**Objective:** Establish the canonical Vitest test infrastructure with unit and integration test directories before RBAC work begins.
+
+**Acceptance Criteria:**
+
+- Install `vitest`, `@vitest/coverage-v8`, `supertest` and `@types/supertest`.
+- Configure Vitest with `environment: 'node'`, `globals: false`, V8 coverage provider and `tests/setup.ts` setup file.
+- Create `tests/unit/` and `tests/integration/` directories at the repository root.
+- Mock the shared Pino logger globally in `tests/setup.ts` to prevent test output pollution.
+- Update `package.json` scripts: `test` → `vitest run`, add `test:watch` and `test:coverage`.
+- Update `tsconfig.json` to include `tests/**/*.ts`.
+- Update `eslint.config.mjs` to handle Vitest globals cleanly.
+- Include at least one passing smoke test (`sendResponse` utility unit test).
+- `pnpm test`, `pnpm build` and `pnpm lint` all pass.
+
+**Additional verification:** `pnpm test`, `pnpm build`, `pnpm lint`, and manual `pnpm test:watch` inspection.
+
+**Human review:** `Approved` (2026-09-19)
 
 #### P2-T028: Integrate Pino Structured Logging
 
@@ -245,8 +267,8 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 - `P2-T003` (originally Winston logging) and `P2-T004` (Jest foundation) are retired from the executable Phase 2 plan under `DEC-013`.
 - Their IDs must not be reused or treated as incomplete Phase 2 work.
-- Note: Logging is no longer deferred. Pino was adopted immediately under `DEC-024`; Winston is permanently dropped. `P2-T028` is the canonical logging task.
-- Docker and Jest will receive new task IDs in a dedicated project-completion tooling plan after feature implementation is complete.
+- Note: Logging and testing are no longer deferred. Pino was adopted under `DEC-024` (`P2-T028`) with Winston permanently dropped; Vitest was adopted under `DEC-025` (`P2-T029`) with Jest permanently dropped.
+- Docker will receive a new task ID in a dedicated project-completion tooling plan after feature implementation is complete.
 
 #### P2-T005: Configure Better Auth, Secure Sessions and Provider Boundaries
 
@@ -692,7 +714,7 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | Outcome        | `Pending`                                                                                                            |
 | Approved by    | `Pending`                                                                                                            |
 | Approved on    | `Pending`                                                                                                            |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped, Pino adopted under `DEC-024`) |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 

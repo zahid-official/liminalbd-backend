@@ -57,7 +57,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | **Email Service**   | Nodemailer (SMTP) | Current stable | Transactional and notification emails   |
 | **Logging**         | Pino              | Current stable | Application and HTTP request logging    |
 | **Validation**      | Zod               | Current stable | Request and data validation             |
-| **Testing**         | Jest              | Current stable | Unit and integration testing            |
+| **Testing**         | Vitest            | Current stable | Unit and integration testing            |
 
 > **Integration Assumption:** Stripe and Cloudinary are the current payment and media providers. Payment and media operations should remain behind dedicated service boundaries so these providers can be replaced later without requiring major changes to the core business logic.
 

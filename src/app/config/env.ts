@@ -4,8 +4,9 @@ import { ConfigurationError } from "../errors/ConfigurationError.js";
 
 // Zod schema for environment variables
 const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "production"], {
-    error: 'NODE_ENV is required and must be either "development" or "production"',
+  NODE_ENV: z.enum(["development", "production", "test"], {
+    error:
+      'NODE_ENV is required and must be either "development", "production", or "test"',
   }),
   PORT: z.coerce
     .number({ error: "PORT is required" })

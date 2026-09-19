@@ -306,18 +306,19 @@ Never hard-code secrets. Read them through approved configuration boundaries.
 
 ## 18. Testing
 
-Jest setup and automated suites are deferred to project-completion tooling work under `DEC-013`.
-
-Until that work is complete, each feature task must define and execute the strongest available focused verification for its behavior, including:
-
-- at least one expected path;
-- at least one meaningful failure path;
-- authorization, ownership, state-transition or edge-case checks when relevant;
-- build, lint and task-specific executable or manual acceptance checks.
-
-Record automated tests as `NOT RUN: deferred under DEC-013`; this approved deferral does not by itself block task review.
-
-When Jest is introduced, tests must verify behavior rather than implementation details alone. Do not weaken or remove tests merely to make a change pass.
+- Vitest is the canonical test framework (`DEC-025`). Jest is permanently dropped.
+- All test files live under `tests/unit/` (pure unit tests) or `tests/integration/` (HTTP-level endpoint tests) at the repository root. Placing test files inside `src/` is not permitted without an approved deviation.
+- Test files use the `.test.ts` extension and import all Vitest APIs explicitly: `import { describe, it, expect, vi } from 'vitest'`. The `globals: false` configuration enforces this convention.
+- The shared Pino logger (`src/app/config/logger.ts`) must be mocked in `tests/setup.ts` for all test suites to prevent output pollution.
+- Each feature task must define and execute the strongest available verification, including:
+  - at least one expected (happy) path;
+  - at least one meaningful failure path;
+  - authorization, ownership, state-transition or edge-case checks when relevant.
+- Tests must verify behavior rather than implementation details alone. Do not write tests that merely assert internal function calls without covering observable output.
+- Do not weaken or remove tests merely to make a change pass.
+- When tests cannot run (e.g., a dependency is unavailable in CI), record `NOT RUN: <reason>` in the task verification evidence rather than deleting the test.
+- Use `supertest` for HTTP-level integration tests against the Express app factory.
+- Run `pnpm test` and confirm pass before marking a task `🕵️ Awaiting human review`.
 
 ## 19. Database and Migration Changes
 
