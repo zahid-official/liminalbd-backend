@@ -2,12 +2,12 @@ import { APIError } from "better-auth/api";
 import type { NextFunction, Request, Response } from "express";
 import status from "http-status";
 import { describe, expect, it, vi } from "vitest";
-import { logger } from "../../src/app/config/logger.js";
-import { AppError } from "../../src/app/errors/AppError.js";
-import { PUBLIC_ERROR_CODES } from "../../src/app/errors/errorCodes.js";
-import type { ErrorDetail } from "../../src/app/interfaces/error.interface.js";
-import { globalErrorHandler } from "../../src/app/middleware/globalErrorHandler.js";
-import { Prisma } from "../../src/generated/prisma/client.js";
+import { logger } from "../../../src/app/config/logger.js";
+import { AppError } from "../../../src/app/errors/AppError.js";
+import { PUBLIC_ERROR_CODES } from "../../../src/app/errors/errorCodes.js";
+import type { ErrorDetail } from "../../../src/app/interfaces/error.interface.js";
+import { globalErrorHandler } from "../../../src/app/middleware/globalErrorHandler.js";
+import { Prisma } from "../../../src/generated/prisma/client.js";
 
 const makeMockRes = (headersSent = false) => {
   const json = vi.fn();

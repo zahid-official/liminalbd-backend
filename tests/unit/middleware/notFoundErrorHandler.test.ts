@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
 import status from "http-status";
 import { describe, expect, it, vi } from "vitest";
-import { AppError } from "../../src/app/errors/AppError.js";
-import { PUBLIC_ERROR_CODES } from "../../src/app/errors/errorCodes.js";
-import { notFoundErrorHandler } from "../../src/app/middleware/notFoundErrorHandler.js";
+import { AppError } from "../../../src/app/errors/AppError.js";
+import { PUBLIC_ERROR_CODES } from "../../../src/app/errors/errorCodes.js";
+import { notFoundErrorHandler } from "../../../src/app/middleware/notFoundErrorHandler.js";
 
 describe("notFoundErrorHandler Unit Tests", () => {
   it("should forward a 404 AppError with ROUTE_NOT_FOUND code to next()", () => {

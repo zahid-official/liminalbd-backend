@@ -356,8 +356,9 @@ Use only `PASS`, `FAIL` or `NOT RUN`, with a reason when an applicable check doe
   - `docs/governance/DECISIONS.md` (`DEC-014` recorded)
 - **Migration Created:** None (schema unchanged)
 - **Verification Results:**
+  - `pnpm test`: PASS (27 tests across 7 test files in mirrored `tests/unit/` and `tests/integration/` subdirectories with 100% statement/branch coverage across all P2-T002 modules)
   - `pnpm build`: PASS (TypeScript type checks cleanly)
   - `pnpm lint`: PASS (ESLint passes with 0 warnings/errors)
   - Runtime contract verification: Verified `sendResponse` data/meta structure, `catchAsync` promise rejection/sync throw forwarding, `validateRequest` source-qualified errors (`body.`, `params.`, `query.`) with `res.locals.validated` handoff, and `globalErrorHandler` safe sanitization of internal server errors.
 - **Deviations from Original Plan:** None.
-- **Remaining Concerns / Follow-ups:** None for initial closure. Post-closure update: see DEC-016 for structured validation issue format refinement.
+- **Remaining Concerns / Follow-ups:** None for initial closure. Post-closure update: see DEC-016 for structured validation issue format refinement. Automated test suite integrated under DEC-025.

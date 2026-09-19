@@ -29,11 +29,11 @@ Statuses:
 **Decision:**
 1. **Immediate Testing Integration:** Integrate Vitest as the canonical test framework during Phase 2, before RBAC work begins, rather than deferring to project-completion tooling.
 2. **Vitest Over Jest:** Adopt Vitest instead of Jest. Jest is permanently dropped from future tooling consideration.
-3. **Separate Test Directory:** Tests live under `tests/unit/` and `tests/integration/` at the repository root, keeping source files clean and providing a clear structural boundary between unit and integration concerns.
+3. **Separate Test Directory & Mirrored Hierarchy:** Tests live under `tests/unit/` and `tests/integration/` at the repository root, keeping source files clean. Unit tests strictly mirror the `src/app/` hierarchy (e.g. `tests/unit/middleware/`, `tests/unit/utils/`, `tests/unit/errors/`, `tests/unit/modules/<module>/`) with exact 1:1 basename alignment (`<filename>.test.ts`).
 4. **Explicit Imports:** Vitest is configured with `globals: false`; test files must explicitly import `describe`, `it`, `expect`, `vi`, etc. from `'vitest'`. This aligns with the project's explicit import conventions.
 5. **V8 Coverage:** `@vitest/coverage-v8` is the coverage provider (uses Node's built-in V8; no binary overhead).
 6. **HTTP Integration Testing:** `supertest` is the HTTP-level test helper for integration tests against the Express app.
-7. **Logger Mocked in Tests:** The shared Pino logger (`src/app/config/logger.ts`) is mocked globally in `tests/setup.ts` using `vi.mock` to prevent test output pollution and avoid side effects.
+7. **Logger Mocked in Tests:** The shared Pino logger (`src/app/config/logger.ts`) is mocked globally in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`) to prevent test output pollution while satisfying `pino-http` object contracts.
 8. **`pnpm test` is now active:** The placeholder `echo "Error: no test specified"` test script is replaced with `vitest run`.
 
 **Why:**
@@ -43,11 +43,12 @@ Statuses:
 
 **Consequences:**
 - `P2-T029` is added to the Phase 2 task index as a completed prerequisite task in Workstream A.
-- `03-CODING-STANDARDS.md` Section 18 is updated to reflect Vitest as the active test framework.
-- `MEMORY.md` is updated to reflect the active testing infrastructure.
+- `03-CODING-STANDARDS.md` Section 18 is updated to reflect Vitest as the active test framework, mirrored directory hierarchy, and 1:1 basename alignment.
+- `MEMORY.md` is updated to reflect the active testing infrastructure and verified test suite.
 - Docker remains deferred under `DEC-013`.
 - `pnpm test` now executes `vitest run`; `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates a V8 coverage report.
 - The `tests/` root directory is the canonical location for all test files. Placing test files inside `src/` is not permitted without an approved deviation.
+- Unit tests must mirror the source path and basename precisely (e.g. `src/app/modules/auth/auth.service.ts` -> `tests/unit/modules/auth/auth.service.test.ts`).
 - Importing `vitest` directly in source files (outside `tests/`) is prohibited.
 
 ---

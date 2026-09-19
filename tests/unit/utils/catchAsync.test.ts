@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
-import { catchAsync } from "../../src/app/utils/catchAsync.js";
+import { catchAsync } from "../../../src/app/utils/catchAsync.js";
 
 describe("catchAsync Unit Tests", () => {
   describe("Successful Execution", () => {

@@ -308,8 +308,10 @@ Never hard-code secrets. Read them through approved configuration boundaries.
 
 - Vitest is the canonical test framework (`DEC-025`). Jest is permanently dropped.
 - All test files live under `tests/unit/` (pure unit tests) or `tests/integration/` (HTTP-level endpoint tests) at the repository root. Placing test files inside `src/` is not permitted without an approved deviation.
+- **Mirrored Directory Structure & 1:1 Basename Alignment:** `tests/unit/` strictly mirrors the `src/app/` hierarchy (e.g. `tests/unit/errors/AppError.test.ts` mirrors `src/app/errors/AppError.ts`; `tests/unit/middleware/validateRequest.test.ts` mirrors `src/app/middleware/validateRequest.ts`; `tests/unit/modules/<module>/<file>.test.ts` mirrors `src/app/modules/<module>/<file>.ts`). Test files strictly match the exact source file basename (`<filename>.test.ts`).
+- **Semantic Test Grouping:** Group unit tests logically using nested `describe()` blocks (e.g., standard envelopes vs. pagination, success scenarios vs. validation failure scenarios) rather than flat test lists, avoiding noisy redundant comments.
 - Test files use the `.test.ts` extension and import all Vitest APIs explicitly: `import { describe, it, expect, vi } from 'vitest'`. The `globals: false` configuration enforces this convention.
-- The shared Pino logger (`src/app/config/logger.ts`) must be mocked in `tests/setup.ts` for all test suites to prevent output pollution.
+- The shared Pino logger (`src/app/config/logger.ts`) must be mocked in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`) for all test suites to prevent output pollution while satisfying `pino-http` object contracts.
 - Each feature task must define and execute the strongest available verification, including:
   - at least one expected (happy) path;
   - at least one meaningful failure path;

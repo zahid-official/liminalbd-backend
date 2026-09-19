@@ -119,12 +119,13 @@
 - **`vitest.config.ts`:** `environment: node`, `globals: false`, `clearMocks: true`, `setupFiles: ["tests/setup.ts"]`, V8 coverage, `tsconfig.test.json` for typecheck.
 - **`tsconfig.test.json`:** extends main tsconfig, `rootDir: "."`, `noEmit: true`, includes `tests/**/*.ts`. Explicitly omits `vitest/globals` to enforce clean scoped types and explicit imports.
 - **`tests/setup.ts`:** configures authentic silent Pino instance (`pino({ level: 'silent' })`), silencing output without breaking `pino-http` internal object contracts.
+- **Directory Structure:** `tests/unit/` strictly mirrors `src/app/` (`errors/`, `middleware/`, `utils/`, `modules/`) with exact 1:1 basename alignment (`<filename>.test.ts`).
 - **`src/app/config/env.ts` & `src/app.ts`:** expanded `NODE_ENV` enum to include `"test"` (`z.enum(["development", "production", "test"])`), ensuring seamless runtime initialization during Vitest execution.
-- **`tests/unit/sendResponse.test.ts`:** 6 tests covering status code, success flag, message, data, meta presence/absence.
+- **`tests/unit/utils/sendResponse.test.ts`:** 6 tests covering status code, success flag, message, data, meta presence/absence.
 - **`tests/integration/health.test.ts`:** integration smoke test verifying `GET /` responds with status 200 and standard response structure via `supertest` and `getApp()`.
 - **`package.json`:** `test` → `vitest run`; added `test:watch` and `test:coverage`; lint now includes `./tests`.
 - **`eslint.config.mjs`:** converted from object to array config; added test-file block disabling `no-explicit-any` and `no-console`.
-- **`pnpm test` output:** `7 passed (7)` across 2 test files (unit + integration).
+- **`pnpm test` output:** `PASS` across mirrored test suites.
 - **`pnpm build` output:** exit 0, Prisma Client generated, TypeScript compiled cleanly.
 - **`pnpm lint` output:** exit 0, no violations.
 - **`pnpm peers check` output:** `No peer dependency issues found`.

@@ -2,9 +2,9 @@ import type { NextFunction, Request, Response } from "express";
 import status from "http-status";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { AppError } from "../../src/app/errors/AppError.js";
-import { PUBLIC_ERROR_CODES } from "../../src/app/errors/errorCodes.js";
-import { validateRequest } from "../../src/app/middleware/validateRequest.js";
+import { AppError } from "../../../src/app/errors/AppError.js";
+import { PUBLIC_ERROR_CODES } from "../../../src/app/errors/errorCodes.js";
+import { validateRequest } from "../../../src/app/middleware/validateRequest.js";
 
 describe("validateRequest Unit Tests", () => {
   describe("Successful Validation", () => {
