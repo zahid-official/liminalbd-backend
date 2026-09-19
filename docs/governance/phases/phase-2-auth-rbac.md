@@ -256,7 +256,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Always assign `CUSTOMER`; ignore or reject client role/status/ownership input and never create a privileged account.
 - Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract (pure User identity attributes under `DEC-017` and `PRD.md` line 140).
 - Never store or log a plain-text password; cover success and meaningful failure paths.
-- *(Architectural Note under DEC-021 & DEC-022: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customers/register`, using primitive schemas from `src/app/validations/common.validation.ts`, with 1-to-1 `Customer` profile creation centralized via Better Auth's `databaseHooks.user.create.after`).*
+- *(Architectural Note under DEC-021 & DEC-022: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customer/register`, using primitive schemas from `src/app/validations/common.validation.ts`, with 1-to-1 `Customer` profile creation centralized via Better Auth's `databaseHooks.user.create.after`).*
 
 **Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts.
 
@@ -636,7 +636,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 | ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status     |
 | --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/customers/register` per `DEC-021` and `POST /api/v1/auth/login` approved under `P2-T006`/`P2-T008`; `POST /api/v1/auth/login/google` and `GET /api/v1/auth/callback/google` approved under `P2-T009`/`DEC-020`) | `RESOLVED` |
+| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/customer/register` per `DEC-021` and `POST /api/v1/auth/login` approved under `P2-T006`/`P2-T008`; `POST /api/v1/auth/login/google` and `GET /api/v1/auth/callback/google` approved under `P2-T009`/`DEC-020`) | `RESOLVED` |
 | `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Session lifetime (7d), renewal (1d), `SameSite: "lax"`, CSRF and cookie policy approved under `P2-T005` on 2026-09-08                                    | `RESOLVED` |
 | `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy (customer-only linking enabled; admin linking rejected per `DEC-020`; verified in `P2-T009` and `P2-T011`) | `RESOLVED` |
 | `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN`     |

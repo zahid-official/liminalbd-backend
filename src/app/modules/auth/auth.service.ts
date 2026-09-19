@@ -8,17 +8,17 @@ import { resolveCallbackURL } from "../../utils/resolveCallbackURL.js";
 import type { AuthUser } from "./auth.interface.js";
 import type {
   ChangePasswordInput,
+  ConfirmEmailVerificationInput,
   ForgotPasswordInput,
   LoginWithCredentialsInput,
+  RequestEmailVerificationInput,
   ResetPasswordInput,
-  SendVerificationOtpInput,
   SetPasswordInput,
-  VerifyEmailOtpInput,
 } from "./auth.validation.js";
 
-// Send verification OTP to user's email
-const sendVerificationOtp = async (
-  payload: SendVerificationOtpInput,
+// Request email verification OTP to user's email
+const requestEmailVerification = async (
+  payload: RequestEmailVerificationInput,
   headers: Headers,
 ) => {
   const { email } = payload;
@@ -49,9 +49,9 @@ const sendVerificationOtp = async (
   };
 };
 
-// Verify email OTP
-const verifyEmailOtp = async (
-  payload: VerifyEmailOtpInput,
+// Confirm user email using verification OTP
+const confirmEmailVerification = async (
+  payload: ConfirmEmailVerificationInput,
   headers: Headers,
 ) => {
   const { email, otp } = payload;
@@ -401,8 +401,8 @@ const logoutAll = async (headers: Headers) => {
 
 // Export auth service
 export const AuthService = {
-  sendVerificationOtp,
-  verifyEmailOtp,
+  requestEmailVerification,
+  confirmEmailVerification,
   loginWithCredentials,
   loginWithGoogle,
   linkGoogleAccount,

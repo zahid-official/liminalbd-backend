@@ -5,15 +5,15 @@ import {
   redirectUrlSchema,
 } from "../../validations/common.validation.js";
 
-// Send Verification OTP Schema
-const sendVerificationOtpSchema = {
+// Request Email Verification OTP Schema
+const requestEmailVerificationSchema = {
   body: z.object({
     email: emailSchema,
   }),
 };
 
-// Verify Email OTP Schema
-const verifyEmailOtpSchema = {
+// Confirm Email Verification OTP Schema
+const confirmEmailVerificationSchema = {
   body: z.object({
     email: emailSchema,
 
@@ -124,10 +124,12 @@ const setPasswordSchema = {
 };
 
 // Inferred input types from validation schemas
-export type SendVerificationOtpInput = z.infer<
-  typeof sendVerificationOtpSchema.body
+export type RequestEmailVerificationInput = z.infer<
+  typeof requestEmailVerificationSchema.body
 >;
-export type VerifyEmailOtpInput = z.infer<typeof verifyEmailOtpSchema.body>;
+export type ConfirmEmailVerificationInput = z.infer<
+  typeof confirmEmailVerificationSchema.body
+>;
 export type LoginWithCredentialsInput = z.infer<
   typeof loginWithCredentialsSchema.body
 >;
@@ -140,8 +142,8 @@ export type SetPasswordInput = z.infer<typeof setPasswordSchema.body>;
 
 // Export validation schemas
 export const AuthValidation = {
-  sendVerificationOtpSchema,
-  verifyEmailOtpSchema,
+  requestEmailVerificationSchema,
+  confirmEmailVerificationSchema,
   loginWithCredentialsSchema,
   loginWithGoogleSchema,
   linkGoogleSchema,

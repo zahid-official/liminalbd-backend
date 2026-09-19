@@ -22,7 +22,7 @@
 
 1. **Email Verification Trigger on Registration (`FR-AUTH-004.1`):**
    - Configured Better Auth `emailOTP` plugin with `sendVerificationOnSignUp: false` and `overrideDefaultEmailVerification: true`.
-   - When a customer registers via `POST /api/v1/customers/register` (originally `POST /api/v1/auth/register`, refactored to Customer module under `DEC-021`), `CustomerService.registerCustomer` explicitly triggers 6-digit OTP generation (5 min validity) via `auth.api.sendVerificationOTP` after the User account and Customer profile are successfully created (with compensating rollback on profile creation failure).
+   - When a customer registers via `POST /api/v1/customer/register` (originally `POST /api/v1/auth/register`, refactored to Customer module under `DEC-021`), `CustomerService.registerCustomer` explicitly triggers 6-digit OTP generation (5 min validity) via `auth.api.sendVerificationOTP` after the User account and Customer profile are successfully created (profile creation automated via centralized Better Auth database hook under `DEC-022`).
 2. **Email Verification Completion (`FR-AUTH-004.2`, `FR-AUTH-004.3`):**
    - Exposed endpoint `POST /api/v1/auth/verify-email-otp`.
    - Validated incoming payload (`email`, `otp` exactly 6 digits) via Zod schema using `validateRequest`.
@@ -54,10 +54,10 @@
 - `src/app/shared/email/templates/VerificationEmail.tsx`: Architectural 6-digit OTP email template styled with Tailwind, Olive Green accents, and 5-minute expiration notice.
 - `src/app/shared/email/mailers/auth.mailer.ts`: Dedicated `AuthMailer` handling auth-domain email dispatches.
 - `src/app/config/auth.ts`: Better Auth configured with `emailAndPassword` (`requireEmailVerification: true`), `emailVerification` (`sendOnSignUp: false`, `autoSignInAfterVerification: true`), and `emailOTP` plugin (`sendVerificationOnSignUp: false`).
-- `src/app/modules/auth/auth.validation.ts`: Zod schemas `registerCustomerSchema`, `sendVerificationOtpSchema`, and `verifyEmailOtpSchema`.
-- `src/app/modules/auth/auth.service.ts`: `registerCustomer` (with explicit post-commit OTP dispatch), `sendVerificationOtp`, and `verifyEmailOtp` (capturing session cookie from Better Auth).
+- `src/app/modules/auth/auth.validation.ts`: Zod schemas `requestEmailVerificationSchema` and `confirmEmailVerificationSchema` (customer registration schema extracted to `customer.validation.ts` under `DEC-021`).
+- `src/app/modules/auth/auth.service.ts`: `requestEmailVerification` and `confirmEmailVerification` (customer registration extracted to `customer.service.ts` under `DEC-021`).
 - `src/app/modules/auth/auth.controller.ts`: Controller handlers forwarding headers and session cookies using `catchAsync` and `sendResponse`.
-- `src/app/modules/auth/auth.routes.ts`: Mounted `/register`, `/send-verification-otp`, and `/verify-email-otp`.
+- `src/app/modules/auth/auth.routes.ts`: Mounted `/send-verification-otp` and `/verify-email-otp` (registration endpoint relocated to `/api/v1/customer/register` under `DEC-021`).
 
 ---
 
@@ -124,8 +124,8 @@
 - **Universal Transport:** Created `sendEmail` in `src/app/shared/email/email.service.ts` supporting dual HTML/plain-text rendering with React Email.
 - **Architectural Email Template:** Created `VerificationEmail.tsx` with responsive layout, Liminal Studio color theory (`#44542d`, `#141f0a`), monospaced 6-digit OTP box, and 5-minute validity notices.
 - **Mailer Subsystem:** Created `AuthMailer` under `src/app/shared/email/mailers/auth.mailer.ts`.
-- **Better Auth Integration:** Configured `emailOTP` plugin with 6-digit length, 300s expiry, `sendVerificationOnSignUp: false` (orchestrated post-commit via `AuthService.registerCustomer`), `overrideDefaultEmailVerification: true`, `autoSignInAfterVerification: true`, and 15-minute `cookieCache` for session optimization.
-- **Service & Error Contract:** Added `USER_NOT_FOUND`, `ALREADY_VERIFIED`, `INVALID_OR_EXPIRED_OTP`, and `TOO_MANY_REQUESTS` to `PUBLIC_ERROR_CODES`. Implemented `sendVerificationOtp` (with anti-enumeration) and `verifyEmailOtp` (capturing session cookie without redundant DB writes) in `auth.service.ts`.
-- **Zod Validation:** Added `sendVerificationOtpSchema` and `verifyEmailOtpSchema` with exact 6-digit length checking.
+- **Better Auth Integration:** Configured `emailOTP` plugin with 6-digit length, 300s expiry, `sendVerificationOnSignUp: false` (orchestrated post-commit via `CustomerService.registerCustomer`), `overrideDefaultEmailVerification: true`, `autoSignInAfterVerification: true`, and 15-minute `cookieCache` for session optimization.
+- **Service & Error Contract:** Added `USER_NOT_FOUND`, `ALREADY_VERIFIED`, `INVALID_OR_EXPIRED_OTP`, and `TOO_MANY_REQUESTS` to `PUBLIC_ERROR_CODES`. Implemented `requestEmailVerification` (with anti-enumeration) and `confirmEmailVerification` (capturing session cookie without redundant DB writes) in `auth.service.ts`.
+- **Zod Validation:** Added `requestEmailVerificationSchema` and `confirmEmailVerificationSchema` with exact 6-digit length checking.
 - **Routing:** Mounted `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp` in `auth.routes.ts`.
 - **Checks:** `pnpm lint` and `pnpm build` pass with 0 errors.

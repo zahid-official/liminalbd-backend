@@ -8,21 +8,21 @@ import type { AuthSession, AuthUser } from "./auth.interface.js";
 import { AuthService } from "./auth.service.js";
 import type {
   ChangePasswordInput,
+  ConfirmEmailVerificationInput,
   ForgotPasswordInput,
   LinkGoogleQuery,
   LoginWithCredentialsInput,
   LoginWithGoogleQuery,
+  RequestEmailVerificationInput,
   ResetPasswordInput,
-  SendVerificationOtpInput,
   SetPasswordInput,
-  VerifyEmailOtpInput,
 } from "./auth.validation.js";
 
-// Send verification OTP
-const sendVerificationOtp = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as SendVerificationOtpInput;
+// Request email verification OTP
+const requestEmailVerification = catchAsync(async (req: Request, res: Response) => {
+  const payload = res.locals.validated?.body as RequestEmailVerificationInput;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.sendVerificationOtp(payload, headers);
+  const result = await AuthService.requestEmailVerification(payload, headers);
 
   sendResponse(res, {
     statusCode: status.OK,
@@ -31,11 +31,11 @@ const sendVerificationOtp = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Verify email using provided OTP
-const verifyEmailOtp = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as VerifyEmailOtpInput;
+// Confirm email verification using provided OTP
+const confirmEmailVerification = catchAsync(async (req: Request, res: Response) => {
+  const payload = res.locals.validated?.body as ConfirmEmailVerificationInput;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.verifyEmailOtp(payload, headers);
+  const result = await AuthService.confirmEmailVerification(payload, headers);
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);
@@ -230,8 +230,8 @@ const logoutAll = catchAsync(async (req: Request, res: Response) => {
 
 // Export auth controller
 export const AuthController = {
-  sendVerificationOtp,
-  verifyEmailOtp,
+  requestEmailVerification,
+  confirmEmailVerification,
   loginWithCredentials,
   loginWithGoogle,
   handleOAuthError,

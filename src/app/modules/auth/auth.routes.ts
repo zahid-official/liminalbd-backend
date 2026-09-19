@@ -11,15 +11,15 @@ const router: Router = Router();
 // Send verification OTP
 router.post(
   "/send-verification-otp",
-  validateRequest(AuthValidation.sendVerificationOtpSchema),
-  AuthController.sendVerificationOtp,
+  validateRequest(AuthValidation.requestEmailVerificationSchema),
+  AuthController.requestEmailVerification,
 );
 
 // Verify email with OTP
 router.post(
   "/verify-email-otp",
-  validateRequest(AuthValidation.verifyEmailOtpSchema),
-  AuthController.verifyEmailOtp,
+  validateRequest(AuthValidation.confirmEmailVerificationSchema),
+  AuthController.confirmEmailVerification,
 );
 
 // Login with email and password credentials
