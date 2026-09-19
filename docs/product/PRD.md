@@ -55,7 +55,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | **Payment Gateway** | Stripe            | Current stable | Payment processing for furniture orders |
 | **Media Storage**   | Cloudinary        | Current stable | Project, product and blog media storage |
 | **Email Service**   | Nodemailer (SMTP) | Current stable | Transactional and notification emails   |
-| **Logging**         | Winston           | Current stable | Application logging                     |
+| **Logging**         | Pino              | Current stable | Application and HTTP request logging    |
 | **Validation**      | Zod               | Current stable | Request and data validation             |
 | **Testing**         | Jest              | Current stable | Unit and integration testing            |
 

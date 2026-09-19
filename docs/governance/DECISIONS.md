@@ -20,6 +20,37 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-024: Adopt Pino as the Immediate Project Logger, Superseding DEC-013 Logging Deferral
+
+**Recorded:** 2026-09-19  
+**Status:** `ACCEPTED`  
+**Supersedes:** `DEC-013` (logging portion only; Docker and Jest deferral remain in force)
+
+**Decision:**
+1. **Immediate Logging Integration:** Integrate `pino`, `pino-http` and `pino-pretty` as the canonical structured logging solution during Phase 2, before RBAC work begins, rather than deferring to project-completion tooling.
+2. **Pino Over Winston:** Adopt Pino instead of Winston. Winston is permanently dropped from future tooling consideration.
+3. **Single Logger Boundary:** A single shared logger instance is exported from `src/app/config/logger.ts`. All application layers consume this instance; no module may instantiate its own logger.
+4. **LOG_LEVEL via Environment:** An optional `LOG_LEVEL` environment variable (`fatal | error | warn | info | debug | trace`) controls verbosity. When absent, the default is `debug` in development and `info` in production.
+5. **pino-http for HTTP Logging:** `pino-http` middleware is mounted globally in `app.ts` before all route handlers, using the shared logger instance.
+6. **Sensitive Field Redaction:** `pino-http` is configured to redact `req.headers.authorization`, `req.headers.cookie`, `res.headers['set-cookie']`, and credential/token request body fields (`password`, `token`, etc.) with `[REDACTED]` in all environments.
+7. **server.ts and globalErrorHandler.ts Migration:** All `console.*` lifecycle and error log calls in `server.ts` and `globalErrorHandler.ts` are replaced with structured `logger.*` calls. The `/* eslint-disable no-console */` directives are removed.
+8. **Development vs. Production Transport:** In development (`NODE_ENV !== "production"`), pino-pretty is enabled as a transport for human-readable colored output. In production, raw JSON is emitted for structured log aggregation.
+
+**Why:**
+- The team identified that structured logging is now operationally necessary before RBAC and audit work begins, rather than at project completion.
+- Pino's zero-overhead JSON serialization, native `pino-http` integration, and minimal API make it a superior fit for the production-grade Express/Node.js architecture in use.
+- Replacing `console.*` with a proper logger eliminates ESLint disable directives, enforces the `no-console` lint rule, and produces consistent log levels and structured context.
+
+**Consequences:**
+- `P2-T028` is added to the Phase 2 task index as a completed prerequisite task in Workstream A.
+- `03-CODING-STANDARDS.md` Section 16 is updated to reflect Pino as the active logger.
+- `MEMORY.md` is updated to reflect the active logging infrastructure.
+- Docker and Jest remain deferred under `DEC-013`.
+- The term "Winston" is removed from all future tooling references; Pino is the canonical choice.
+- `src/app/config/logger.ts` is the sole logger instantiation point; importing `pino` directly in feature modules is prohibited.
+
+---
+
 ### DEC-023: Enforce Database-Level Composite Unique Constraints on Authentication Accounts
 
 **Recorded:** 2026-09-18  
@@ -177,13 +208,15 @@ Statuses:
 ### DEC-013: Defer Docker, Jest and Winston Until Project Completion
 
 **Recorded:** 2026-09-06
-**Status:** `ACCEPTED`
+**Status:** `ACCEPTED`  
+*(Partially superseded by `DEC-024`: logging deferral superseded; Winston permanently dropped and Pino integrated in Phase 2 under `P2-T028`. Docker and Jest deferral remain in force.)*
 
 **Decision:** Exclude Docker configuration, Jest setup and Winston integration from Phase 2 and all remaining feature implementation phases. Introduce them later through dedicated, human-approved project-completion tooling tasks after product feature implementation is complete. Retire Phase 2 task IDs `P2-T003` and `P2-T004` without reusing them.
 
 **Why:** The team has chosen to keep current feature delivery focused on application behavior and postpone containerization, automated-test infrastructure and structured logging until the complete product implementation can define their final requirements coherently.
 
-**Consequences:** Phase tasks may close without Jest suites when their approved build, lint, executable/manual acceptance and security checks pass. The placeholder test script remains accepted temporary state. Existing lifecycle `console.*` logging is tolerated only as the documented temporary baseline; new ad hoc debug logging and sensitive-data logging remain prohibited. Docker files remain absent. The later project-completion tooling plan must implement and verify Docker, Jest and Winston across the completed application before production readiness is claimed.
+**Consequences:** Phase tasks may close without Jest suites when their approved build, lint, executable/manual acceptance and security checks pass. The placeholder test script remains accepted temporary state. Existing lifecycle `console.*` logging is tolerated only as the documented temporary baseline; new ad hoc debug logging and sensitive-data logging remain prohibited. Docker files remain absent. The later project-completion tooling plan must implement and verify Docker, Jest and Winston across the completed application before production readiness is claimed.  
+*(Note: Under `DEC-024`, structured logging was accelerated into Phase 2 using Pino under `P2-T028`. Winston was permanently dropped and all `console.*` statements across server lifecycle and global error handling were fully eliminated.)*
 
 ### DEC-012: Defer Docker Configuration
 

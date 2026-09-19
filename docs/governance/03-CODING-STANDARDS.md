@@ -274,14 +274,15 @@ export const sendResponse = <T>(res: Response, options: SendResponseOptions<T>) 
 
 ## 16. Logging
 
-- Winston and the shared project logger are deferred to project-completion tooling work under `DEC-013`.
-- Until that work is approved, preserve only the documented server-lifecycle `console.*` baseline and do not add ad hoc `console.*` debugging.
-- Temporary console usage during local development must be removed before review.
-- The ESLint configuration treats `console.*` as a warning outside production and an error in production.
-- Log meaningful operational events at appropriate levels.
-- Include useful context such as module, operation and correlation/request context when available.
+- Pino is the canonical structured logger (`DEC-024`). The shared logger instance is exported from `src/app/config/logger.ts` and must be the sole logger instantiation point across the application.
+- Do not import `pino` directly in feature modules or instantiate a secondary logger anywhere.
+- HTTP request logging is handled globally by `pino-http` middleware mounted in `app.ts`.
+- Use appropriate log levels: `fatal` for application-stopping conditions, `error` for unexpected runtime failures, `warn` for recoverable anomalies, `info` for significant lifecycle events, `debug` for development diagnostics.
+- Include useful context in log objects (e.g., `{ module, operation, userId }`) where available. Avoid overly verbose or repetitive log entries.
 - Never log passwords, session secrets, tokens, API keys, payment secrets or unnecessary sensitive personal data.
+- `req.headers.authorization`, `req.headers.cookie`, `res.headers['set-cookie']`, credential/token request body fields, and query parameters (`req.query.token`, `req.query.code`) are automatically redacted by `pino-http` configuration.
 - Avoid duplicate logs for the same failure unless each adds useful context.
+- Temporary `console.*` calls introduced during local development must be removed before task review. The `no-console` ESLint rule enforces this.
 
 ## 17. Security
 

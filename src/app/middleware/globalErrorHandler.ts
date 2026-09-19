@@ -1,7 +1,7 @@
-/* eslint-disable no-console */
 import { isAPIError } from "better-auth/api";
 import type { ErrorRequestHandler } from "express";
 import status from "http-status";
+import { logger } from "../config/logger.js";
 import { AppError } from "../errors/AppError.js";
 import {
   PUBLIC_ERROR_CODES,
@@ -18,7 +18,7 @@ import type {
 } from "../interfaces/error.interface.js";
 
 // Central global error handling middleware for safe error serialization
-const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
   // Delegate to default Express error handler if response headers were already sent
   if (res.headersSent) {
     next(error);
@@ -58,9 +58,9 @@ const globalErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
     errors = dbError.errors;
   }
 
-  // Log internal errors server-side for diagnostics
+  // Log internal errors server-side for diagnostics with request correlation
   if (statusCode >= status.INTERNAL_SERVER_ERROR) {
-    console.error("Internal server error:", error);
+    logger.error({ err: error, requestId: req.id }, "Internal server error");
   }
 
   // Final unified response format

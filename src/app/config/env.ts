@@ -21,6 +21,13 @@ const envSchema = z.object({
     error: "FRONTEND_URL must be a valid HTTP or HTTPS URL",
   }),
 
+  // Logging configuration
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace"], {
+      error: 'LOG_LEVEL must be one of: fatal, error, warn, info, debug, trace',
+    })
+    .optional(),
+
   // Better Auth Configuration
   BETTER_AUTH_SECRET: z
     .string({ error: "BETTER_AUTH_SECRET is required" })

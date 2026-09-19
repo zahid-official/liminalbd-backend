@@ -1,8 +1,8 @@
-/* eslint-disable no-console */
 import type { ReactElement } from "react";
 import nodemailer from "nodemailer";
 import { render } from "react-email";
 import { env } from "../../config/env.js";
+import { logger } from "../../config/logger.js";
 
 // Initialize Nodemailer SMTP Transporter with connection pooling
 const transporter = nodemailer.createTransport({
@@ -19,14 +19,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Attachment contract for invoices or documents
 export interface EmailAttachment {
   filename: string;
   content: string | Buffer;
   contentType?: string;
 }
 
-// Universal dispatch options accepting any React Email template
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -60,8 +58,7 @@ const sendEmail = async ({
 
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    // Gracefully log SMTP transport errors without breaking the client request flow
-    console.error(`Failed to dispatch email [${subject}]:`, error);
+    logger.error({ err: error, subject }, "Failed to dispatch email");
   }
 };
 

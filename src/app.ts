@@ -6,7 +6,9 @@ import express, {
   type Response,
 } from "express";
 import { status } from "http-status";
+import { pinoHttp } from "pino-http";
 import { env } from "./app/config/env.js";
+import { logger } from "./app/config/logger.js";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler.js";
 import { notFoundErrorHandler } from "./app/middleware/notFoundErrorHandler.js";
 import { RootRouter } from "./app/routes/index.js";
@@ -32,13 +34,33 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// HTTP request logger (mounted before route handlers)
+app.use(
+  pinoHttp({
+    logger,
+    redact: {
+      paths: [
+        "req.headers.authorization",
+        "res.headers['set-cookie']",
+        "req.headers.cookie",
+        "req.body.token",
+        "req.body.password",
+        "req.body.currentPassword",
+        "req.body.newPassword",
+        "req.query.token",
+        "req.query.code",
+      ],
+      censor: "[REDACTED]",
+    },
+  }),
+);
+
 // Health Check
 app.get("/", (_req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: status.OK,
     message: "Liminal Backend API is running successfully",
     data: {
-      environment: env.NODE_ENV,
       timestamp: new Date().toISOString(),
     },
   });

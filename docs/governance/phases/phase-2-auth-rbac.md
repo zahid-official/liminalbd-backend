@@ -54,7 +54,7 @@ These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 - A custom password, token, OAuth or session implementation that duplicates Better Auth.
 - Granular permission administration beyond an extensible role-based design.
 - New roles, unapproved account states or business behavior not defined by the PRD/ERD.
-- Docker, Jest and Winston setup. These are deferred to dedicated project-completion tooling work under `DEC-013`.
+- Docker and Jest setup. These are deferred to dedicated project-completion tooling work under `DEC-013` (structured logging was integrated in Phase 2 via Pino under `DEC-024` / `P2-T028`; Winston was permanently dropped).
 
 ---
 
@@ -141,6 +141,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 
 | Order | Workstream | Task ID   | Task                                                                     | Status | Depends On                      | Blocked By                                   |
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
+| 0     | A          | `P2-T028` | Integrate Pino structured logging                                        | `✅`   | None                            | None                                         |
 | 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
 | 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
 | 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
@@ -178,6 +179,27 @@ For every task, `build`, `lint`, task-specific executable or manual verification
 Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-provider evidence is required by `P2-T027` before phase completion.
 
 ### Workstream A: Phase Prerequisites
+
+#### P2-T028: Integrate Pino Structured Logging
+
+**Requirements:** `DEC-024`  
+**Objective:** Establish the canonical Pino structured logger and HTTP request logging infrastructure before RBAC work begins.
+
+**Acceptance Criteria:**
+
+- Install `pino`, `pino-http` and `pino-pretty` (`pino-pretty` as a dev dependency).
+- Export a single shared logger instance from `src/app/config/logger.ts`.
+- Support `LOG_LEVEL` env variable (optional); default to `debug` in development and `info` in production.
+- Enable pino-pretty transport in development; emit raw JSON in production.
+- Redact `req.headers.authorization`, `req.headers.cookie` and `req.body.password` in all environments.
+- Mount `pino-http` globally in `app.ts` before all route handlers.
+- Replace all `console.*` calls in `server.ts` and `globalErrorHandler.ts` with structured `logger.*` calls.
+- Remove all `/* eslint-disable no-console */` directives from migrated files.
+- Build and lint pass without errors.
+
+**Additional verification:** `pnpm build`, `pnpm lint`, and manual HTTP request log output inspection.
+
+**Human review:** `Approved` (2026-09-19)
 
 #### P2-T001: Establish the Phase 2 Prisma Schema and Initial Migration Baseline
 
@@ -221,9 +243,10 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 #### Deferred Tooling IDs
 
-- `P2-T003` (Winston logging) and `P2-T004` (Jest foundation) are retired from the executable Phase 2 plan under `DEC-013`.
+- `P2-T003` (originally Winston logging) and `P2-T004` (Jest foundation) are retired from the executable Phase 2 plan under `DEC-013`.
 - Their IDs must not be reused or treated as incomplete Phase 2 work.
-- Docker, Winston and Jest will receive new task IDs in a dedicated project-completion tooling plan after feature implementation is complete.
+- Note: Logging is no longer deferred. Pino was adopted immediately under `DEC-024`; Winston is permanently dropped. `P2-T028` is the canonical logging task.
+- Docker and Jest will receive new task IDs in a dedicated project-completion tooling plan after feature implementation is complete.
 
 #### P2-T005: Configure Better Auth, Secure Sessions and Provider Boundaries
 
@@ -669,7 +692,7 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | Outcome        | `Pending`                                                                                                            |
 | Approved by    | `Pending`                                                                                                            |
 | Approved on    | `Pending`                                                                                                            |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`) |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped, Pino adopted under `DEC-024`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 

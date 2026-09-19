@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-18
+**Last verified:** 2026-09-19
 
 ## 1. Governance and Phase State
 
@@ -20,7 +20,7 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done`.
 - No future phase has approved implementation scope.
 - Next eligible candidates: `P2-T015` (RBAC guard) or `P2-T016` (Audit log boundary).
 
@@ -43,14 +43,15 @@
 - Password reset flow (`P2-T012`) is established at `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` via Better Auth; enforces anti-enumeration (constant generic response for non-existent and Google-only accounts), branded HTML reset email delivery (`AuthMailer.sendPasswordResetLink`), 15-minute single-use token expiration, password policy validation, session revocation on password reset (`revokeSessionsOnPasswordReset: true`), and resets `needPasswordChange` to `false`.
 - Change and set password endpoints (`P2-T013`) are established at `POST /api/v1/auth/change-password` and `POST /api/v1/auth/set-password` protected by `authGuard`; enforces centralized password policy (`passwordSchema`), rejects current password reuse via schema `.refine()`, protects against enumeration via generic 401 `INVALID_CREDENTIALS` on incorrect current password per OWASP standards, resets `needPasswordChange` to `false`, revokes secondary active sessions by default, prevents duplicate password initialization on credentialed accounts, and strictly preserves linked Google OAuth accounts.
 - Logout and session revocation endpoints (`P2-T014`) are established at `POST /api/v1/auth/logout` and `POST /api/v1/auth/logout-all` protected by `authGuard`; single-session logout invalidates the active session in PostgreSQL and clears cookies via `Max-Age=0` headers; multi-session logout-all atomically revokes every active session for the user across all devices, clears local cookies, guarantees `401 Unauthorized` rejection on subsequent replayed requests, and strictly maintains cross-user session isolation.
+- Pino structured logging is established (`P2-T028`, `DEC-024`): single shared logger instance in `src/app/config/logger.ts`, `pino-http` middleware mounted in `app.ts` (after parsers, before routes) for HTTP request logging with sensitive field redaction (`authorization`, `cookie`, `res.headers['set-cookie']`, `password`, `token`, `req.query.token`, `req.query.code`), `server.ts` and `globalErrorHandler.ts` migrated from `console.*` to structured `logger.*` calls (with `requestId: req.id` correlation on internal server errors). Development uses pino-pretty; production emits raw JSON. Log level controlled via optional `LOG_LEVEL` env variable.
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
 
-- Docker, Jest and Winston are intentionally deferred to project-completion tooling work under `DEC-013`; former Phase 2 IDs `P2-T003` and `P2-T004` are retired.
+- Docker and Jest are intentionally deferred to project-completion tooling work under `DEC-013`; former Phase 2 IDs `P2-T003` and `P2-T004` are retired. Winston is permanently dropped; Pino is now the active logger under `DEC-024`.
 - RBAC, administrative authorization, customer/admin profile management, password lifecycle and OAuth linking remain to be implemented in upcoming tasks.
 - The test script is an approved temporary failing placeholder under `DEC-013`; current tasks use documented executable/manual verification.
-- Server lifecycle logging currently uses `console.*` under a file-level ESLint disable as the temporary baseline accepted by `DEC-013`.
+- Server lifecycle logging previously used `console.*` under a file-level ESLint disable — this is now fully replaced by Pino (`DEC-024`, `P2-T028`).
 - `prisma.config.ts` uses the directory-based `prisma/schema` root with models partitioned across `schema.prisma`, `auth.prisma`, `profiles.prisma` and `audit.prisma`.
 - Canonical Phase 2 baseline migration `20260912090148_init` is applied and verified under `DEC-015`. Generated Prisma Client is created at `src/generated/prisma` and intentionally ignored by Git.
 
