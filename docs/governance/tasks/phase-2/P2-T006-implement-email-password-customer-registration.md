@@ -10,6 +10,7 @@
 > 3. *Registration Response Contract:* Aligned with [PRD.md](../../../product/PRD.md#fr-auth-001-customer-registration) (FR-AUTH-001) and [DEC-017](../../DECISIONS.md#dec-017-defer-customer-profile-fields-contactnumber-address-to-p2-t024-for-frictionless-registration): since customer registration is credentials-only, the response returns pure identity attributes (`id`, `name`, `email`, `role`, `status`, `emailVerified`, `createdAt`) mapped from the canonical `User` entity, omitting redundant unpopulated profile objects.
 > 4. *Domain Module Extraction (`DEC-021` - 2026-09-15):* To preserve domain isolation and prepare for distinct administrative provisioning (`createAdmin`), public customer registration was formally extracted from `src/app/modules/auth/` and established within the dedicated `src/app/modules/customer/` domain module, exposed at `POST /api/v1/customer/register`. Reusable primitives (`emailSchema`, `passwordSchema`) were centralized in `src/app/validations/common.validation.ts`.
 > 5. *Centralization of Profile Creation & Retirement of Manual Rollback (`DEC-022` - 2026-09-17):* Under [DEC-022](../../DECISIONS.md#dec-022-centralize-customer-profile-creation-in-better-auth-database-hook-and-standardize-identity-context-on-response-locals), 1-to-1 `Customer` profile creation was centralized exclusively within Better Auth's `databaseHooks.user.create.after` hook in `src/app/config/auth.ts` via `prisma.customer.upsert`. Manual profile creation and the compensating rollback utility (`rollbackOrphanUser`) were retired and permanently removed from the codebase.
+> 6. *Automated Unit Testing Coverage (2026-09-19):* Following the adoption of Vitest (`DEC-025`), automated unit test suites were established across the customer registration domain and shared validation primitives: `tests/unit/validations/common.validation.test.ts` (21 tests), `tests/unit/modules/customer/customer.validation.test.ts` (10 tests), `tests/unit/modules/customer/customer.service.test.ts` (3 tests), `tests/unit/modules/customer/customer.controller.test.ts` (2 tests), and `tests/unit/modules/customer/customer.routes.test.ts` (1 test), achieving 100% statement, branch, function, and line coverage across `src/app/validations/common.validation.ts` and all files in `src/app/modules/customer/`.
 
 ---
 
@@ -150,6 +151,7 @@
 | Duplicate email check | `Yes` | Reject duplicate email with HTTP 409 | `PASS` |
 | Privilege escalation check | `Yes` | Confirm injected `role: "ADMIN"` is ignored/rejected | `PASS` |
 | End-to-end registration | `Yes` | Verify User & Customer database creation and HTTP 201 response | `PASS` |
+| Automated Unit Tests | `Yes` | `pnpm test` (37 tests across `common.validation.test.ts`, `customer.validation.test.ts`, `customer.service.test.ts`, `customer.controller.test.ts`, `customer.routes.test.ts`) | `PASS` (100% coverage) |
 
 ---
 
@@ -184,8 +186,15 @@
   - `src/app/modules/auth/auth.service.ts` (orchestrated duplicate check, Better Auth `signUpEmail`, and `Customer` record creation with rollback)
   - `src/app/modules/auth/auth.controller.ts` (handler with `catchAsync`, HTTP 201 response)
   - `src/app/modules/auth/auth.routes.ts` (mounted `POST /register` with `validateRequest`)
+  - `tests/unit/validations/common.validation.test.ts`: 21 unit tests verifying primitive validation rules (`emailSchema`, `passwordSchema`, `redirectUrlSchema`).
+  - `tests/unit/modules/customer/customer.validation.test.ts`: 10 unit tests verifying registration payload schema, name rules, and client role injection stripping.
+  - `tests/unit/modules/customer/customer.service.test.ts`: 3 unit tests verifying duplicate checks, Better Auth registration, OTP dispatch, minimal `select: { id: true }` projection, and output sanitization.
+  - `tests/unit/modules/customer/customer.controller.test.ts`: 2 unit tests verifying controller payload handling, header extraction, and error forwarding.
+  - `tests/unit/modules/customer/customer.routes.test.ts`: 1 unit test verifying route configuration and middleware chaining.
 - **Migration Created:** None (uses existing Prisma schema baseline from Phase 2 P2-T001).
 - **Test / Verification Output:**
+  - Automated Vitest unit test suite: 37 tests across validation, customer domain service, controller, and routes passed (`PASS`).
+  - Unit test coverage: 100% Statements, 100% Branches, 100% Functions, 100% Lines on `src/app/validations/common.validation.ts` and all files under `src/app/modules/customer/`.
   - `pnpm lint`: Passed (0 errors, 0 warnings).
   - `pnpm build`: Passed (clean `tsc` output).
   - Contract check output:

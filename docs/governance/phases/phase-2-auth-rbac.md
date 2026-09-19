@@ -303,7 +303,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Never store or log a plain-text password; cover success and meaningful failure paths.
 - *(Architectural Note under DEC-021 & DEC-022: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customer/register`, using primitive schemas from `src/app/validations/common.validation.ts`, with 1-to-1 `Customer` profile creation centralized via Better Auth's `databaseHooks.user.create.after`).*
 
-**Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts.
+**Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts. Automated Vitest unit test suites (`common.validation.test.ts`, `customer.validation.test.ts`, `customer.service.test.ts`, `customer.controller.test.ts`, `customer.routes.test.ts` — 37 tests) with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved` (2026-09-08)
 
