@@ -9,6 +9,7 @@
 > 1. *Session Persistence Evidence:* Direct database persistence, cookie lookup, and revocation capability across the PostgreSQL `session` table were verified via standalone executable check on 2026-09-13. Production login session issuance is implemented in `P2-T008` (`✅`), while application-level session middleware guard and logout endpoints will be delivered in upcoming tasks `P2-T010` (`🔲`) and `P2-T014` (`🔲`).
 > 2. *Session Validation Evolution:* The original plan noted "real-time status enforcement" (Section 4). In `P2-T007`, a 15-minute `cookieCache` (`session.cookieCache: { enabled: true, maxAge: 15 * 60 }`) was introduced to optimize database traffic as documented in [07-TECHNOLOGY-INTEGRATIONS-GUIDE.md](../../07-TECHNOLOGY-INTEGRATIONS-GUIDE.md#24-cookie-architecture-and-caching-policy). Status enforcement across active sessions will be governed under `P2-T017`.
 > 3. *Routing Architecture Deviation:* The original plan outlined wildcard mounting via `toNodeHandler(auth)`. As recorded in Section 10 Deviations, this was intentionally superseded by explicit MVC routing (`Route → Controller → Service → auth.api.* / Prisma`) under human architecture direction to preserve strict transaction, customer profile, and audit log boundaries.
+> 4. *Automated Unit Testing Coverage (2026-09-19):* Following the adoption of Vitest (`DEC-025`), automated unit test suites were established for Better Auth configuration, error mapping, and hooks under `tests/unit/config/auth.test.ts` (24 tests), `tests/unit/errors/handleBetterAuthError.test.ts` (9 tests), and `tests/unit/errors/handlePrismaError.test.ts` (18 tests), achieving 100% statement, branch, function, and line coverage.
 
 ---
 
@@ -151,6 +152,7 @@
 | Cookie & CSRF policy check | `Yes` | Inspect session configuration and advanced cookies policy | `PASS` |
 | Route reachability check | `Yes` | Service-driven architecture verified (wildcard router omitted per human direction) | `PASS` |
 | Manual contract review | `Yes` | Inspect session options, cookies, and ensure zero application JWT tokens | `PASS` |
+| Automated Unit Tests | `Yes` | `pnpm test` (51 tests across `auth.test.ts`, `handleBetterAuthError.test.ts`, `handlePrismaError.test.ts`) | `PASS` (100% coverage) |
 
 ---
 
@@ -186,8 +188,13 @@
   - `docs/governance/phases/phase-2-auth-rbac.md`: Resolved `P2-B002` and `P2-B009`, marked `P2-T005` in progress.
   - `docs/governance/MEMORY.md`: Updated active task to `P2-T005`.
   - `docs/governance/tasks/phase-2/P2-T005-configure-better-auth-secure-sessions-and-provider-boundaries.md`: Recorded plan, architectural updates, and verification results.
+  - `tests/unit/config/auth.test.ts`: 24 unit tests verifying central Better Auth configuration, session cookies (`httpOnly`, `sameSite`, `secure`, expiry/renewal), `cookieCache`, schema extensions, and all lifecycle hooks/callbacks with 100% statement, branch, function, and line coverage.
+  - `tests/unit/errors/handleBetterAuthError.test.ts`: 9 unit tests verifying Better Auth error normalization with 100% coverage.
+  - `tests/unit/errors/handlePrismaError.test.ts`: 18 unit tests verifying Prisma ORM error normalization with 100% coverage.
 - **Migration Impact:** Schema table mappings (`@@map`) and indexes originally introduced during this task were subsequently consolidated into the canonical initial baseline `20260912090148_init` under `DEC-015`.
 - **Test / Verification Output:**
+  - Automated Vitest unit test suite: 51 tests across `auth.test.ts`, `handleBetterAuthError.test.ts`, and `handlePrismaError.test.ts` passed (`PASS`).
+  - Unit test coverage: 100% Statements, 100% Branches, 100% Functions, 100% Lines on `src/app/config/auth.ts`, `src/app/errors/handleBetterAuthError.ts`, and `src/app/errors/handlePrismaError.ts`.
   - Runtime smoke test: `auth.api` object and `auth.handler` function loaded and verified (`PASS`).
   - Environment negative check: Secret length < 32 rejected with `BETTER_AUTH_SECRET must be at least 32 characters long` (`PASS`).
   - Environment positive check: Valid secret and URL safely parsed (`PASS`).

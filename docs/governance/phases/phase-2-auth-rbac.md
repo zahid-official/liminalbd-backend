@@ -283,7 +283,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Keep ordinary JSON responses free of application-managed access or refresh tokens.
 - Expose reusable session operations needed by later tasks and verify them through focused contract checks using approved mocks where required.
 
-**Additional verification:** Configuration, cookie and CSRF contract checks; provider flows may use approved mocks.
+**Additional verification:** Configuration, cookie and CSRF contract checks; provider flows may use approved mocks. Automated Vitest unit test suites (`auth.test.ts`, `handleBetterAuthError.test.ts`, `handlePrismaError.test.ts` — 51 tests) with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved` (2026-09-08)
 
