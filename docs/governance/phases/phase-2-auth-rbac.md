@@ -155,7 +155,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 11    | B          | `P2-T012` | Implement password reset                                                 | `✅`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
 | 12    | B          | `P2-T013` | Implement change or set password                                         | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
 | 13    | B          | `P2-T014` | Implement logout and session revocation                                  | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
-| 14    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `🔲`   | `P2-T010`                       | None                                         |
+| 14    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `✅`   | `P2-T010`                       | None                                         |
 | 15    | C          | `P2-T016` | Implement the audit-log application boundary                             | `🔲`   | `P2-T001`, `P2-T010`            | None                                         |
 | 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 17    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
@@ -462,9 +462,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Attach trusted server-derived role context; never trust client role or ownership claims.
 - Keep privileged and resource-specific authorization in the service layer and verify bypass attempts.
 
-**Additional verification:** Middleware and protected-route authorization checks.
+**Additional verification:** Automated Vitest unit test suite (`tests/unit/middleware/rbacGuard.test.ts`) covering single-role, multi-role, 403 forbidden rejection, 401 unauthenticated defense-in-depth, compile-time non-empty role enforcement, and client role spoofing attack resistance with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-21)
 
 #### P2-T016: Implement the Audit-Log Application Boundary
 
