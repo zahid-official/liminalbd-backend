@@ -520,11 +520,54 @@ describe("AuthController Unit Tests", () => {
   });
 
   describe("linkGoogle", () => {
-    it("should link Google account for authenticated user and return link URL", async () => {
+    it("should link Google account for authenticated user, forward cookies, and return link URL", async () => {
       const mockResult = {
         url: "https://accounts.google.com/link",
         redirect: true,
         setCookies: ["oauth_state=link-state; Path=/"],
+      };
+
+      const linkSpy = vi
+        .spyOn(AuthService, "linkGoogleAccount")
+        .mockResolvedValue(mockResult);
+
+      const req = {
+        headers: { "user-agent": "Mozilla/5.0" },
+      } as unknown as Request;
+      const res = makeMockRes({
+        user: mockCustomerUser,
+        validatedQuery: { redirectTo: "/profile" },
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.linkGoogle(req, res, next);
+
+      expect(linkSpy).toHaveBeenCalledWith(
+        mockCustomerUser,
+        expect.any(Headers),
+        "/profile",
+      );
+      expect(res.setHeader).toHaveBeenCalledWith(
+        "set-cookie",
+        mockResult.setCookies,
+      );
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Google account linking initialized",
+        data: {
+          url: mockResult.url,
+          redirect: mockResult.redirect,
+        },
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should not set set-cookie header when setCookies array is empty", async () => {
+      const mockResult = {
+        url: "https://accounts.google.com/link",
+        redirect: true,
+        setCookies: [],
       };
 
       vi.spyOn(AuthService, "linkGoogleAccount").mockResolvedValue(mockResult);
@@ -538,7 +581,7 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.linkGoogle(req, res, next);
 
-      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", mockResult.setCookies);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -549,13 +592,62 @@ describe("AuthController Unit Tests", () => {
         },
       });
     });
+
+    it("should handle omitted validated query gracefully and pass undefined redirectTo to service", async () => {
+      const mockResult = {
+        url: "https://accounts.google.com/link",
+        redirect: true,
+        setCookies: [],
+      };
+
+      const linkSpy = vi
+        .spyOn(AuthService, "linkGoogleAccount")
+        .mockResolvedValue(mockResult);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({ user: mockCustomerUser }); // res.locals.validated is undefined
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.linkGoogle(req, res, next);
+
+      expect(linkSpy).toHaveBeenCalledWith(
+        mockCustomerUser,
+        expect.any(Headers),
+        undefined,
+      );
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.CONFLICT,
+        PUBLIC_ERROR_CODES.ACCOUNT_ALREADY_LINKED,
+        "A Google account is already linked to your profile.",
+      );
+
+      vi.spyOn(AuthService, "linkGoogleAccount").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({
+        user: mockCustomerUser,
+        validatedQuery: { redirectTo: "/profile" },
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.linkGoogle(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
   });
 
   describe("unlinkGoogle", () => {
-    it("should unlink Google account and send 200 response", async () => {
-      vi.spyOn(AuthService, "unlinkGoogleAccount").mockResolvedValue({
-        message: "Google account unlinked successfully.",
-      });
+    it("should unlink Google account for authenticated user and send 200 response", async () => {
+      const unlinkSpy = vi
+        .spyOn(AuthService, "unlinkGoogleAccount")
+        .mockResolvedValue({
+          message: "Google account unlinked successfully.",
+        });
 
       const req = {} as unknown as Request;
       const res = makeMockRes({ user: mockCustomerUser });
@@ -563,21 +655,73 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.unlinkGoogle(req, res, next);
 
+      expect(unlinkSpy).toHaveBeenCalledWith(mockCustomerUser.id);
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         message: "Google account unlinked successfully.",
         data: null,
       });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.UNPROCESSABLE_ENTITY,
+        PUBLIC_ERROR_CODES.CANNOT_UNLINK_SOLE_METHOD,
+        "Cannot unlink your only authentication method. Please set a password first.",
+      );
+
+      vi.spyOn(AuthService, "unlinkGoogleAccount").mockRejectedValue(serviceError);
+
+      const req = {} as unknown as Request;
+      const res = makeMockRes({ user: mockCustomerUser });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.unlinkGoogle(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 
   describe("forgotPassword", () => {
     it("should send password reset instructions and return 200 response", async () => {
-      vi.spyOn(AuthService, "forgotPassword").mockResolvedValue({
+      const forgotSpy = vi
+        .spyOn(AuthService, "forgotPassword")
+        .mockResolvedValue({
+          message:
+            "If an account with that email exists, password reset instructions have been sent.",
+        });
+
+      const req = {
+        headers: { "user-agent": "Mozilla/5.0" },
+      } as unknown as Request;
+      const res = makeMockRes({
+        validatedBody: { email: "user@example.com", redirectTo: "/new-pass" },
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.forgotPassword(req, res, next);
+
+      expect(forgotSpy).toHaveBeenCalledWith(
+        { email: "user@example.com", redirectTo: "/new-pass" },
+        expect.any(Headers),
+      );
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
         message:
           "If an account with that email exists, password reset instructions have been sent.",
+        data: null,
       });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new Error("Failed to process password reset request");
+      vi.spyOn(AuthService, "forgotPassword").mockRejectedValue(serviceError);
 
       const req = { headers: {} } as unknown as Request;
       const res = makeMockRes({
@@ -587,63 +731,116 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.forgotPassword(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(status.OK);
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        message:
-          "If an account with that email exists, password reset instructions have been sent.",
-        data: null,
-      });
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 
   describe("resetPassword", () => {
-    it("should reset password, set cookies, and send 200 response", async () => {
-      vi.spyOn(AuthService, "resetPassword").mockResolvedValue({
-        message: "Password has been reset successfully. Please log in with your new password.",
-        setCookies: ["token=resetted; Path=/"],
-      });
+    const payload = { token: "token", newPassword: "NewPassword123!" };
 
-      const req = { headers: {} } as unknown as Request;
+    it("should reset password, set cookies, and send 200 response", async () => {
+      const resetSpy = vi
+        .spyOn(AuthService, "resetPassword")
+        .mockResolvedValue({
+          message:
+            "Password has been reset successfully. Please log in with your new password.",
+          setCookies: ["token=resetted; Path=/"],
+        });
+
+      const req = {
+        headers: { "user-agent": "Mozilla/5.0" },
+      } as unknown as Request;
       const res = makeMockRes({
-        validatedBody: { token: "token", newPassword: "NewPassword123!" },
+        validatedBody: payload,
       });
       const next = vi.fn() as unknown as NextFunction;
 
       await AuthController.resetPassword(req, res, next);
 
+      expect(resetSpy).toHaveBeenCalledWith(payload, expect.any(Headers));
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "token=resetted; Path=/",
       ]);
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
-        message: "Password has been reset successfully. Please log in with your new password.",
+        message:
+          "Password has been reset successfully. Please log in with your new password.",
         data: null,
       });
+      expect(next).not.toHaveBeenCalled();
     });
-  });
 
-  describe("changePassword", () => {
-    it("should change user password, set cookies, and send 200 response", async () => {
-      vi.spyOn(AuthService, "changePassword").mockResolvedValue({
-        message: "Password has been changed successfully.",
-        setCookies: ["new_token=valid; Path=/"],
+    it("should omit set-cookie header when setCookies is empty", async () => {
+      vi.spyOn(AuthService, "resetPassword").mockResolvedValue({
+        message:
+          "Password has been reset successfully. Please log in with your new password.",
+        setCookies: [],
       });
 
       const req = { headers: {} } as unknown as Request;
       const res = makeMockRes({
+        validatedBody: payload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.resetPassword(req, res, next);
+
+      expect(res.setHeader).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new Error("Invalid or expired reset token");
+      vi.spyOn(AuthService, "resetPassword").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({
+        validatedBody: payload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.resetPassword(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("changePassword", () => {
+    const payload = {
+      currentPassword: "OldPassword123!",
+      newPassword: "NewPassword123!",
+      revokeOtherSessions: true,
+    };
+
+    it("should change user password, set cookies, and send 200 response", async () => {
+      const changeSpy = vi
+        .spyOn(AuthService, "changePassword")
+        .mockResolvedValue({
+          message: "Password has been changed successfully.",
+          setCookies: ["new_token=valid; Path=/"],
+        });
+
+      const req = {
+        headers: { "user-agent": "Mozilla/5.0" },
+      } as unknown as Request;
+      const res = makeMockRes({
         user: mockCustomerUser,
-        validatedBody: {
-          currentPassword: "OldPassword123!",
-          newPassword: "NewPassword123!",
-          revokeOtherSessions: true,
-        },
+        validatedBody: payload,
       });
       const next = vi.fn() as unknown as NextFunction;
 
       await AuthController.changePassword(req, res, next);
 
+      expect(changeSpy).toHaveBeenCalledWith(
+        mockCustomerUser.id,
+        payload,
+        expect.any(Headers),
+      );
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "new_token=valid; Path=/",
       ]);
@@ -653,25 +850,72 @@ describe("AuthController Unit Tests", () => {
         message: "Password has been changed successfully.",
         data: null,
       });
+      expect(next).not.toHaveBeenCalled();
     });
-  });
 
-  describe("setPassword", () => {
-    it("should set password, set cookies, and send 200 response", async () => {
-      vi.spyOn(AuthService, "setPassword").mockResolvedValue({
-        message: "Password has been set successfully.",
-        setCookies: ["token=initialized; Path=/"],
+    it("should omit set-cookie header when setCookies is empty", async () => {
+      vi.spyOn(AuthService, "changePassword").mockResolvedValue({
+        message: "Password has been changed successfully.",
+        setCookies: [],
       });
 
       const req = { headers: {} } as unknown as Request;
       const res = makeMockRes({
         user: mockCustomerUser,
-        validatedBody: { newPassword: "InitialPassword123!" },
+        validatedBody: payload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.changePassword(req, res, next);
+
+      expect(res.setHeader).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new Error("Current password is incorrect");
+      vi.spyOn(AuthService, "changePassword").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({
+        user: mockCustomerUser,
+        validatedBody: payload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.changePassword(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("setPassword", () => {
+    const payload = { newPassword: "InitialPassword123!" };
+
+    it("should set password, set cookies, and send 200 response", async () => {
+      const setSpy = vi.spyOn(AuthService, "setPassword").mockResolvedValue({
+        message: "Password has been set successfully.",
+        setCookies: ["token=initialized; Path=/"],
+      });
+
+      const req = {
+        headers: { "user-agent": "Mozilla/5.0" },
+      } as unknown as Request;
+      const res = makeMockRes({
+        user: mockCustomerUser,
+        validatedBody: payload,
       });
       const next = vi.fn() as unknown as NextFunction;
 
       await AuthController.setPassword(req, res, next);
 
+      expect(setSpy).toHaveBeenCalledWith(
+        mockCustomerUser.id,
+        payload,
+        expect.any(Headers),
+      );
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "token=initialized; Path=/",
       ]);
@@ -681,14 +925,80 @@ describe("AuthController Unit Tests", () => {
         message: "Password has been set successfully.",
         data: null,
       });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should omit set-cookie header when setCookies is empty", async () => {
+      vi.spyOn(AuthService, "setPassword").mockResolvedValue({
+        message: "Password has been set successfully.",
+        setCookies: [],
+      });
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({
+        user: mockCustomerUser,
+        validatedBody: payload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.setPassword(req, res, next);
+
+      expect(res.setHeader).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new Error("Password already set");
+      vi.spyOn(AuthService, "setPassword").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({
+        user: mockCustomerUser,
+        validatedBody: payload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.setPassword(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 
   describe("logout", () => {
     it("should logout current session, set cookies, and send 200 response", async () => {
-      vi.spyOn(AuthService, "logout").mockResolvedValue({
+      const logoutSpy = vi.spyOn(AuthService, "logout").mockResolvedValue({
         message: "Successfully logged out.",
         setCookies: ["session=; Path=/"],
+      });
+
+      const req = {
+        headers: { "user-agent": "Mozilla/5.0" },
+      } as unknown as Request;
+      const res = makeMockRes({ session: mockSession });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.logout(req, res, next);
+
+      expect(logoutSpy).toHaveBeenCalledWith(
+        mockSession.token,
+        expect.any(Headers),
+      );
+      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", ["session=; Path=/"]);
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Successfully logged out.",
+        data: null,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should omit set-cookie header when setCookies is empty", async () => {
+      vi.spyOn(AuthService, "logout").mockResolvedValue({
+        message: "Successfully logged out.",
+        setCookies: [],
       });
 
       const req = { headers: {} } as unknown as Request;
@@ -697,21 +1007,58 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.logout(req, res, next);
 
-      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", ["session=; Path=/"]);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        message: "Successfully logged out.",
-        data: null,
-      });
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new Error("Session invalid or expired");
+      vi.spyOn(AuthService, "logout").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({ session: mockSession });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.logout(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 
   describe("logoutAll", () => {
     it("should logout all sessions, set cookies, and send 200 response", async () => {
+      const logoutAllSpy = vi
+        .spyOn(AuthService, "logoutAll")
+        .mockResolvedValue({
+          message: "Successfully logged out from all devices.",
+          setCookies: ["session=; Path=/"],
+        });
+
+      const req = {
+        headers: { "user-agent": "Mozilla/5.0" },
+      } as unknown as Request;
+      const res = makeMockRes();
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.logoutAll(req, res, next);
+
+      expect(logoutAllSpy).toHaveBeenCalledWith(expect.any(Headers));
+      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", ["session=; Path=/"]);
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Successfully logged out from all devices.",
+        data: null,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should omit set-cookie header when setCookies is empty", async () => {
       vi.spyOn(AuthService, "logoutAll").mockResolvedValue({
         message: "Successfully logged out from all devices.",
-        setCookies: ["session=; Path=/"],
+        setCookies: [],
       });
 
       const req = { headers: {} } as unknown as Request;
@@ -720,13 +1067,23 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.logoutAll(req, res, next);
 
-      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", ["session=; Path=/"]);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        message: "Successfully logged out from all devices.",
-        data: null,
-      });
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new Error("Failed to revoke all sessions");
+      vi.spyOn(AuthService, "logoutAll").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes();
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.logoutAll(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 });

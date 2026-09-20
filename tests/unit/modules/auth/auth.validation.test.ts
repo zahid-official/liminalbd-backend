@@ -343,6 +343,13 @@ describe("AuthValidation Unit Tests", () => {
         });
       });
 
+      it("should normalize and trim whitespace from redirectTo parameter", () => {
+        expect(schema.safeParse({ redirectTo: "   /dashboard   " })).toEqual({
+          success: true,
+          data: { redirectTo: "/dashboard" },
+        });
+      });
+
       it("should accept omitted redirectTo query parameter", () => {
         expect(schema.safeParse({})).toEqual({
           success: true,
@@ -392,6 +399,15 @@ describe("AuthValidation Unit Tests", () => {
         });
       });
 
+      it("should normalize and trim whitespace from redirectTo parameter", () => {
+        expect(
+          schema.safeParse({ redirectTo: "   /settings/security   " }),
+        ).toEqual({
+          success: true,
+          data: { redirectTo: "/settings/security" },
+        });
+      });
+
       it("should accept omitted redirectTo query parameter", () => {
         expect(schema.safeParse({})).toEqual({
           success: true,
@@ -399,10 +415,12 @@ describe("AuthValidation Unit Tests", () => {
         });
       });
 
-      it("should strip extraneous query parameters", () => {
+      it("should strip extraneous or client-injected privileged query parameters", () => {
         expect(
           schema.safeParse({
             redirectTo: "/settings/security",
+            role: "ADMIN",
+            userId: "victim-id",
             unauthorizedKey: "maliciousValue",
           }),
         ).toEqual({
@@ -417,6 +435,14 @@ describe("AuthValidation Unit Tests", () => {
         expect(getFirstErrorMessage(schema.safeParse({ redirectTo: true }))).toBe(
           "Redirect URL must be a valid text string",
         );
+        expect(
+          getFirstErrorMessage(schema.safeParse({ redirectTo: ["/path"] })),
+        ).toBe("Redirect URL must be a valid text string");
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({ redirectTo: { path: "/path" } }),
+          ),
+        ).toBe("Redirect URL must be a valid text string");
       });
 
       it("should fail when redirectTo exceeds 2048 characters", () => {

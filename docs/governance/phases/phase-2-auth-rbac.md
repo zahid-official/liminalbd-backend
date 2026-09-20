@@ -390,9 +390,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return HTTP 422 when unlinking would remove the only authentication method.
 - Preserve the application role and cover unauthorized, conflict and sole-method paths.
 
-**Additional verification:** Account-linking behavior checks with approved provider mocks.
+**Additional verification:** Account-linking behavior checks with approved provider mocks, complete Vitest unit test coverage across validation, service, controller, and route layers with 100% statement and branch coverage.
 
-**Human review:** `Approved` (2026-09-15)
+**Human review:** `Approved` (2026-09-15; unit test suite verified 2026-09-20)
 
 #### P2-T012: Implement Password Reset
 

@@ -385,6 +385,28 @@ describe("AuthService Unit Tests", () => {
       expect(result.user.id).toBe("customer-1");
     });
 
+    it("should safely handle undefined authHeaders and return empty setCookies", async () => {
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: undefined,
+        response: {
+          token: "session-token-no-headers",
+          user: {
+            id: "customer-1",
+            name: "Customer One",
+            email: "user@example.com",
+            emailVerified: true,
+            role: UserRole.CUSTOMER,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      const result = await AuthService.loginWithCredentials(payload, mockHeaders);
+
+      expect(result.setCookies).toEqual([]);
+      expect(result.user.id).toBe("customer-1");
+    });
+
     it("should propagate errors when signInEmail rejects (e.g., invalid credentials or account status)", async () => {
       const signInError = new Error("Invalid email or password");
       vi.spyOn(auth.api, "signInEmail").mockRejectedValue(signInError);
@@ -525,32 +547,38 @@ describe("AuthService Unit Tests", () => {
     } as AuthUser;
 
     it("should throw 403 FORBIDDEN if non-customer user attempts to link Google account", async () => {
-      const adminUser = {
-        id: "admin-100",
-        role: UserRole.ADMIN,
-        name: "Admin Test",
-        email: "admin@example.com",
-        status: UserStatus.ACTIVE,
-      } as AuthUser;
+      const adminRoles = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
 
-      await expect(
-        AuthService.linkGoogleAccount(adminUser, mockHeaders),
-      ).rejects.toSatisfy((err: unknown) => {
-        expect(err).toBeInstanceOf(AppError);
-        expect(err).toMatchObject({
-          statusCode: status.FORBIDDEN,
-          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
-          message:
-            "Access denied. Administrative accounts cannot link or use Google sign-in.",
+      for (const role of adminRoles) {
+        const staffUser = {
+          id: `staff-${role}`,
+          role,
+          name: "Staff Test",
+          email: `${role.toLowerCase()}@example.com`,
+          status: UserStatus.ACTIVE,
+        } as AuthUser;
+
+        await expect(
+          AuthService.linkGoogleAccount(staffUser, mockHeaders),
+        ).rejects.toSatisfy((err: unknown) => {
+          expect(err).toBeInstanceOf(AppError);
+          expect(err).toMatchObject({
+            statusCode: status.FORBIDDEN,
+            code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+            message:
+              "Access denied. Administrative accounts cannot link or use Google sign-in.",
+          });
+          return true;
         });
-        return true;
-      });
+      }
     });
 
     it("should throw 409 CONFLICT if Google account is already linked to user profile", async () => {
-      vi.spyOn(prisma.account, "findFirst").mockResolvedValue({
-        id: "acc-google-1",
-      } as any);
+      const findFirstSpy = vi
+        .spyOn(prisma.account, "findFirst")
+        .mockResolvedValue({
+          id: "acc-google-1",
+        } as any);
 
       await expect(
         AuthService.linkGoogleAccount(customerUser, mockHeaders),
@@ -563,18 +591,62 @@ describe("AuthService Unit Tests", () => {
         });
         return true;
       });
+
+      expect(findFirstSpy).toHaveBeenCalledWith({
+        where: {
+          userId: customerUser.id,
+          providerId: "google",
+        },
+        select: { id: true },
+      });
     });
 
-    it("should link Google account successfully when customer has no existing Google link", async () => {
+    it("should link Google account with default callback URL (/profile) when redirectTo is omitted", async () => {
       vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
 
-      const linkSpy = vi.spyOn(auth.api, "linkSocialAccount").mockResolvedValue({
-        headers: new Headers(),
-        response: {
-          url: "https://accounts.google.com/link",
-          redirect: true,
+      const linkSpy = vi
+        .spyOn(auth.api, "linkSocialAccount")
+        .mockResolvedValue({
+          headers: new Headers(),
+          response: {
+            url: "https://accounts.google.com/o/oauth2/v2/auth?link=1",
+            redirect: true,
+          },
+        } as any);
+
+      const result = await AuthService.linkGoogleAccount(
+        customerUser,
+        mockHeaders,
+      );
+
+      expect(linkSpy).toHaveBeenCalledWith({
+        body: {
+          provider: "google",
+          callbackURL: `${env.FRONTEND_URL}/profile`,
         },
-      } as any);
+        headers: mockHeaders,
+        returnHeaders: true,
+      });
+
+      expect(result).toEqual({
+        url: "https://accounts.google.com/o/oauth2/v2/auth?link=1",
+        redirect: true,
+        setCookies: [],
+      });
+    });
+
+    it("should link Google account with custom callback URL when valid redirectTo is provided", async () => {
+      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+
+      const linkSpy = vi
+        .spyOn(auth.api, "linkSocialAccount")
+        .mockResolvedValue({
+          headers: new Headers(),
+          response: {
+            url: "https://accounts.google.com/o/oauth2/v2/auth?link=2",
+            redirect: true,
+          },
+        } as any);
 
       const result = await AuthService.linkGoogleAccount(
         customerUser,
@@ -591,18 +663,110 @@ describe("AuthService Unit Tests", () => {
         returnHeaders: true,
       });
 
-      expect(result.url).toBe("https://accounts.google.com/link");
+      expect(result.url).toBe(
+        "https://accounts.google.com/o/oauth2/v2/auth?link=2",
+      );
+      expect(result.redirect).toBe(true);
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should handle undefined or null auth headers safely and return empty setCookies", async () => {
+      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+
+      vi.spyOn(auth.api, "linkSocialAccount").mockResolvedValue({
+        headers: undefined,
+        response: {
+          url: "https://accounts.google.com/o/oauth2/v2/auth?link=3",
+          redirect: true,
+        },
+      } as any);
+
+      const result = await AuthService.linkGoogleAccount(
+        customerUser,
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should forward multiple cookies returned by linkSocialAccount", async () => {
+      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+
+      const mockAuthHeaders = new Headers();
+      mockAuthHeaders.append(
+        "set-cookie",
+        "better-auth.state=linkstate123; Path=/; HttpOnly",
+      );
+      mockAuthHeaders.append(
+        "set-cookie",
+        "better-auth.pkce=linkpkce456; Path=/; HttpOnly",
+      );
+
+      vi.spyOn(auth.api, "linkSocialAccount").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: {
+          url: "https://accounts.google.com/o/oauth2/v2/auth?link=4",
+          redirect: true,
+        },
+      } as any);
+
+      const result = await AuthService.linkGoogleAccount(
+        customerUser,
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([
+        "better-auth.state=linkstate123; Path=/; HttpOnly",
+        "better-auth.pkce=linkpkce456; Path=/; HttpOnly",
+      ]);
+    });
+
+    it("should propagate errors thrown by auth.api.linkSocialAccount", async () => {
+      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+
+      vi.spyOn(auth.api, "linkSocialAccount").mockRejectedValue(
+        new Error("OAuth upstream service unavailable"),
+      );
+
+      await expect(
+        AuthService.linkGoogleAccount(customerUser, mockHeaders),
+      ).rejects.toThrow("OAuth upstream service unavailable");
     });
   });
 
   describe("unlinkGoogleAccount", () => {
     it("should throw 400 BAD_REQUEST if user has no linked Google account", async () => {
-      vi.spyOn(prisma.account, "findMany").mockResolvedValue([
+      const findManySpy = vi.spyOn(prisma.account, "findMany").mockResolvedValue([
         { id: "acc-1", providerId: "credential", password: "hash" },
       ] as any);
 
       await expect(
         AuthService.unlinkGoogleAccount("user-no-google"),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(AppError);
+        expect(err).toMatchObject({
+          statusCode: status.BAD_REQUEST,
+          code: PUBLIC_ERROR_CODES.ACCOUNT_NOT_LINKED,
+          message: "No linked Google account was found on your profile.",
+        });
+        return true;
+      });
+
+      expect(findManySpy).toHaveBeenCalledWith({
+        where: { userId: "user-no-google" },
+        select: {
+          id: true,
+          providerId: true,
+          password: true,
+        },
+      });
+    });
+
+    it("should throw 400 BAD_REQUEST if user has no accounts at all", async () => {
+      vi.spyOn(prisma.account, "findMany").mockResolvedValue([]);
+
+      await expect(
+        AuthService.unlinkGoogleAccount("user-no-accounts"),
       ).rejects.toSatisfy((err: unknown) => {
         expect(err).toBeInstanceOf(AppError);
         expect(err).toMatchObject({
@@ -618,6 +782,7 @@ describe("AuthService Unit Tests", () => {
       vi.spyOn(prisma.account, "findMany").mockResolvedValue([
         { id: "acc-google", providerId: "google", password: null },
       ] as any);
+      const deleteSpy = vi.spyOn(prisma.account, "delete");
 
       await expect(
         AuthService.unlinkGoogleAccount("user-google-only"),
@@ -631,30 +796,38 @@ describe("AuthService Unit Tests", () => {
         });
         return true;
       });
+
+      expect(deleteSpy).not.toHaveBeenCalled();
     });
 
-    it("should throw 422 UNPROCESSABLE_ENTITY if user has a credential account but password is null (no alternative auth)", async () => {
-      vi.spyOn(prisma.account, "findMany").mockResolvedValue([
-        { id: "acc-google", providerId: "google", password: null },
-        { id: "acc-cred", providerId: "credential", password: null },
-      ] as any);
+    it("should throw 422 UNPROCESSABLE_ENTITY if user has a credential account but password is null or empty", async () => {
+      const deleteSpy = vi.spyOn(prisma.account, "delete");
 
-      await expect(
-        AuthService.unlinkGoogleAccount("user-passwordless-cred"),
-      ).rejects.toSatisfy((err: unknown) => {
-        expect(err).toBeInstanceOf(AppError);
-        expect(err).toMatchObject({
-          statusCode: status.UNPROCESSABLE_ENTITY,
-          code: PUBLIC_ERROR_CODES.CANNOT_UNLINK_SOLE_METHOD,
-          message:
-            "Cannot unlink your only authentication method. Please set a password first.",
+      for (const emptyPassword of [null, ""]) {
+        vi.spyOn(prisma.account, "findMany").mockResolvedValue([
+          { id: "acc-google", providerId: "google", password: null },
+          { id: "acc-cred", providerId: "credential", password: emptyPassword },
+        ] as any);
+
+        await expect(
+          AuthService.unlinkGoogleAccount("user-passwordless-cred"),
+        ).rejects.toSatisfy((err: unknown) => {
+          expect(err).toBeInstanceOf(AppError);
+          expect(err).toMatchObject({
+            statusCode: status.UNPROCESSABLE_ENTITY,
+            code: PUBLIC_ERROR_CODES.CANNOT_UNLINK_SOLE_METHOD,
+            message:
+              "Cannot unlink your only authentication method. Please set a password first.",
+          });
+          return true;
         });
-        return true;
-      });
+      }
+
+      expect(deleteSpy).not.toHaveBeenCalled();
     });
 
-    it("should unlink Google account successfully when an alternative auth method exists", async () => {
-      vi.spyOn(prisma.account, "findMany").mockResolvedValue([
+    it("should unlink Google account successfully when password-protected credential account exists", async () => {
+      const findManySpy = vi.spyOn(prisma.account, "findMany").mockResolvedValue([
         { id: "acc-google-1", providerId: "google", password: null },
         { id: "acc-cred-1", providerId: "credential", password: "hashed_password" },
       ] as any);
@@ -665,12 +838,55 @@ describe("AuthService Unit Tests", () => {
 
       const result = await AuthService.unlinkGoogleAccount("user-multi-auth");
 
+      expect(findManySpy).toHaveBeenCalledWith({
+        where: { userId: "user-multi-auth" },
+        select: {
+          id: true,
+          providerId: true,
+          password: true,
+        },
+      });
       expect(deleteSpy).toHaveBeenCalledWith({
         where: { id: "acc-google-1" },
       });
       expect(result).toEqual({
         message: "Google account unlinked successfully.",
       });
+    });
+
+    it("should unlink Google account successfully when an alternative third-party OAuth provider exists", async () => {
+      vi.spyOn(prisma.account, "findMany").mockResolvedValue([
+        { id: "acc-google-1", providerId: "google", password: null },
+        { id: "acc-github-1", providerId: "github", password: null },
+      ] as any);
+
+      const deleteSpy = vi
+        .spyOn(prisma.account, "delete")
+        .mockResolvedValue({ id: "acc-google-1" } as any);
+
+      const result = await AuthService.unlinkGoogleAccount("user-oauth-multi");
+
+      expect(deleteSpy).toHaveBeenCalledWith({
+        where: { id: "acc-google-1" },
+      });
+      expect(result).toEqual({
+        message: "Google account unlinked successfully.",
+      });
+    });
+
+    it("should propagate errors thrown by prisma.account.delete", async () => {
+      vi.spyOn(prisma.account, "findMany").mockResolvedValue([
+        { id: "acc-google-1", providerId: "google", password: null },
+        { id: "acc-cred-1", providerId: "credential", password: "hashed_password" },
+      ] as any);
+
+      vi.spyOn(prisma.account, "delete").mockRejectedValue(
+        new Error("Database write failure"),
+      );
+
+      await expect(
+        AuthService.unlinkGoogleAccount("user-multi-auth"),
+      ).rejects.toThrow("Database write failure");
     });
   });
 
@@ -689,6 +905,30 @@ describe("AuthService Unit Tests", () => {
         body: {
           email: "user@example.com",
           redirectTo: `${env.FRONTEND_URL}/new-password`,
+        },
+        headers: mockHeaders,
+      });
+
+      expect(result).toEqual({
+        message:
+          "If an account with that email exists, password reset instructions have been sent.",
+      });
+    });
+
+    it("should fallback to default callback URL (/reset-password) when redirectTo is omitted", async () => {
+      const resetSpy = vi
+        .spyOn(auth.api, "requestPasswordReset")
+        .mockResolvedValue({} as any);
+
+      const result = await AuthService.forgotPassword(
+        { email: "user@example.com" },
+        mockHeaders,
+      );
+
+      expect(resetSpy).toHaveBeenCalledWith({
+        body: {
+          email: "user@example.com",
+          redirectTo: `${env.FRONTEND_URL}/reset-password`,
         },
         headers: mockHeaders,
       });
@@ -730,9 +970,42 @@ describe("AuthService Unit Tests", () => {
         setCookies: ["session_token=resetted; Path=/"],
       });
     });
+
+    it("should safely handle undefined authHeaders and return empty setCookies", async () => {
+      vi.spyOn(auth.api, "resetPassword").mockResolvedValue({
+        headers: undefined,
+        response: { status: true },
+      } as any);
+
+      const result = await AuthService.resetPassword(
+        { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should propagate errors thrown by auth.api.resetPassword", async () => {
+      vi.spyOn(auth.api, "resetPassword").mockRejectedValue(
+        new Error("Invalid or expired reset token"),
+      );
+
+      await expect(
+        AuthService.resetPassword(
+          { token: "invalid-tok", newPassword: "NewSecurePass123!" },
+          mockHeaders,
+        ),
+      ).rejects.toThrow("Invalid or expired reset token");
+    });
   });
 
   describe("changePassword", () => {
+    const payload = {
+      currentPassword: "OldPassword123!",
+      newPassword: "NewPassword456!",
+      revokeOtherSessions: true,
+    };
+
     it("should change password, clear needPasswordChange flag, and return cookies", async () => {
       const mockAuthHeaders = new Headers();
       mockAuthHeaders.append("set-cookie", "new_session=active; Path=/");
@@ -748,11 +1021,7 @@ describe("AuthService Unit Tests", () => {
 
       const result = await AuthService.changePassword(
         "user-id-123",
-        {
-          currentPassword: "OldPassword123!",
-          newPassword: "NewPassword456!",
-          revokeOtherSessions: true,
-        },
+        payload,
         mockHeaders,
       );
 
@@ -775,6 +1044,37 @@ describe("AuthService Unit Tests", () => {
         message: "Password has been changed successfully.",
         setCookies: ["new_session=active; Path=/"],
       });
+    });
+
+    it("should safely handle undefined authHeaders and return empty setCookies", async () => {
+      vi.spyOn(auth.api, "changePassword").mockResolvedValue({
+        headers: undefined,
+        response: { status: true },
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
+
+      const result = await AuthService.changePassword(
+        "user-id-123",
+        payload,
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should propagate errors from auth.api.changePassword and never update user flag", async () => {
+      const updateSpy = vi.spyOn(prisma.user, "update");
+
+      vi.spyOn(auth.api, "changePassword").mockRejectedValue(
+        new Error("Invalid current password"),
+      );
+
+      await expect(
+        AuthService.changePassword("user-id-123", payload, mockHeaders),
+      ).rejects.toThrow("Invalid current password");
+
+      expect(updateSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -836,6 +1136,44 @@ describe("AuthService Unit Tests", () => {
         setCookies: [],
       });
     });
+
+    it("should safely handle undefined authHeaders and return empty setCookies", async () => {
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
+
+      vi.spyOn(auth.api, "setPassword").mockResolvedValue({
+        headers: undefined,
+        response: { status: true },
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
+
+      const result = await AuthService.setPassword(
+        "user-without-pass",
+        { newPassword: "InitialPassword123!" },
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should propagate errors from auth.api.setPassword and never update user flag", async () => {
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
+      const updateSpy = vi.spyOn(prisma.user, "update");
+
+      vi.spyOn(auth.api, "setPassword").mockRejectedValue(
+        new Error("Upstream setPassword failure"),
+      );
+
+      await expect(
+        AuthService.setPassword(
+          "user-without-pass",
+          { newPassword: "InitialPassword123!" },
+          mockHeaders,
+        ),
+      ).rejects.toThrow("Upstream setPassword failure");
+
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe("logout", () => {
@@ -874,6 +1212,44 @@ describe("AuthService Unit Tests", () => {
         ],
       });
     });
+
+    it("should safely handle undefined authHeaders from signOut and return empty setCookies", async () => {
+      vi.spyOn(auth.api, "revokeSession").mockResolvedValue({
+        status: true,
+      } as any);
+
+      vi.spyOn(auth.api, "signOut").mockResolvedValue({
+        headers: undefined,
+        response: { status: true },
+      } as any);
+
+      const result = await AuthService.logout("active-token-123", mockHeaders);
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should propagate errors when upstream revokeSession fails", async () => {
+      vi.spyOn(auth.api, "revokeSession").mockRejectedValue(
+        new Error("Session revocation failed"),
+      );
+
+      await expect(
+        AuthService.logout("active-token-123", mockHeaders),
+      ).rejects.toThrow("Session revocation failed");
+    });
+
+    it("should propagate errors when upstream signOut fails", async () => {
+      vi.spyOn(auth.api, "revokeSession").mockResolvedValue({
+        status: true,
+      } as any);
+      vi.spyOn(auth.api, "signOut").mockRejectedValue(
+        new Error("Sign out failed"),
+      );
+
+      await expect(
+        AuthService.logout("active-token-123", mockHeaders),
+      ).rejects.toThrow("Sign out failed");
+    });
   });
 
   describe("logoutAll", () => {
@@ -910,6 +1286,44 @@ describe("AuthService Unit Tests", () => {
           "better-auth.session_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
         ],
       });
+    });
+
+    it("should safely handle undefined authHeaders from signOut and return empty setCookies", async () => {
+      vi.spyOn(auth.api, "revokeSessions").mockResolvedValue({
+        status: true,
+      } as any);
+
+      vi.spyOn(auth.api, "signOut").mockResolvedValue({
+        headers: undefined,
+        response: { status: true },
+      } as any);
+
+      const result = await AuthService.logoutAll(mockHeaders);
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should propagate errors when upstream revokeSessions fails", async () => {
+      vi.spyOn(auth.api, "revokeSessions").mockRejectedValue(
+        new Error("Mass session revocation failed"),
+      );
+
+      await expect(AuthService.logoutAll(mockHeaders)).rejects.toThrow(
+        "Mass session revocation failed",
+      );
+    });
+
+    it("should propagate errors when upstream signOut fails", async () => {
+      vi.spyOn(auth.api, "revokeSessions").mockResolvedValue({
+        status: true,
+      } as any);
+      vi.spyOn(auth.api, "signOut").mockRejectedValue(
+        new Error("Sign out failed"),
+      );
+
+      await expect(AuthService.logoutAll(mockHeaders)).rejects.toThrow(
+        "Sign out failed",
+      );
     });
   });
 });

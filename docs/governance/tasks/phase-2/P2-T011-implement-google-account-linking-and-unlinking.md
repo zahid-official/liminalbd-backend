@@ -219,6 +219,12 @@
     - Case 8: Not linked customer `/unlink/google` ➔ 400 ACCOUNT_NOT_LINKED (`pass: true`)
   - `pnpm exec tsc --noEmit`: 0 errors.
   - `pnpm lint`: 0 errors / 0 warnings.
+- **Unit Testing Expansion (Vitest):**
+  - Validation Layer (`tests/unit/modules/auth/auth.validation.test.ts`): Expanded `describe("linkGoogleSchema")` (68/68 tests passed) testing relative paths, whitespace trimming, omitted query parameters, privilege injection stripping (`role`, `userId`), non-string types, and max URL length (2048 chars), achieving 100% coverage across `auth.validation.ts`.
+  - Service Layer (`tests/unit/modules/auth/auth.service.test.ts`): Expanded `describe("linkGoogleAccount")` and `describe("unlinkGoogleAccount")` (52/52 tests passed) testing `DEC-020` role checks, intra-user conflict prevention (`409`), default vs custom callback URLs, cookie forwarding, empty cookie handling, sole-method unlinking prevention (`422`), zero-account edges, alternative credential/OAuth providers, and error propagation, achieving 100% statement, branch, function, and line coverage across `auth.service.ts`.
+  - Controller Layer (`tests/unit/modules/auth/auth.controller.test.ts`): Expanded `describe("linkGoogle")` and `describe("unlinkGoogle")` (38/38 tests passed) verifying request headers, context extraction (`res.locals.user.id`), conditional cookie setting, and `catchAsync` error forwarding across all 13 endpoints, achieving 100% statement, branch, function, and line coverage across `auth.controller.ts`.
+  - Route Layer (`tests/unit/modules/auth/auth.routes.test.ts`): Verified `POST /link/google` (depth 3, `authGuard`, validation, controller) and `POST /unlink/google` (depth 2, `authGuard`, controller), refactoring all 14 auth routes with an `assertExclusiveMethod` helper ensuring strict HTTP method exclusivity across the entire router, achieving 100% coverage on `auth.routes.ts`.
+  - Total repository suite test count: 314 passed across 24 test files with 100% statement and branch coverage on all P2-T011 units.
 - **Deviations from Original Plan:**
   - Standardized authenticated identity context exclusively on `res.locals.user` and `res.locals.session` per `DEC-022`, retiring `req.user` and `req.session` to guarantee HTTP request immutability (`DEC-014`).
   - Implemented Two-Tier Account Linking Protection: Tier 1 pre-flight check at `POST /api/v1/auth/link/google` rejects already-linked profiles with `HTTP 409 Conflict`, while Tier 2 callback validation blocks cross-user collision via safe browser 302 redirect (`DEC-020`).
