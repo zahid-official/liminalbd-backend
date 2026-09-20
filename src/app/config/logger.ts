@@ -44,4 +44,4 @@ if (!isProduction) {
 
 // Initialize Pino logger instance
 const logger: Logger = pino(options);
-export { logger };
+export { logger, options as loggerOptions };

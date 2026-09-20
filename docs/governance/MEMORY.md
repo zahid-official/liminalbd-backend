@@ -80,6 +80,7 @@ These are verified observations only. They do not authorize fixes outside an app
 - Soft-deleted users are treated as non-existent for authentication/authorization.
 - Session model includes mandatory token hash for fast secure lookup.
 - Audit logs capture actor, action, target and timestamp.
+- Logging invariants: HTTP request access logging isolates route paths (`url.split('?')[0]`) and omits raw query objects, sensitive headers and cookies; response access logging captures status code only; credential fields in request payloads are redacted with `[REDACTED]`; standard runtime errors capture error message and stack trace for diagnostic observability, and application logic strictly avoids embedding user credentials in Error messages.
 
 ## 6. Project Health Dashboard
 

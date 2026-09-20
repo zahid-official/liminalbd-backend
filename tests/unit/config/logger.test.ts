@@ -1,6 +1,7 @@
 import { Writable } from "node:stream";
 import pino from "pino";
 import { describe, expect, it, vi } from "vitest";
+import { httpLoggerOptions } from "../../../src/app.js";
 
 describe("Logger Configuration Unit Tests", () => {
   it("should initialize a valid Pino logger instance with expected levels and methods", async () => {
@@ -31,7 +32,11 @@ describe("Logger Configuration Unit Tests", () => {
     expect(serialized.stack).toBeDefined();
   });
 
-  it("should redact sensitive fields in logged objects (password, token, secret, cookie)", () => {
+  it("should redact sensitive fields using application loggerOptions (password, token, secret, cookie)", async () => {
+    const { loggerOptions } = await vi.importActual<typeof import("../../../src/app/config/logger.js")>(
+      "../../../src/app/config/logger.js",
+    );
+
     let captured = "";
     const stream = new Writable({
       write(chunk: Buffer, _encoding, callback) {
@@ -40,28 +45,11 @@ describe("Logger Configuration Unit Tests", () => {
       },
     });
 
+    // Use the actual loggerOptions exported by logger.ts (overriding stream/transport for test capture)
     const testLogger = pino(
       {
-        level: "info",
-        redact: {
-          paths: [
-            "password",
-            "*.password",
-            "currentPassword",
-            "*.currentPassword",
-            "newPassword",
-            "*.newPassword",
-            "token",
-            "*.token",
-            "secret",
-            "*.secret",
-            "authorization",
-            "*.authorization",
-            "cookie",
-            "*.cookie",
-          ],
-          censor: "[REDACTED]",
-        },
+        ...loggerOptions,
+        transport: undefined,
       },
       stream,
     );
@@ -99,14 +87,7 @@ describe("Logger Configuration Unit Tests", () => {
     expect(captured).not.toContain("NESTED_TOKEN");
   });
 
-  it("should verify HTTP request serializer strips query string and omits raw query object", () => {
-    // Replicate the HTTP request serializer logic used in app.ts
-    const reqSerializer = (req: { id?: string; method?: string; url?: string; query?: Record<string, unknown> }) => ({
-      id: req.id,
-      method: req.method,
-      url: req.url ? req.url.split("?")[0] : "",
-    });
-
+  it("should verify application HTTP request serializer strips query string and omits raw query object", () => {
     const mockReq = {
       id: "req-synthetic-uuid-101",
       method: "GET",
@@ -118,7 +99,8 @@ describe("Logger Configuration Unit Tests", () => {
       },
     };
 
-    const serialized = reqSerializer(mockReq);
+    // Test the real serializer defined and exported in app.ts
+    const serialized = httpLoggerOptions.serializers.req(mockReq);
 
     expect(serialized.id).toBe("req-synthetic-uuid-101");
     expect(serialized.method).toBe("GET");
@@ -133,12 +115,7 @@ describe("Logger Configuration Unit Tests", () => {
     expect(json).not.toContain("access_token=");
   });
 
-  it("should verify HTTP response serializer extracts statusCode and omits headers/payload", () => {
-    // Replicate the HTTP response serializer logic used in app.ts
-    const resSerializer = (res: { statusCode?: number; headers?: Record<string, unknown>; body?: unknown }) => ({
-      statusCode: res.statusCode,
-    });
-
+  it("should verify application HTTP response serializer extracts statusCode and omits headers/payload", () => {
     const mockRes = {
       statusCode: 200,
       headers: {
@@ -151,7 +128,8 @@ describe("Logger Configuration Unit Tests", () => {
       },
     };
 
-    const serialized = resSerializer(mockRes);
+    // Test the real serializer defined and exported in app.ts
+    const serialized = httpLoggerOptions.serializers.res(mockRes);
 
     expect(serialized.statusCode).toBe(200);
     expect(serialized).not.toHaveProperty("headers");
@@ -162,5 +140,3 @@ describe("Logger Configuration Unit Tests", () => {
     expect(json).not.toContain("SYNTHETIC_ACCESS_TOKEN");
   });
 });
-
-

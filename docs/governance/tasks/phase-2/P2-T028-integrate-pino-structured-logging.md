@@ -66,7 +66,7 @@ _Read-only inspection findings before planning:_
 - **Applicable Architecture Flow:** Config layer only (`src/app/config/logger.ts` → consumed by `server.ts`, `app.ts`, `globalErrorHandler.ts`).
 - **Data / Schema Impact:** None.
 - **Public API / Contract Impact:** None (logging is internal infrastructure).
-- **Security & Authorization Considerations:** Sensitive fields redacted in all environments; secrets never logged.
+- **Security & Authorization Considerations:** Sensitive headers, cookies, query parameters, and structured credential fields are redacted or stripped across all environments; standard error diagnostics preserve error message and stack trace for runtime diagnosis, while application code strictly avoids embedding credentials in Error messages.
 
 ---
 
@@ -113,7 +113,7 @@ _Read-only inspection findings before planning:_
 | Acceptance criteria        | `Yes`    | Code review + manual log inspection             | `PASS`  |
 | Type check / build         | `Yes`    | `pnpm build`                                    | `PASS`  |
 | Lint                       | `Yes`    | `pnpm lint`                                     | `PASS`  |
-| Tests                      | `No`     | `NOT RUN: Jest deferred under DEC-013`          | `NOT RUN` |
+| Tests                      | `Yes`    | `pnpm test` (PASS: 5/5 tests in `logger.test.ts` via Vitest under DEC-025) | `PASS`  |
 | Migration / data integrity | `No`     | No schema changes                               | `N/A`   |
 | Manual verification        | `Yes`    | `pnpm dev` + HTTP request log inspection        | `PASS`  |
 
@@ -142,7 +142,7 @@ _Read-only inspection findings before planning:_
 - **Changed Files:**
   - `[NEW]` `src/app/config/logger.ts` — Pino logger instance with pino-pretty dev transport and sensitive field redaction.
   - `[MODIFY]` `src/app/config/env.ts` — optional `LOG_LEVEL` Zod enum field added.
-  - `[MODIFY]` `src/app.ts` — `{ pinoHttp }` named import from `pino-http`, mounted after CORS and request parsers (before all route handlers) with redact config for `authorization`, `cookie`, `res.headers['set-cookie']`, `password`, `currentPassword`, `newPassword`, `token`, and query parameters (`req.query.token`, `req.query.code`).
+  - `[MODIFY]` `src/app.ts` — `{ pinoHttp }` named import from `pino-http`, mounted after CORS and request parsers (before all route handlers) with `httpLoggerOptions` isolating route paths (`url: req.url.split('?')[0]`, omitting raw `req.query` entirely to eliminate query token leaks), extracting only `statusCode` in response logs, and redacting `authorization`, `cookie`, `res.headers['set-cookie']`, `password`, `currentPassword`, `newPassword`, and `token`.
   - `[MODIFY]` `src/server.ts` — all `console.*` replaced with structured `logger.*` (fatal/info/error levels with context objects); ESLint disable removed.
   - `[MODIFY]` `src/app/middleware/globalErrorHandler.ts` — `console.error` replaced with `logger.error({ err: error, requestId: req.id }, "Internal server error")`; ESLint disable removed.
   - `[MODIFY]` `docs/governance/DECISIONS.md` — `DEC-024` recorded (newest entry).

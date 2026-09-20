@@ -12,6 +12,10 @@ import { vi } from "vitest";
 // to prevent stdout/stderr pollution while satisfying pino-http's internal contracts.
 const silentLogger = pino({ level: "silent" });
 
-vi.mock("../src/app/config/logger.js", () => ({
-  logger: silentLogger,
-}));
+vi.mock("../src/app/config/logger.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/app/config/logger.js")>();
+  return {
+    ...actual,
+    logger: silentLogger,
+  };
+});
