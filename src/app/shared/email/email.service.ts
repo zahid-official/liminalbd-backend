@@ -59,6 +59,7 @@ const sendEmail = async ({
     await transporter.sendMail(mailOptions);
   } catch (error) {
     logger.error({ err: error, subject }, "Failed to dispatch email");
+    throw error;
   }
 };
 

@@ -36,15 +36,15 @@
 - Server lifecycle handling includes startup errors, shutdown signals, unhandled rejections and uncaught exceptions.
 - Better Auth is configured behind internal application boundary (`src/app/config/auth.ts`) with custom database adapter, secure session configuration (`P2-T005`), and `emailOTP` plugin with 15-minute `cookieCache` (`P2-T007`).
 - Public customer registration is established in the dedicated `customer` module (`src/app/modules/customer/`) at `POST /api/v1/customer/register` (`P2-T006`, `DEC-021`) with strict Zod validation, Better Auth user creation, automated `Customer` record creation via centralized `databaseHooks.user.create.after`, duplicate check, and privilege escalation prevention.
-- Email verification and OTP subsystem is established (`P2-T007`): standalone universal transport `sendEmail` (`src/app/shared/email/email.service.ts`), branded React Email OTP template `VerificationEmail.tsx`, dedicated `AuthMailer` (`src/app/shared/email/mailers/auth.mailer.ts`), and endpoints `POST /api/v1/auth/send-verification-otp` (`requestEmailVerification`) and `POST /api/v1/auth/verify-email-otp` (`confirmEmailVerification`).
+- Email verification and OTP subsystem is established (`P2-T007`): standalone universal transport `sendEmail` (`src/app/shared/email/email.service.ts`) logs and rethrows dispatch failures for caller awareness; branded React Email OTP template `VerificationEmail.tsx`, dedicated `AuthMailer` (`src/app/shared/email/mailers/auth.mailer.ts`), and endpoints `POST /api/v1/auth/send-verification-otp` (`requestEmailVerification`) and `POST /api/v1/auth/verify-email-otp` (`confirmEmailVerification`). In Better Auth authentication flows, email callbacks are executed via `runInBackgroundOrAwait` which safely absorbs background transport errors to preserve OWASP Anti-Enumeration on password resets (`FR-AUTH-006`) and allow resilient user creation on registration with subsequent OTP resend recovery (`FR-AUTH-004.3`).
 - Credential login is implemented at `POST /api/v1/auth/login` (`P2-T008`) and Google OAuth at `POST /api/v1/auth/login/google` (`P2-T009`); per `DEC-020`, both routes are dedicated exclusively to customer authentication (`role: CUSTOMER`), with centralized session-hook status guards (`deletedAt` anti-enumeration per `DEC-018`, `SUSPENDED`, `DEACTIVATED`), privileged role rejection (`FORBIDDEN_ROLE_ACCESS`), deterministic compound-state precedence, secure cookie transport, flat sanitized user response, and network rate limiting delegated to reverse proxy (`DEC-019`). Administrative authentication will be handled via dedicated admin endpoints in Workstream C.
 - Reusable session authentication middleware guard (`authGuard`) is established under `src/app/middleware/authGuard.ts` (`P2-T010`), enforcing `HTTP 401 Unauthorized` (`PUBLIC_ERROR_CODES.UNAUTHORIZED`) on missing, expired, revoked, or soft-deleted user sessions via authoritative cookie cache bypass (`disableCookieCache: true`), and injecting server-verified identity context exclusively into `res.locals.user` and `res.locals.session` (`AuthUser`, `AuthSession` from `src/app/modules/auth/auth.interface.ts`), preserving request immutability per `DEC-014` with ambient TypeScript augmentations in `src/app/interfaces/express.d.ts`.
 - Google account linking and unlinking (`P2-T011`) is implemented at `POST /api/v1/auth/link/google` and `POST /api/v1/auth/unlink/google`, protected by `authGuard`; enforces customer portal boundaries (`DEC-020`, 403 `FORBIDDEN_ROLE_ACCESS`), two-tier duplicate account protection with database-level composite unique constraints (`DEC-023`, `@@unique([providerId, accountId])`, `@@unique([userId, providerId])`), non-linked account detection (400 `ACCOUNT_NOT_LINKED`), and prevents removal of the sole authentication method per `FR-AUTH-003.4` (422 `CANNOT_UNLINK_SOLE_METHOD`) while strictly preserving user roles.
 - Password reset flow (`P2-T012`) is established at `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` via Better Auth; enforces anti-enumeration (constant generic response for non-existent and Google-only accounts), branded HTML reset email delivery (`AuthMailer.sendPasswordResetLink`), 15-minute single-use token expiration, password policy validation, session revocation on password reset (`revokeSessionsOnPasswordReset: true`), and resets `needPasswordChange` to `false`.
 - Change and set password endpoints (`P2-T013`) are established at `POST /api/v1/auth/change-password` and `POST /api/v1/auth/set-password` protected by `authGuard`; enforces centralized password policy (`passwordSchema`), rejects current password reuse via schema `.refine()`, protects against enumeration via generic 401 `INVALID_CREDENTIALS` on incorrect current password per OWASP standards, resets `needPasswordChange` to `false`, revokes secondary active sessions by default, prevents duplicate password initialization on credentialed accounts, and strictly preserves linked Google OAuth accounts.
 - Logout and session revocation endpoints (`P2-T014`) are established at `POST /api/v1/auth/logout` and `POST /api/v1/auth/logout-all` protected by `authGuard`; single-session logout invalidates the active session in PostgreSQL and clears cookies via `Max-Age=0` headers; multi-session logout-all atomically revokes every active session for the user across all devices, clears local cookies, guarantees `401 Unauthorized` rejection on subsequent replayed requests, and strictly maintains cross-user session isolation.
-- Pino structured logging is established (`P2-T028`, `DEC-024`): single shared logger instance in `src/app/config/logger.ts`, `pino-http` middleware mounted in `app.ts` (after parsers, before routes) for HTTP request logging with sensitive field redaction (`authorization`, `cookie`, `res.headers['set-cookie']`, `password`, `token`, `req.query.token`, `req.query.code`), `server.ts` and `globalErrorHandler.ts` migrated from `console.*` to structured `logger.*` calls (with `requestId: req.id` correlation on internal server errors). Development uses pino-pretty; production emits raw JSON. Log level controlled via optional `LOG_LEVEL` env variable.
-- Vitest testing infrastructure is established (`P2-T029`, `DEC-025`): Vitest 3 with `environment: node`, `globals: false` (explicit imports), `@vitest/coverage-v8` for V8 coverage, `supertest` for HTTP integration tests. Tests live under mirrored `tests/unit/` (`config/`, `errors/`, `middleware/`, `modules/`, `utils/`, `validations/`) and `tests/integration/` hierarchies with exact 1:1 basename alignment (`<filename>.test.ts`). Logger is globally mocked in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`). `pnpm test` runs `vitest run` (344/344 tests passing across 24 test files); `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates V8 coverage report (100% statement/branch coverage across all P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013, and P2-T014 modules). Jest is permanently dropped.
+- Pino structured logging is established (`P2-T028`, `DEC-024`): single shared logger instance in `src/app/config/logger.ts`, `pino-http` middleware mounted in `app.ts` (after parsers, before routes) for HTTP request logging with route-path isolation (`url: req.url.split('?')[0]`, omitting raw `req.query` entirely to eliminate query token leaks across mixed-case parameter names and nested URLs) and sensitive field redaction (`authorization`, `cookie`, `res.headers['set-cookie']`, `password`, `token`, `secret`), `server.ts` and `globalErrorHandler.ts` migrated from `console.*` to structured `logger.*` calls (with `requestId: req.id` correlation on internal server errors). Development uses pino-pretty; production emits raw JSON. Log level controlled via optional `LOG_LEVEL` env variable.
+- Vitest testing infrastructure is established (`P2-T029`, `DEC-025`): Vitest 3 with `environment: node`, `globals: false` (explicit imports), `@vitest/coverage-v8` for V8 coverage, `supertest` for HTTP integration tests. Tests live under mirrored `tests/unit/` (`config/`, `errors/`, `middleware/`, `modules/`, `utils/`, `validations/`) and `tests/integration/` hierarchies with exact 1:1 basename alignment (`<filename>.test.ts`). Logger is globally mocked in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`). `pnpm test` runs `vitest run` (366/366 tests passing across 27 test files); `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates V8 coverage report (100% statement and branch coverage across all P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013, and P2-T014 modules, plus protected routes, redirect resolution utilities, and 100% statement coverage with verified real output redaction for logger). Jest is permanently dropped.
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
@@ -58,10 +58,12 @@
 
 These are verified observations only. They do not authorize fixes outside an approved task.
 
-## 4. Established Patterns
+## 4. Key Decisions Log (Reference)
 
-- Architecture: `Route → Middleware → Controller → Service → Repository → Prisma → PostgreSQL`.
-- Module structure is responsibility-driven, not file-count-driven.
+- Default flow: Route -> Controller -> Service -> Repository -> Prisma.
+- No direct Prisma calls in routes, controllers or unrelated services.
+- Prisma 7 driver adapter pattern is established (`DEC-011`).
+- Explicit imports only; no global test types or undeclared dependencies.
 - `*.interface.ts` and `*.types.ts` are optional.
 - Reuse Prisma-generated types, inputs and enums when they already satisfy the required contract.
 - Create custom interfaces or types only when a real application-level contract is needed.
@@ -73,20 +75,19 @@ These are verified observations only. They do not authorize fixes outside an app
 ## 5. Security and Data State
 
 - Approved roles are exactly `SUPER_ADMIN`, `ADMIN`, `CUSTOMER`.
-- Public registration must create `CUSTOMER`; privileged roles require approved authorized flows.
-- Security Invariant: Authorization, resource ownership and account restrictions must strictly be enforced server-side; currently enforced at authentication boundary (registration role protection in `P2-T006`, account status checks in `P2-T008`), server-derived session guard (`authGuard` in `P2-T010`), while RBAC authorization (`P2-T015`) and resource ownership (`P2-T022`) remain to be implemented in upcoming tasks.
-- Secrets remain in approved configuration and are never logged or committed.
-- Soft deletion is used only where required by the approved data model.
-- Generated Prisma output must not be hand-edited.
-- Applied migration history must not be rewritten outside an approved workflow.
+- User status values are exactly `ACTIVE`, `SUSPENDED`, `DEACTIVATED`.
+- Hard deletes are strictly forbidden on business entities.
+- Soft-deleted users are treated as non-existent for authentication/authorization.
+- Session model includes mandatory token hash for fast secure lookup.
+- Audit logs capture actor, action, target and timestamp.
 
-## 6. Verification Snapshot
+## 6. Project Health Dashboard
 
 | Check                 | Result                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------- |
 | `pnpm build`          | `PASS` on 2026-09-20                                                                  |
 | `pnpm lint`           | `PASS` on 2026-09-20                                                                  |
-| Automated tests       | `PASS` on 2026-09-20: 344/344 tests pass across 24 test files via Vitest (`DEC-025`), 100% coverage on P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013 & P2-T014 modules |
+| Automated tests       | `PASS` on 2026-09-20: 366/366 tests pass across 27 test files via Vitest (`DEC-025`), 100% coverage on P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013 & P2-T014 modules |
 | Database / migrations | `PASS` on 2026-09-12: canonical migration `20260912090148_init` applied and verified |
 
 ## 7. Next Action

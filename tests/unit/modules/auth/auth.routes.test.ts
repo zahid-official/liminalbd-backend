@@ -1,11 +1,18 @@
+import type { RequestHandler } from "express";
 import { describe, expect, it } from "vitest";
+import { authGuard } from "../../../../src/app/middleware/authGuard.js";
 import { AuthRoutes } from "../../../../src/app/modules/auth/auth.routes.js";
+
+interface RouteStackLayer {
+  name: string;
+  handle: RequestHandler;
+}
 
 interface RouteLayer {
   route?: {
     path?: string;
     methods?: Record<string, boolean>;
-    stack?: unknown[];
+    stack?: RouteStackLayer[];
   };
 }
 
@@ -29,6 +36,11 @@ describe("AuthRoutes Unit Tests", () => {
     for (const method of forbiddenMethods) {
       expect(route?.methods?.[method]).toBeUndefined();
     }
+  };
+
+  const assertProtectedWithAuthGuard = (route: RouteLayer["route"]) => {
+    expect(route).toBeDefined();
+    expect(route?.stack?.[0]?.handle).toBe(authGuard);
   };
 
   it("should register exactly 14 route layers on the auth router", () => {
@@ -89,36 +101,42 @@ describe("AuthRoutes Unit Tests", () => {
     it("should configure POST /link/google route with authGuard, validation, and controller handlers", () => {
       const route = findRoute("/link/google");
       assertExclusiveMethod(route, "post");
+      assertProtectedWithAuthGuard(route);
       expect(route?.stack?.length).toBe(3);
     });
 
     it("should configure POST /unlink/google route with authGuard and controller handlers", () => {
       const route = findRoute("/unlink/google");
       assertExclusiveMethod(route, "post");
+      assertProtectedWithAuthGuard(route);
       expect(route?.stack?.length).toBe(2);
     });
 
     it("should configure POST /change-password route with authGuard, validation, and controller handlers", () => {
       const route = findRoute("/change-password");
       assertExclusiveMethod(route, "post");
+      assertProtectedWithAuthGuard(route);
       expect(route?.stack?.length).toBe(3);
     });
 
     it("should configure POST /set-password route with authGuard, validation, and controller handlers", () => {
       const route = findRoute("/set-password");
       assertExclusiveMethod(route, "post");
+      assertProtectedWithAuthGuard(route);
       expect(route?.stack?.length).toBe(3);
     });
 
     it("should configure POST /logout route with authGuard and controller handlers", () => {
       const route = findRoute("/logout");
       assertExclusiveMethod(route, "post");
+      assertProtectedWithAuthGuard(route);
       expect(route?.stack?.length).toBe(2);
     });
 
     it("should configure POST /logout-all route with authGuard and controller handlers", () => {
       const route = findRoute("/logout-all");
       assertExclusiveMethod(route, "post");
+      assertProtectedWithAuthGuard(route);
       expect(route?.stack?.length).toBe(2);
     });
   });

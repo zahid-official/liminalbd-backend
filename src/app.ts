@@ -38,6 +38,20 @@ app.use(cookieParser());
 app.use(
   pinoHttp({
     logger,
+    serializers: {
+      req(req) {
+        return {
+          id: req.id,
+          method: req.method,
+          url: req.url ? req.url.split("?")[0] : "",
+        };
+      },
+      res(res) {
+        return {
+          statusCode: res.statusCode,
+        };
+      },
+    },
     redact: {
       paths: [
         "req.headers.authorization",
@@ -47,8 +61,6 @@ app.use(
         "req.body.password",
         "req.body.currentPassword",
         "req.body.newPassword",
-        "req.query.token",
-        "req.query.code",
       ],
       censor: "[REDACTED]",
     },

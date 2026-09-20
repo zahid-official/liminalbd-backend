@@ -65,8 +65,8 @@ Statuses:
 2. **Pino Over Winston:** Adopt Pino instead of Winston. Winston is permanently dropped from future tooling consideration.
 3. **Single Logger Boundary:** A single shared logger instance is exported from `src/app/config/logger.ts`. All application layers consume this instance; no module may instantiate its own logger.
 4. **LOG_LEVEL via Environment:** An optional `LOG_LEVEL` environment variable (`fatal | error | warn | info | debug | trace`) controls verbosity. When absent, the default is `debug` in development and `info` in production.
-5. **pino-http for HTTP Logging:** `pino-http` middleware is mounted globally in `app.ts` before all route handlers, using the shared logger instance.
-6. **Sensitive Field Redaction:** `pino-http` is configured to redact `req.headers.authorization`, `req.headers.cookie`, `res.headers['set-cookie']`, and credential/token request body fields (`password`, `token`, etc.) with `[REDACTED]` in all environments.
+5. **pino-http for HTTP Logging:** `pino-http` middleware is mounted globally in `app.ts` before all route handlers, using the shared logger instance. Request serializers isolate route paths (`url: req.url.split('?')[0]`) and omit raw `req.query` objects to prevent query token leaks across mixed-case parameter names and nested URLs. Response serializers extract only `statusCode`, omitting response headers and payloads.
+6. **Sensitive Field Redaction:** `pino-http` is configured to redact `req.headers.authorization`, `req.headers.cookie`, `res.headers['set-cookie']`, and credential/token request body fields (`password`, `currentPassword`, `newPassword`, `token`, etc.) with `[REDACTED]` in all environments.
 7. **server.ts and globalErrorHandler.ts Migration:** All `console.*` lifecycle and error log calls in `server.ts` and `globalErrorHandler.ts` are replaced with structured `logger.*` calls. The `/* eslint-disable no-console */` directives are removed.
 8. **Development vs. Production Transport:** In development (`NODE_ENV !== "production"`), pino-pretty is enabled as a transport for human-readable colored output. In production, raw JSON is emitted for structured log aggregation.
 

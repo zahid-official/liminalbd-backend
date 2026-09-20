@@ -219,7 +219,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Remove all `/* eslint-disable no-console */` directives from migrated files.
 - Build and lint pass without errors.
 
-**Additional verification:** `pnpm build`, `pnpm lint`, and manual HTTP request log output inspection.
+**Additional verification:** `pnpm build`, `pnpm lint`, manual HTTP request log output inspection, and automated Vitest unit test suite (`logger.test.ts`) with 100% statement and function coverage.
 
 **Human review:** `Approved` (2026-09-19)
 
@@ -259,7 +259,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve correct HTTP status and stable error-code behavior.
 - Verify success, validation failure and safe error serialization through focused executable and manual contract checks.
 
-**Additional verification:** Build, lint and focused runtime contract verification.
+**Additional verification:** Build, lint and focused runtime contract verification. Automated Vitest unit test suites (`AppError.test.ts`, `ConfigurationError.test.ts`, `errorCodes.test.ts`, `handleBetterAuthError.test.ts`, `handlePrismaError.test.ts`, `globalErrorHandler.test.ts`, `notFoundErrorHandler.test.ts`, `validateRequest.test.ts`, `sendResponse.test.ts`, `catchAsync.test.ts`, `resolveCallbackURL.test.ts`) with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved`
 

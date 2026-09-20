@@ -157,7 +157,7 @@ describe("EmailService Unit Tests", () => {
   });
 
   describe("Resilient Error Handling", () => {
-    it("should catch errors thrown by transporter.sendMail and log them via logger without throwing", async () => {
+    it("should catch errors thrown by transporter.sendMail, log them via logger, and rethrow", async () => {
       const loggerSpy = vi.spyOn(logger, "error");
       const networkError = new Error("SMTP connection timed out");
       mockSendMail.mockRejectedValueOnce(networkError);
@@ -168,7 +168,7 @@ describe("EmailService Unit Tests", () => {
           subject: "Urgent Notification",
           template: dummyTemplate,
         }),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow(networkError);
 
       expect(loggerSpy).toHaveBeenCalledWith(
         { err: networkError, subject: "Urgent Notification" },
@@ -176,7 +176,7 @@ describe("EmailService Unit Tests", () => {
       );
     });
 
-    it("should catch errors thrown during template rendering and log them via logger without throwing", async () => {
+    it("should catch errors thrown during template rendering, log them via logger, and rethrow", async () => {
       const loggerSpy = vi.spyOn(logger, "error");
       const renderError = new Error("React element rendering failed");
       mockRender.mockRejectedValueOnce(renderError);
@@ -187,7 +187,7 @@ describe("EmailService Unit Tests", () => {
           subject: "Render Failure Subject",
           template: dummyTemplate,
         }),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow(renderError);
 
       expect(loggerSpy).toHaveBeenCalledWith(
         { err: renderError, subject: "Render Failure Subject" },
