@@ -1401,7 +1401,23 @@ describe("AuthService Unit Tests", () => {
       expect(result.setCookies).toEqual([]);
     });
 
-    it("should propagate errors when upstream revokeSession fails", async () => {
+    it("should safely handle authHeaders with empty getSetCookie() and return empty setCookies", async () => {
+      const mockAuthHeaders = new Headers();
+      vi.spyOn(auth.api, "revokeSession").mockResolvedValue({
+        status: true,
+      } as any);
+      vi.spyOn(auth.api, "signOut").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: { status: true },
+      } as any);
+
+      const result = await AuthService.logout("active-token-123", mockHeaders);
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should propagate errors when upstream revokeSession fails and not call signOut", async () => {
+      const signOutSpy = vi.spyOn(auth.api, "signOut");
       vi.spyOn(auth.api, "revokeSession").mockRejectedValue(
         new Error("Session revocation failed"),
       );
@@ -1409,6 +1425,8 @@ describe("AuthService Unit Tests", () => {
       await expect(
         AuthService.logout("active-token-123", mockHeaders),
       ).rejects.toThrow("Session revocation failed");
+
+      expect(signOutSpy).not.toHaveBeenCalled();
     });
 
     it("should propagate errors when upstream signOut fails", async () => {
@@ -1476,7 +1494,23 @@ describe("AuthService Unit Tests", () => {
       expect(result.setCookies).toEqual([]);
     });
 
-    it("should propagate errors when upstream revokeSessions fails", async () => {
+    it("should safely handle authHeaders with empty getSetCookie() and return empty setCookies", async () => {
+      const mockAuthHeaders = new Headers();
+      vi.spyOn(auth.api, "revokeSessions").mockResolvedValue({
+        status: true,
+      } as any);
+      vi.spyOn(auth.api, "signOut").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: { status: true },
+      } as any);
+
+      const result = await AuthService.logoutAll(mockHeaders);
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should propagate errors when upstream revokeSessions fails and not call signOut", async () => {
+      const signOutSpy = vi.spyOn(auth.api, "signOut");
       vi.spyOn(auth.api, "revokeSessions").mockRejectedValue(
         new Error("Mass session revocation failed"),
       );
@@ -1484,6 +1518,8 @@ describe("AuthService Unit Tests", () => {
       await expect(AuthService.logoutAll(mockHeaders)).rejects.toThrow(
         "Mass session revocation failed",
       );
+
+      expect(signOutSpy).not.toHaveBeenCalled();
     });
 
     it("should propagate errors when upstream signOut fails", async () => {

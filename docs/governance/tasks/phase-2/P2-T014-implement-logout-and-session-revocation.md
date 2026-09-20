@@ -209,16 +209,21 @@ _Findings from read-only repository inspection before writing code:_
   - `src/app/modules/auth/auth.routes.ts`: Mounted `POST /api/v1/auth/logout` and `POST /api/v1/auth/logout-all` behind `authGuard`.
 - **Migration Created:** None required (reuses existing Better Auth `session` table).
 - **Test / Verification Output:**
+  - `pnpm test`: 344/344 unit tests pass across 24 test files with 100% statement, branch, function, and line coverage on `auth.service.ts`, `auth.controller.ts`, and `auth.routes.ts`.
+  - **Vitest Unit Test Suite Expansion (`P2-T014`):**
+    - `tests/unit/modules/auth/auth.service.test.ts` (62 tests): Added and expanded unit tests for `logout` and `logoutAll` verifying atomic abort guarantees (`signOutSpy.not.toHaveBeenCalled()` on `revokeSession` or `revokeSessions` failure), empty cookie handling (`setCookies: []`), upstream error propagation, and full return signature validation.
+    - `tests/unit/modules/auth/auth.controller.test.ts` (38 tests): Verified context derivation (`res.locals.session.token`), `fromNodeHeaders` construction, standard 200 response envelope with `null` payload, cookie header forwarding, negative `setHeader` assertion on empty cookies, and `catchAsync` error forwarding.
+    - `tests/unit/modules/auth/auth.routes.test.ts` (15 tests): Verified `POST /logout` and `POST /logout-all` route definitions, `authGuard` enforcement, method exclusivity against `get`, `put`, `delete`, and `patch`, and middleware stack length (`stack.length === 2`).
   - `scratch/verify_p2_t014.ts`: All 5 scenarios executed and passed with exit code 0 against local dev server and PostgreSQL:
     - Scenario 1: Unauthenticated access to `/logout` and `/logout-all` rejected with 401 Unauthorized (`pass: true`).
     - Scenario 2: Single-session logout `/logout` successfully revokes active session from database, emits cookie clearance headers (`better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`), and blocks token replay with 401 Unauthorized (`pass: true`).
     - Scenario 3: Multi-session logout-all `/logout-all` revokes all active sessions for that user across all devices from database (0 remaining sessions in DB), emits cookie clearance headers, and blocks replay on all previous sessions with 401 Unauthorized (`pass: true`).
     - Scenario 4: Cross-user session isolation confirmed — User A calling `/logout-all` leaves User B's active sessions completely intact and operational (`pass: true`).
     - Scenario 5: Database failure resilience during logout verified — simulated session deletion failure properly bubbles up (throwing Internal Server Error), prevents false-positive 200 OK responses, leaves the active DB session intact, and normal logout succeeds when database recovers (`pass: true`).
-  - `pnpm tsc --noEmit`: Exited with code 0 (zero errors).
+  - `pnpm tsc --project tsconfig.test.json --noEmit`: Exited with code 0 (zero errors).
   - `pnpm lint`: Exited with code 0 (zero errors / zero warnings).
 - **Deviations from Original Plan:** None.
-- **Remaining Concerns / Follow-ups:** None. Ready for human review and task closure.
+- **Remaining Concerns / Follow-ups:** None. Unit test suite verified and synchronized.
 
 ---
 

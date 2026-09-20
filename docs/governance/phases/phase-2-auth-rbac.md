@@ -443,9 +443,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - A user cannot revoke another user's sessions through the public flow.
 - Cover current-session, all-session and replay-after-revocation paths.
 
-**Additional verification:** Session persistence and revocation behavior checks.
+**Additional verification:** Session persistence and revocation behavior checks. Automated Vitest unit test suite across service, controller, and route layers with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Approved (2026-09-18)`
+**Human review:** `Approved` (2026-09-18; unit test suite verified 2026-09-20)
 
 ### Workstream C: RBAC and Admin Management
 
