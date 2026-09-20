@@ -570,6 +570,122 @@ describe("auth Configuration Unit Tests", () => {
       expect(sendEmailSpy).not.toHaveBeenCalled();
     });
 
+    it("should invalidate reset token and skip email dispatch when user does not exist in database", async () => {
+      const deleteManySpy = vi
+        .spyOn(prisma.verification, "deleteMany")
+        .mockResolvedValue({ count: 1 });
+      const sendEmailSpy = vi
+        .spyOn(AuthMailer, "sendPasswordResetLink")
+        .mockResolvedValue();
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
+
+      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      if (!sendResetPassword) throw new Error("sendResetPassword missing");
+
+      await sendResetPassword({
+        user: { id: "user-not-found", email: "ghost@example.com" } as any,
+        url: "https://liminal.test/reset?token=token-ghost",
+        token: "token-ghost",
+      });
+
+      expect(deleteManySpy).toHaveBeenCalledWith({
+        where: { identifier: "reset-password:token-ghost" },
+      });
+      expect(sendEmailSpy).not.toHaveBeenCalled();
+    });
+
+    it("should invalidate reset token and skip email dispatch when user is soft-deleted", async () => {
+      const deleteManySpy = vi
+        .spyOn(prisma.verification, "deleteMany")
+        .mockResolvedValue({ count: 1 });
+      const sendEmailSpy = vi
+        .spyOn(AuthMailer, "sendPasswordResetLink")
+        .mockResolvedValue();
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        status: UserStatus.ACTIVE,
+        deletedAt: new Date("2026-01-01T00:00:00Z"),
+        accounts: [{ id: "acc-1", password: "hashed-password" }],
+      } as any);
+
+      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      if (!sendResetPassword) throw new Error("sendResetPassword missing");
+
+      await sendResetPassword({
+        user: { id: "user-deleted", email: "deleted@example.com" } as any,
+        url: "https://liminal.test/reset?token=token-deleted",
+        token: "token-deleted",
+      });
+
+      expect(deleteManySpy).toHaveBeenCalledWith({
+        where: { identifier: "reset-password:token-deleted" },
+      });
+      expect(sendEmailSpy).not.toHaveBeenCalled();
+    });
+
+    it("should invalidate reset token and skip email dispatch when user has no credential password", async () => {
+      const deleteManySpy = vi
+        .spyOn(prisma.verification, "deleteMany")
+        .mockResolvedValue({ count: 1 });
+      const sendEmailSpy = vi
+        .spyOn(AuthMailer, "sendPasswordResetLink")
+        .mockResolvedValue();
+
+      // Social OAuth account only (no local password)
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+        accounts: [{ id: "acc-google", password: null }],
+      } as any);
+
+      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      if (!sendResetPassword) throw new Error("sendResetPassword missing");
+
+      await sendResetPassword({
+        user: { id: "user-social", email: "social@example.com" } as any,
+        url: "https://liminal.test/reset?token=token-social",
+        token: "token-social",
+      });
+
+      expect(deleteManySpy).toHaveBeenCalledWith({
+        where: { identifier: "reset-password:token-social" },
+      });
+      expect(sendEmailSpy).not.toHaveBeenCalled();
+    });
+
+    it("should dispatch password reset link email using user's explicit name when provided", async () => {
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+        accounts: [{ id: "acc-1", password: "hashed-password" }],
+      } as any);
+
+      const sendEmailSpy = vi
+        .spyOn(AuthMailer, "sendPasswordResetLink")
+        .mockResolvedValue();
+
+      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      if (!sendResetPassword) throw new Error("sendResetPassword missing");
+
+      await sendResetPassword({
+        user: {
+          id: "user-eligible",
+          name: "Farhan Ahmed",
+          email: "farhan@example.com",
+        } as any,
+        url: "https://liminal.test/reset?token=t789",
+        token: "t789",
+      });
+
+      expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+      expect(sendEmailSpy).toHaveBeenCalledWith({
+        email: "farhan@example.com",
+        name: "Farhan Ahmed",
+        resetUrl: "https://liminal.test/reset?token=t789",
+      });
+    });
+
     it("should dispatch password reset link email for eligible active accounts with fallback name", async () => {
       vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         status: UserStatus.ACTIVE,
@@ -662,6 +778,80 @@ describe("auth Configuration Unit Tests", () => {
         name: "Customer",
         otp: "123456",
       });
+    });
+
+    it("should dispatch verification OTP email using explicit user name when provided", async () => {
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        name: "Jane Doe",
+        emailVerified: false,
+      } as any);
+
+      const sendOtpSpy = vi
+        .spyOn(AuthMailer, "sendVerificationOtp")
+        .mockResolvedValue();
+
+      const otpPlugin = auth.options.plugins?.find((p) => p.id === "email-otp");
+      const otpOptions = (
+        otpPlugin as unknown as {
+          options?: {
+            sendVerificationOTP?: (params: {
+              email: string;
+              otp: string;
+              type: string;
+            }) => Promise<void>;
+          };
+        }
+      )?.options;
+
+      if (!otpOptions?.sendVerificationOTP) {
+        throw new Error("sendVerificationOTP missing");
+      }
+
+      await otpOptions.sendVerificationOTP({
+        email: "jane.doe@example.com",
+        otp: "654321",
+        type: "email-verification",
+      });
+
+      expect(sendOtpSpy).toHaveBeenCalledTimes(1);
+      expect(sendOtpSpy).toHaveBeenCalledWith({
+        email: "jane.doe@example.com",
+        name: "Jane Doe",
+        otp: "654321",
+      });
+    });
+
+    it("should not dispatch OTP if user does not exist in database", async () => {
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
+
+      const sendOtpSpy = vi
+        .spyOn(AuthMailer, "sendVerificationOtp")
+        .mockResolvedValue();
+
+      const otpPlugin = auth.options.plugins?.find((p) => p.id === "email-otp");
+      const otpOptions = (
+        otpPlugin as unknown as {
+          options?: {
+            sendVerificationOTP?: (params: {
+              email: string;
+              otp: string;
+              type: string;
+            }) => Promise<void>;
+          };
+        }
+      )?.options;
+
+      if (!otpOptions?.sendVerificationOTP) {
+        throw new Error("sendVerificationOTP missing");
+      }
+
+      await otpOptions.sendVerificationOTP({
+        email: "ghost@example.com",
+        otp: "123456",
+        type: "email-verification",
+      });
+
+      expect(sendOtpSpy).not.toHaveBeenCalled();
     });
 
     it("should not dispatch OTP if user is already verified", async () => {

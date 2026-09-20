@@ -938,6 +938,19 @@ describe("AuthService Unit Tests", () => {
           "If an account with that email exists, password reset instructions have been sent.",
       });
     });
+
+    it("should propagate errors thrown by auth.api.requestPasswordReset", async () => {
+      vi.spyOn(auth.api, "requestPasswordReset").mockRejectedValue(
+        new Error("Auth provider unavailable"),
+      );
+
+      await expect(
+        AuthService.forgotPassword(
+          { email: "user@example.com" },
+          mockHeaders,
+        ),
+      ).rejects.toThrow("Auth provider unavailable");
+    });
   });
 
   describe("resetPassword", () => {
@@ -974,6 +987,22 @@ describe("AuthService Unit Tests", () => {
     it("should safely handle undefined authHeaders and return empty setCookies", async () => {
       vi.spyOn(auth.api, "resetPassword").mockResolvedValue({
         headers: undefined,
+        response: { status: true },
+      } as any);
+
+      const result = await AuthService.resetPassword(
+        { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should return empty setCookies when authHeaders contains no set-cookie entries", async () => {
+      const mockAuthHeaders = new Headers();
+
+      vi.spyOn(auth.api, "resetPassword").mockResolvedValue({
+        headers: mockAuthHeaders,
         response: { status: true },
       } as any);
 

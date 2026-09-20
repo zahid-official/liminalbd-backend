@@ -409,7 +409,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Enumeration, token reuse/expiry, password policy and session-revocation checks using approved mocks.
 
-**Human review:** `Approved` (2026-09-16)
+**Human review:** `Approved` (2026-09-16; unit test suite verified 2026-09-20)
 
 #### P2-T013: Implement Change or Set Password
 

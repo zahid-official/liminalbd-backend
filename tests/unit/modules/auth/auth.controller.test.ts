@@ -709,6 +709,7 @@ describe("AuthController Unit Tests", () => {
         { email: "user@example.com", redirectTo: "/new-pass" },
         expect.any(Headers),
       );
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -732,6 +733,7 @@ describe("AuthController Unit Tests", () => {
       await AuthController.forgotPassword(req, res, next);
 
       expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
     });
@@ -790,6 +792,13 @@ describe("AuthController Unit Tests", () => {
 
       expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message:
+          "Password has been reset successfully. Please log in with your new password.",
+        data: null,
+      });
+      expect(next).not.toHaveBeenCalled();
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
@@ -805,6 +814,7 @@ describe("AuthController Unit Tests", () => {
       await AuthController.resetPassword(req, res, next);
 
       expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
     });
@@ -870,6 +880,12 @@ describe("AuthController Unit Tests", () => {
 
       expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Password has been changed successfully.",
+        data: null,
+      });
+      expect(next).not.toHaveBeenCalled();
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
@@ -886,6 +902,7 @@ describe("AuthController Unit Tests", () => {
       await AuthController.changePassword(req, res, next);
 
       expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
     });
@@ -945,6 +962,12 @@ describe("AuthController Unit Tests", () => {
 
       expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Password has been set successfully.",
+        data: null,
+      });
+      expect(next).not.toHaveBeenCalled();
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
@@ -961,6 +984,7 @@ describe("AuthController Unit Tests", () => {
       await AuthController.setPassword(req, res, next);
 
       expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
     });
@@ -1009,6 +1033,12 @@ describe("AuthController Unit Tests", () => {
 
       expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Successfully logged out.",
+        data: null,
+      });
+      expect(next).not.toHaveBeenCalled();
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
@@ -1022,6 +1052,7 @@ describe("AuthController Unit Tests", () => {
       await AuthController.logout(req, res, next);
 
       expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
     });
@@ -1069,6 +1100,12 @@ describe("AuthController Unit Tests", () => {
 
       expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Successfully logged out from all devices.",
+        data: null,
+      });
+      expect(next).not.toHaveBeenCalled();
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
@@ -1082,6 +1119,7 @@ describe("AuthController Unit Tests", () => {
       await AuthController.logoutAll(req, res, next);
 
       expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
     });

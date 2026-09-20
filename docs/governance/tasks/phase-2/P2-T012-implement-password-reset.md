@@ -179,7 +179,15 @@
   - `src/app/modules/auth/auth.routes.ts`: Mounted `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password`.
 - **Migration Created:** None required (reuses existing Better Auth `verification`, `user`, and `account` schemas).
 - **Test / Verification Output:**
-  - `pnpm exec tsx scratch/verify_p2_t012.ts`: All 8 test scenarios passed with exit code 0:
+  - `pnpm test`: 330/330 unit tests pass across 24 test files with 100% statement, branch, function, and line coverage on `auth.validation.ts`, `auth.mailer.ts`, `config/auth.ts`, `auth.service.ts`, and `auth.controller.ts`.
+  - **Vitest Unit Test Suite Expansion (`P2-T012`):**
+    - `tests/unit/modules/auth/auth.validation.test.ts` (76 tests): Thorough boundary, whitespace trimming, type defense (`number`, `boolean`, `array`, `object`), email length limit (>255 chars), token validation (empty after trim, max 256 chars), and password complexity assertions across `forgotPasswordSchema` and `resetPasswordSchema`.
+    - `tests/unit/shared/email/mailers/auth.mailer.test.ts` (4 tests): Verifies `sendPasswordResetLink` template rendering with `ResetPasswordEmail`, correct subject and plain-text fallback, and upstream dispatch error propagation.
+    - `tests/unit/config/auth.test.ts` (35 tests): Verifies `emailAndPassword.sendResetPassword` callback token invalidation for non-existent users, soft-deleted users, suspended accounts, and passwordless OAuth accounts; explicit vs fallback user name dispatch; 15-minute token expiration (`resetPasswordTokenExpiresIn: 900`); session revocation (`revokeSessionsOnPasswordReset: true`); and `onPasswordReset` flag clearance.
+    - `tests/unit/modules/auth/auth.service.test.ts` (54 tests): Verifies `forgotPassword` custom callback URL resolution, default `/reset-password` fallback, constant generic response, and `resetPassword` success message, session cookies extraction, undefined/empty cookie handling, and Better Auth API error propagation.
+    - `tests/unit/modules/auth/auth.controller.test.ts` (38 tests): Verifies `forgotPassword` and `resetPassword` request context parsing, standard 200 response envelopes, empty cookie bypass, negative `res.setHeader` assertions on failure and cookie omission, and `catchAsync` error forwarding.
+    - `tests/unit/modules/auth/auth.routes.test.ts` (15 tests): Verifies `POST /forgot-password` and `POST /reset-password` route configurations and method exclusivity against `get`, `put`, and `delete`.
+  - `pnpm exec tsx scratch/verify_p2_t012.ts`: All 8 integration test scenarios passed with exit code 0:
     - Case 1: Non-existent email forgot-password ➔ 200 OK generic message, 0 email dispatched (`pass: true`)
     - Case 2: Google-only user forgot-password ➔ 200 OK generic message, 0 email dispatched (`pass: true`)
     - Case 3: Weak password rejected by policy ➔ 400 Bad Request `VALIDATION_ERROR` (`pass: true`)
@@ -188,7 +196,7 @@
     - Case 6: Password reset using token ➔ 200 OK, password updated, `needPasswordChange` cleared (`pass: true`)
     - Case 7: Credential Authentication check ➔ Old password returns 401 `INVALID_CREDENTIALS`, new password returns 200 OK (`pass: true`)
     - Case 8: Security controls ➔ Pre-reset session rejected with 401 `UNAUTHORIZED` (revoked), reused token rejected with 400 Bad Request (`pass: true`)
-  - `pnpm exec tsc --noEmit`: 0 errors.
+  - `pnpm tsc --project tsconfig.test.json --noEmit`: 0 errors.
   - `pnpm lint`: 0 errors / 0 warnings.
 - **Deviations from Original Plan:** None. Implemented strictly according to PRD `FR-AUTH-006`, ERD, and governance guidelines.
 - **Remaining Concerns / Follow-ups:**

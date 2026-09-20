@@ -481,10 +481,39 @@ describe("AuthValidation Unit Tests", () => {
         });
       });
 
+      it("should normalize and trim whitespace from redirectTo parameter", () => {
+        expect(
+          schema.safeParse({
+            email: "user@example.com",
+            redirectTo: "   /reset-password   ",
+          }),
+        ).toEqual({
+          success: true,
+          data: {
+            email: "user@example.com",
+            redirectTo: "/reset-password",
+          },
+        });
+      });
+
+      it("should normalize and trim whitespace from email parameter", () => {
+        expect(
+          schema.safeParse({
+            email: "   User+Test@Example.COM   ",
+          }),
+        ).toEqual({
+          success: true,
+          data: {
+            email: "user+test@example.com",
+          },
+        });
+      });
+
       it("should strip extraneous or privileged client-injected fields", () => {
         const payload = {
           email: "user@example.com",
           role: "ADMIN",
+          userId: "victim-id",
         };
 
         expect(schema.safeParse(payload)).toEqual({
@@ -503,15 +532,31 @@ describe("AuthValidation Unit Tests", () => {
         );
       });
 
+      it("should fail when email is not a string", () => {
+        expect(getFirstErrorMessage(schema.safeParse({ email: 12345 }))).toBe(
+          "Email must be a valid text string",
+        );
+        expect(getFirstErrorMessage(schema.safeParse({ email: true }))).toBe(
+          "Email must be a valid text string",
+        );
+      });
+
       it("should fail when email format is invalid", () => {
         expect(
           getFirstErrorMessage(schema.safeParse({ email: "invalid-email" })),
         ).toBe("Please provide a valid email address");
       });
+
+      it("should fail when email exceeds 255 characters", () => {
+        const longEmail = `${"a".repeat(244)}@example.com`;
+        expect(
+          getFirstErrorMessage(schema.safeParse({ email: longEmail })),
+        ).toBe("Email address cannot exceed 255 characters");
+      });
     });
 
     describe("redirectTo Field Validation", () => {
-      it("should reject invalid redirectTo parameter", () => {
+      it("should reject non-string redirectTo parameter", () => {
         expect(
           getFirstErrorMessage(
             schema.safeParse({
@@ -521,6 +566,35 @@ describe("AuthValidation Unit Tests", () => {
           ),
         ).toBe("Redirect URL must be a valid text string");
 
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              email: "user@example.com",
+              redirectTo: true,
+            }),
+          ),
+        ).toBe("Redirect URL must be a valid text string");
+
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              email: "user@example.com",
+              redirectTo: ["/reset"],
+            }),
+          ),
+        ).toBe("Redirect URL must be a valid text string");
+
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              email: "user@example.com",
+              redirectTo: { path: "/reset" },
+            }),
+          ),
+        ).toBe("Redirect URL must be a valid text string");
+      });
+
+      it("should fail when redirectTo exceeds 2048 characters", () => {
         expect(
           getFirstErrorMessage(
             schema.safeParse({
@@ -587,6 +661,22 @@ describe("AuthValidation Unit Tests", () => {
             }),
           ),
         ).toBe("Reset token must be a valid text string");
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              token: true,
+              newPassword: "SecurePassword123!",
+            }),
+          ),
+        ).toBe("Reset token must be a valid text string");
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              token: ["token-array"],
+              newPassword: "SecurePassword123!",
+            }),
+          ),
+        ).toBe("Reset token must be a valid text string");
       });
 
       it("should fail when token is empty after trimming", () => {
@@ -619,6 +709,28 @@ describe("AuthValidation Unit Tests", () => {
             schema.safeParse({ token: "valid-reset-token-xyz" }),
           ),
         ).toBe("Password is required");
+      });
+
+      it("should fail when newPassword is not a string", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              token: "valid-reset-token-xyz",
+              newPassword: 12345678,
+            }),
+          ),
+        ).toBe("Password must be a valid text string");
+      });
+
+      it("should fail when newPassword is shorter than 8 characters", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              token: "valid-reset-token-xyz",
+              newPassword: "Pass1!",
+            }),
+          ),
+        ).toBe("Password must be at least 8 characters");
       });
 
       it("should fail when newPassword does not satisfy complexity requirements", () => {
@@ -823,6 +935,12 @@ describe("AuthValidation Unit Tests", () => {
         expect(getFirstErrorMessage(schema.safeParse({}))).toBe(
           "Password is required",
         );
+      });
+
+      it("should fail when newPassword is not a string", () => {
+        expect(
+          getFirstErrorMessage(schema.safeParse({ newPassword: 12345678 })),
+        ).toBe("Password must be a valid text string");
       });
 
       it("should fail when newPassword fails passwordSchema validation", () => {
