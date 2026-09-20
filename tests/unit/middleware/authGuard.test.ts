@@ -264,5 +264,25 @@ describe("authGuard Unit Tests", () => {
       expect(res.locals.user).toBeUndefined();
       expect(res.locals.session).toBeUndefined();
     });
+
+    it("should forward AppError or internal errors thrown during getSession to next() middleware", async () => {
+      const internalError = new AppError(
+        status.INTERNAL_SERVER_ERROR,
+        PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR,
+        "Failed to communicate with authentication provider",
+      );
+      vi.spyOn(auth.api, "getSession").mockRejectedValue(internalError);
+
+      const req = { headers: {} } as Request;
+      const res = { locals: {} } as Response;
+      const next = vi.fn() as unknown as NextFunction;
+
+      await authGuard(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(internalError);
+      expect(res.locals.user).toBeUndefined();
+      expect(res.locals.session).toBeUndefined();
+    });
   });
 });

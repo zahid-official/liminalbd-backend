@@ -373,7 +373,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Never trust client-supplied headers or body for authentication identity.
 - Verify missing, invalid, expired and valid session paths through focused runtime checks.
 
-**Additional verification:** Middleware and protected-route checks with mocked Better Auth sessions.
+**Additional verification:** Middleware and protected-route checks with mocked Better Auth sessions. Automated Vitest unit test suite (`authGuard.test.ts` — 10 tests) with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved` (2026-09-15)
 

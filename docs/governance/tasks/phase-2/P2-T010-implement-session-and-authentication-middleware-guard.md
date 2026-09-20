@@ -201,6 +201,13 @@
   5. `Case 5: Anti-Spoofing -> Server Identity Preserved` (Status: 200, Spoofed x-user-id / x-user-role ignored, server DB identity preserved)
   6. `Case 6: Revoked Session -> 401 UNAUTHORIZED` (Status: 401, Code: UNAUTHORIZED immediately after deletion from DB, replaying full Cookie header containing cached `session_data`)
   7. `Case 7: Soft-Deleted User -> 401 UNAUTHORIZED` (Status: 401, Code: UNAUTHORIZED for user with deletedAt timestamp, replaying full Cookie header containing cached `session_data`)
+- **Unit Testing Expansion (Vitest):**
+  - Dedicated unit test suite established at `tests/unit/middleware/authGuard.test.ts` (10/10 tests passed) achieving 100% statement, branch, function, and line coverage on `src/app/middleware/authGuard.ts`:
+    1. `Session Validation & Rejection Scenarios (401 UNAUTHORIZED)`: Missing sessionData (null), missing session object, missing user object, and soft-deleted user (`deletedAt !== null`) all reject with 401 UNAUTHORIZED (`PUBLIC_ERROR_CODES.UNAUTHORIZED`).
+    2. `Successful Authentication & Identity Context Injection (Happy Path)`: Verifies header extraction, enforcement of `query: { disableCookieCache: true }` to bypass cookie caching, faithful attachment of `res.locals.user` and `res.locals.session`, argument-free `next()` dispatch, and role-agnostic authentication of administrative user sessions without premature filtering.
+    3. `Security & Request Immutability Boundaries (DEC-022)`: Rejects client-injected claims (`x-user-id`, `x-user-role`, `req.body`), guarantees `req.user` and `req.session` are untouched, and preserves pre-existing `res.locals` properties.
+    4. `Unexpected Error Handling (catchAsync)`: Verifies unexpected database/network errors and internal `AppError` exceptions thrown during `getSession` are caught and safely forwarded to `next(err)`.
+  - Total repository suite test count: 276 passed across 24 test files.
 - **Deviations from Original Plan:**
   - Added `transactionOptions: { maxWait: 10000, timeout: 20000 }` to `PrismaClient` in `src/app/config/prisma.ts` to ensure remote Prisma Postgres (`db.prisma.io:5432`) connections do not prematurely time out during interactive transactions.
   - Standardized context injection exclusively on `res.locals.user` and `res.locals.session` per `DEC-022`, retiring `req.user` / `req.session` to guarantee HTTP request immutability (`DEC-014`).
