@@ -260,7 +260,7 @@ describe("AuthController Unit Tests", () => {
       password: "Password123!",
     };
 
-    it("should authenticate customer, set cookies, and send 200 response", async () => {
+    it("should extract validated body, convert headers faithfully, invoke AuthService, set cookies, and send 200 response", async () => {
       const mockResult = {
         user: {
           id: "user-123",
@@ -270,7 +270,56 @@ describe("AuthController Unit Tests", () => {
           role: UserRole.CUSTOMER,
           status: UserStatus.ACTIVE,
         },
-        setCookies: ["session_token=valid; Path=/"],
+        setCookies: ["better-auth.session_token=valid-cookie; Path=/"],
+      };
+
+      const loginSpy = vi
+        .spyOn(AuthService, "loginWithCredentials")
+        .mockResolvedValue(mockResult);
+
+      const req = {
+        headers: {
+          "user-agent": "Vitest-Agent",
+          "x-forwarded-for": "127.0.0.1",
+        },
+      } as unknown as Request;
+
+      const res = makeMockRes({ validatedBody: mockPayload });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginWithCredentials(req, res, next);
+
+      expect(loginSpy).toHaveBeenCalledTimes(1);
+      expect(loginSpy).toHaveBeenCalledWith(mockPayload, expect.any(Headers));
+
+      const passedHeaders = loginSpy.mock.calls[0]?.[1] as Headers;
+      expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
+      expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        "set-cookie",
+        mockResult.setCookies,
+      );
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Login successful",
+        data: mockResult.user,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should omit set-cookie header when setCookies is empty", async () => {
+      const mockResult = {
+        user: {
+          id: "user-123",
+          name: "Zahidul Islam",
+          email: "zahid@liminalbd.com",
+          emailVerified: true,
+          role: UserRole.CUSTOMER,
+          status: UserStatus.ACTIVE,
+        },
+        setCookies: [],
       };
 
       vi.spyOn(AuthService, "loginWithCredentials").mockResolvedValue(mockResult);
@@ -281,13 +330,35 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.loginWithCredentials(req, res, next);
 
-      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", mockResult.setCookies);
+      expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         message: "Login successful",
         data: mockResult.user,
       });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward login service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.UNAUTHORIZED,
+        PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
+        "Invalid email or password",
+      );
+
+      vi.spyOn(AuthService, "loginWithCredentials").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({ validatedBody: mockPayload });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginWithCredentials(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 

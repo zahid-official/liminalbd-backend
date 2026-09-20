@@ -135,6 +135,7 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 | Acceptance criteria            | `Yes`    | PRD FR-AUTH-005 & FR-RBAC-006.1 inspection                                                                                 | `PASS`      |
 | Type check / build             | `Yes`    | `pnpm exec tsc --noEmit`                                                                                                   | `PASS`      |
 | Lint                           | `Yes`    | `pnpm lint`                                                                                                                | `PASS`      |
+| Automated unit tests           | `Yes`    | `pnpm test`                                                                                                                | `PASS` (100% coverage across all P2-T008 modules) |
 | Input validation check         | `Yes`    | Empty body returns 400 with `VALIDATION_ERROR`                                                                             | `PASS`      |
 | Invalid credential rejection   | `Yes`    | Non-existent user or wrong password returns 401 `INVALID_CREDENTIALS` (timing-equalized via Better Auth dummy password hash) | `PASS`      |
 | Unverified account rejection   | `Yes`    | Returns 403 `EMAIL_NOT_VERIFIED` only upon correct password                                                | `PASS`      |
@@ -166,17 +167,18 @@ When an account exhibits multiple overlapping state conditions (e.g. invalid cre
 ## 10. Implementation Evidence
 
 - **Changed Files:**
-  - `src/app/config/auth.ts` (configured `databaseHooks.session.create.before` to enforce status guards before session write)
-  - `src/app/errors/handleBetterAuthError.ts` (added mappings for `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`, `INVALID_CREDENTIALS`)
+  - `src/app/config/auth.ts` (configured `databaseHooks.session.create.before` to enforce status guards before session write; verified via `tests/unit/config/auth.test.ts` — 29 tests, 100% coverage)
+  - `src/app/errors/handleBetterAuthError.ts` (added mappings for `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`, `INVALID_CREDENTIALS`; verified via `tests/unit/errors/handleBetterAuthError.test.ts` — 9 tests, 100% coverage)
   - `src/app/errors/errorCodes.ts` (added `INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`)
-  - `src/app/modules/auth/auth.validation.ts` (added `loginWithCredentialsSchema`, `LoginWithCredentialsInput`)
-  - `src/app/modules/auth/auth.service.ts` (implemented `loginWithCredentials` delegating directly to `auth.api.signInEmail` with cookie forwarding)
-  - `src/app/modules/auth/auth.controller.ts` (implemented `loginWithCredentials` with `fromNodeHeaders` and `authHeaders.getSetCookie()`)
-  - `src/app/modules/auth/auth.routes.ts` (mounted `POST /login` with `validateRequest(AuthValidation.loginWithCredentialsSchema)`)
+  - `src/app/modules/auth/auth.validation.ts` (added `loginWithCredentialsSchema`, `LoginWithCredentialsInput`; verified via `tests/unit/modules/auth/auth.validation.test.ts` — 58 tests, 100% coverage)
+  - `src/app/modules/auth/auth.service.ts` (implemented `loginWithCredentials` delegating directly to `auth.api.signInEmail` with cookie forwarding; verified via `tests/unit/modules/auth/auth.service.test.ts` — 27 tests, 100% statements/funcs/lines)
+  - `src/app/modules/auth/auth.controller.ts` (implemented `loginWithCredentials` with `fromNodeHeaders` and `authHeaders.getSetCookie()`; verified via `tests/unit/modules/auth/auth.controller.test.ts` — 19 tests, 100% coverage)
+  - `src/app/modules/auth/auth.routes.ts` (mounted `POST /login` with `validateRequest(AuthValidation.loginWithCredentialsSchema)`; verified via `tests/unit/modules/auth/auth.routes.test.ts` — 15 tests, 100% coverage)
   - `docs/governance/tasks/phase-2/P2-T008-implement-login-with-account-status-and-rate-limit-enforcement.md` (updated implementation evidence and architectural design)
 - **Test / Verification Output:**
   - `pnpm lint`: Passed (0 errors, 0 warnings).
   - `pnpm exec tsc --noEmit`: Passed (`tsc` completed with 0 errors).
+  - `pnpm test`: Passed (250/250 tests passing across 23 test files).
   - Executable Contract Checks (All 9 scenarios verified):
     1. Validation Gate: POST `{}` -> HTTP 400 (`VALIDATION_ERROR`, missing email and password fields).
     2. Missing User Gate: POST non-existent user -> HTTP 401 (`INVALID_CREDENTIALS`, timing-equalized via Better Auth dummy password hash applied).

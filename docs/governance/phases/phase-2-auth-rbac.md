@@ -320,7 +320,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Rate-limit resend requests and map invalid, expired or reused links to the required errors.
 - Cover verification and resend success and failure paths using approved mocks without exposing tokens.
 
-**Additional verification:** Provider-mocked flow and token/error mapping checks.
+**Additional verification:** Provider-mocked flow and token/error mapping checks. Automated Vitest unit test suites (`email.service.test.ts`, `auth.mailer.test.ts`, `auth.validation.test.ts`, `auth.service.test.ts`, `auth.controller.test.ts`, `auth.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved` (2026-09-11)
 
@@ -338,7 +338,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return the approved user data in the shared envelope while maintaining the session only through secure cookies.
 - Cover active, invalid-credential and restricted-account paths.
 
-**Additional verification:** Login, cookie and status behavior checks (Rate limiting verified at Reverse Proxy infrastructure boundary per DEC-019).
+**Additional verification:** Login, cookie and status behavior checks (Rate limiting verified at Reverse Proxy infrastructure boundary per DEC-019). Automated Vitest unit test suites (`auth.test.ts`, `auth.validation.test.ts`, `auth.service.test.ts`, `auth.controller.test.ts`, `auth.routes.test.ts`) covering all compound-state precedence rules and status guards with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved` (2026-09-12)
 

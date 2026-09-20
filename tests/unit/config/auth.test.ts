@@ -223,29 +223,74 @@ describe("auth Configuration Unit Tests", () => {
   });
 
   describe("Database Hook: session.create.before", () => {
-    it("should throw UNAUTHORIZED when user does not exist or is soft-deleted", async () => {
+    it("should throw 401 INVALID_CREDENTIALS when user does not exist in database", async () => {
       const beforeHook = auth.options.databaseHooks?.session?.create?.before;
       expect(beforeHook).toBeDefined();
       if (!beforeHook) throw new Error("session.create.before hook missing");
 
-      // User not found
       vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
 
       await expect(
-        beforeHook({ userId: "unknown-user" } as any, {} as any),
-      ).rejects.toThrow(APIError);
+        beforeHook({ userId: "nonexistent-user" } as any, {} as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("UNAUTHORIZED");
+        expect(apiError.statusCode).toBe(401);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.INVALID_CREDENTIALS);
+        expect(apiError.body?.message).toBe("Invalid email or password");
+        return true;
+      });
+    });
 
-      // User soft deleted
+    it("should throw 401 INVALID_CREDENTIALS when user is soft-deleted (anti-enumeration)", async () => {
+      const beforeHook = auth.options.databaseHooks?.session?.create?.before;
+      if (!beforeHook) throw new Error("session.create.before hook missing");
+
       vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         role: UserRole.CUSTOMER,
         status: UserStatus.ACTIVE,
-        deletedAt: new Date(),
+        deletedAt: new Date("2026-01-01T00:00:00Z"),
         emailVerified: true,
       } as any);
 
       await expect(
         beforeHook({ userId: "deleted-user" } as any, {} as any),
-      ).rejects.toThrow(APIError);
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("UNAUTHORIZED");
+        expect(apiError.statusCode).toBe(401);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.INVALID_CREDENTIALS);
+        expect(apiError.body?.message).toBe("Invalid email or password");
+        return true;
+      });
+    });
+
+    it("should prioritize soft-deleted state over unverified and suspended states (Compound Precedence Priority 2)", async () => {
+      const beforeHook = auth.options.databaseHooks?.session?.create?.before;
+      if (!beforeHook) throw new Error("session.create.before hook missing");
+
+      // Compound state: soft-deleted + suspended + unverified
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.CUSTOMER,
+        status: UserStatus.SUSPENDED,
+        deletedAt: new Date("2026-01-01T00:00:00Z"),
+        emailVerified: false,
+      } as any);
+
+      await expect(
+        beforeHook({ userId: "deleted-compound-user" } as any, {} as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("UNAUTHORIZED");
+        expect(apiError.statusCode).toBe(401);
+        // Soft delete MUST take precedence over ACCOUNT_SUSPENDED and EMAIL_NOT_VERIFIED
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.INVALID_CREDENTIALS);
+        expect(apiError.body?.message).toBe("Invalid email or password");
+        return true;
+      });
     });
 
     it("should throw FORBIDDEN when administrative user attempts Google callback session creation", async () => {
@@ -268,10 +313,42 @@ describe("auth Configuration Unit Tests", () => {
 
       await expect(
         beforeHook({ userId: "admin-user" } as any, mockContext as any),
-      ).rejects.toThrow(APIError);
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
+        expect(apiError.body?.message).toBe(
+          "Access denied. Administrative accounts cannot use Google sign-in.",
+        );
+        return true;
+      });
     });
 
-    it("should throw FORBIDDEN when user account is SUSPENDED", async () => {
+    it("should allow session creation check to proceed when request is not Google callback path", async () => {
+      const beforeHook = auth.options.databaseHooks?.session?.create?.before;
+      if (!beforeHook) throw new Error("session.create.before hook missing");
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.ADMIN,
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+        emailVerified: true,
+      } as any);
+
+      const mockContext = {
+        request: {
+          url: "http://localhost:5000/api/v1/auth/login",
+        },
+      };
+
+      await expect(
+        beforeHook({ userId: "admin-credential-user" } as any, mockContext as any),
+      ).resolves.not.toThrow();
+    });
+
+    it("should throw 403 ACCOUNT_SUSPENDED when user account is SUSPENDED", async () => {
       const beforeHook = auth.options.databaseHooks?.session?.create?.before;
       if (!beforeHook) throw new Error("session.create.before hook missing");
 
@@ -282,16 +359,50 @@ describe("auth Configuration Unit Tests", () => {
         emailVerified: true,
       } as any);
 
-      try {
-        await beforeHook({ userId: "user-suspended" } as any, {} as any);
-      } catch (err) {
-        expect((err as APIError).body?.code).toBe(
-          PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,
+      await expect(
+        beforeHook({ userId: "user-suspended" } as any, {} as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED);
+        expect(apiError.body?.message).toBe(
+          "Your account has been suspended. Please contact support.",
         );
-      }
+        return true;
+      });
     });
 
-    it("should throw FORBIDDEN when user account is DEACTIVATED", async () => {
+    it("should prioritize SUSPENDED status over unverified email state (Compound Precedence Priority 3)", async () => {
+      const beforeHook = auth.options.databaseHooks?.session?.create?.before;
+      if (!beforeHook) throw new Error("session.create.before hook missing");
+
+      // Compound state: suspended + unverified
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.CUSTOMER,
+        status: UserStatus.SUSPENDED,
+        deletedAt: null,
+        emailVerified: false,
+      } as any);
+
+      await expect(
+        beforeHook({ userId: "user-suspended-unverified" } as any, {} as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        // Suspension MUST take precedence over EMAIL_NOT_VERIFIED
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED);
+        expect(apiError.body?.message).toBe(
+          "Your account has been suspended. Please contact support.",
+        );
+        return true;
+      });
+    });
+
+    it("should throw 403 ACCOUNT_DEACTIVATED when user account is DEACTIVATED", async () => {
       const beforeHook = auth.options.databaseHooks?.session?.create?.before;
       if (!beforeHook) throw new Error("session.create.before hook missing");
 
@@ -302,16 +413,50 @@ describe("auth Configuration Unit Tests", () => {
         emailVerified: true,
       } as any);
 
-      try {
-        await beforeHook({ userId: "user-deactivated" } as any, {} as any);
-      } catch (err) {
-        expect((err as APIError).body?.code).toBe(
-          PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
+      await expect(
+        beforeHook({ userId: "user-deactivated" } as any, {} as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED);
+        expect(apiError.body?.message).toBe(
+          "Your account is deactivated. Please contact support.",
         );
-      }
+        return true;
+      });
     });
 
-    it("should throw FORBIDDEN when user email is not verified", async () => {
+    it("should prioritize DEACTIVATED status over unverified email state (Compound Precedence Priority 3)", async () => {
+      const beforeHook = auth.options.databaseHooks?.session?.create?.before;
+      if (!beforeHook) throw new Error("session.create.before hook missing");
+
+      // Compound state: deactivated + unverified
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.CUSTOMER,
+        status: UserStatus.DEACTIVATED,
+        deletedAt: null,
+        emailVerified: false,
+      } as any);
+
+      await expect(
+        beforeHook({ userId: "user-deactivated-unverified" } as any, {} as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        // Deactivation MUST take precedence over EMAIL_NOT_VERIFIED
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED);
+        expect(apiError.body?.message).toBe(
+          "Your account is deactivated. Please contact support.",
+        );
+        return true;
+      });
+    });
+
+    it("should throw 403 EMAIL_NOT_VERIFIED when active user email is not verified (Priority 4)", async () => {
       const beforeHook = auth.options.databaseHooks?.session?.create?.before;
       if (!beforeHook) throw new Error("session.create.before hook missing");
 
@@ -322,16 +467,22 @@ describe("auth Configuration Unit Tests", () => {
         emailVerified: false,
       } as any);
 
-      try {
-        await beforeHook({ userId: "user-unverified" } as any, {} as any);
-      } catch (err) {
-        expect((err as APIError).body?.code).toBe(
-          PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED,
+      await expect(
+        beforeHook({ userId: "user-unverified" } as any, {} as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.EMAIL_NOT_VERIFIED);
+        expect(apiError.body?.message).toBe(
+          "Please verify your email before logging in",
         );
-      }
+        return true;
+      });
     });
 
-    it("should allow session creation for active verified customer", async () => {
+    it("should allow session creation for active verified customer (Priority 5)", async () => {
       const beforeHook = auth.options.databaseHooks?.session?.create?.before;
       if (!beforeHook) throw new Error("session.create.before hook missing");
 

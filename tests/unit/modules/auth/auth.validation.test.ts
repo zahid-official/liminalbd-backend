@@ -250,6 +250,28 @@ describe("AuthValidation Unit Tests", () => {
         ).toBe("Email address is required");
       });
 
+      it("should fail when email is not a string", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              email: 123456,
+              password: "MyPassword123",
+            }),
+          ),
+        ).toBe("Email must be a valid text string");
+      });
+
+      it("should fail when email is an empty string", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              email: "",
+              password: "MyPassword123",
+            }),
+          ),
+        ).toBe("Please provide a valid email address");
+      });
+
       it("should fail when email format is invalid", () => {
         expect(
           getFirstErrorMessage(
@@ -259,6 +281,18 @@ describe("AuthValidation Unit Tests", () => {
             }),
           ),
         ).toBe("Please provide a valid email address");
+      });
+
+      it("should fail when email exceeds 255 characters", () => {
+        const longEmail = `${"a".repeat(244)}@example.com`;
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              email: longEmail,
+              password: "MyPassword123",
+            }),
+          ),
+        ).toBe("Email address cannot exceed 255 characters");
       });
     });
 

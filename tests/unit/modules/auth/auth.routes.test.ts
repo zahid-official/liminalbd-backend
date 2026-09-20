@@ -40,6 +40,9 @@ describe("AuthRoutes Unit Tests", () => {
       const route = findRoute("/login");
       expect(route).toBeDefined();
       expect(route?.methods?.post).toBe(true);
+      expect(route?.methods?.get).toBeUndefined();
+      expect(route?.methods?.put).toBeUndefined();
+      expect(route?.methods?.delete).toBeUndefined();
       expect(route?.stack?.length).toBe(2);
     });
 

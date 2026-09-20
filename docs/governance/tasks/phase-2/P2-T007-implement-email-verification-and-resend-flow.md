@@ -93,6 +93,7 @@
 | Type check / build | `Yes` | `pnpm build` (`tsc`) | `PASS` (0 errors) |
 | Lint | `Yes` | `pnpm lint` (`eslint ./src`) | `PASS` (0 warnings/errors) |
 | Dev server runtime | `Yes` | `pnpm dev` | `PASS` (Port 5000 running) |
+| Automated unit tests | `Yes` | `pnpm test` | `PASS` (100% coverage across all P2-T007 modules) |
 | OTP dispatch on signup | `Yes` | Verified explicit service dispatch triggers `AuthMailer` | `PASS` |
 | Invalid OTP rejection | `Yes` | Rejects with HTTP 400 (`INVALID_OR_EXPIRED_OTP`) | `PASS` |
 | Valid OTP verification | `Yes` | Updates `User.emailVerified: true` and issues session | `PASS` |
@@ -121,11 +122,11 @@
 
 ## 9. Implementation Evidence
 
-- **Universal Transport:** Created `sendEmail` in `src/app/shared/email/email.service.ts` supporting dual HTML/plain-text rendering with React Email.
+- **Universal Transport:** Created `sendEmail` in `src/app/shared/email/email.service.ts` supporting dual HTML/plain-text rendering with React Email. Verified via `tests/unit/shared/email/email.service.test.ts` (7 tests, 100% coverage).
 - **Architectural Email Template:** Created `VerificationEmail.tsx` with responsive layout, Liminal Studio color theory (`#44542d`, `#141f0a`), monospaced 6-digit OTP box, and 5-minute validity notices.
-- **Mailer Subsystem:** Created `AuthMailer` under `src/app/shared/email/mailers/auth.mailer.ts`.
-- **Better Auth Integration:** Configured `emailOTP` plugin with 6-digit length, 300s expiry, `sendVerificationOnSignUp: false` (orchestrated post-commit via `CustomerService.registerCustomer`), `overrideDefaultEmailVerification: true`, `autoSignInAfterVerification: true`, and 15-minute `cookieCache` for session optimization.
-- **Service & Error Contract:** Added `USER_NOT_FOUND`, `ALREADY_VERIFIED`, `INVALID_OR_EXPIRED_OTP`, and `TOO_MANY_REQUESTS` to `PUBLIC_ERROR_CODES`. Implemented `requestEmailVerification` (with anti-enumeration) and `confirmEmailVerification` (capturing session cookie without redundant DB writes) in `auth.service.ts`.
-- **Zod Validation:** Added `requestEmailVerificationSchema` and `confirmEmailVerificationSchema` with exact 6-digit length checking.
-- **Routing:** Mounted `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp` in `auth.routes.ts`.
-- **Checks:** `pnpm lint` and `pnpm build` pass with 0 errors.
+- **Mailer Subsystem:** Created `AuthMailer` under `src/app/shared/email/mailers/auth.mailer.ts`. Verified via `tests/unit/shared/email/mailers/auth.mailer.test.ts` (4 tests, 100% coverage).
+- **Better Auth Integration:** Configured `emailOTP` plugin with 6-digit length, 300s expiry, `sendVerificationOnSignUp: false` (orchestrated post-commit via `CustomerService.registerCustomer`), `overrideDefaultEmailVerification: true`, `autoSignInAfterVerification: true`, and 15-minute `cookieCache` for session optimization. Verified via `tests/unit/config/auth.test.ts` (29 tests, 100% coverage).
+- **Service & Error Contract:** Added `USER_NOT_FOUND`, `ALREADY_VERIFIED`, `INVALID_OR_EXPIRED_OTP`, and `TOO_MANY_REQUESTS` to `PUBLIC_ERROR_CODES`. Implemented `requestEmailVerification` (with anti-enumeration) and `confirmEmailVerification` (capturing session cookie without redundant DB writes) in `auth.service.ts`. Verified via `tests/unit/modules/auth/auth.service.test.ts` (27 tests, 100% statements/funcs/lines).
+- **Zod Validation:** Added `requestEmailVerificationSchema` and `confirmEmailVerificationSchema` with exact 6-digit length checking. Verified via `tests/unit/modules/auth/auth.validation.test.ts` (58 tests, 100% coverage).
+- **Routing & Controller:** Mounted `POST /api/v1/auth/send-verification-otp` and `POST /api/v1/auth/verify-email-otp` in `auth.routes.ts` and implemented in `auth.controller.ts`. Verified via `tests/unit/modules/auth/auth.controller.test.ts` (19 tests, 100% coverage) and `tests/unit/modules/auth/auth.routes.test.ts` (15 tests, 100% coverage).
+- **Checks:** `pnpm lint`, `pnpm build`, and `pnpm test` pass with 0 errors across 250 unit tests.

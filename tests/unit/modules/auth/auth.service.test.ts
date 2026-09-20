@@ -362,6 +362,37 @@ describe("AuthService Unit Tests", () => {
 
       expect(deleteManySpy).not.toHaveBeenCalled();
     });
+
+    it("should fallback to empty setCookies array when authHeaders does not contain set-cookie headers", async () => {
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: new Headers(),
+        response: {
+          token: "session-token-no-cookie",
+          user: {
+            id: "customer-1",
+            name: "Customer One",
+            email: "user@example.com",
+            emailVerified: true,
+            role: UserRole.CUSTOMER,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      const result = await AuthService.loginWithCredentials(payload, mockHeaders);
+
+      expect(result.setCookies).toEqual([]);
+      expect(result.user.id).toBe("customer-1");
+    });
+
+    it("should propagate errors when signInEmail rejects (e.g., invalid credentials or account status)", async () => {
+      const signInError = new Error("Invalid email or password");
+      vi.spyOn(auth.api, "signInEmail").mockRejectedValue(signInError);
+
+      await expect(
+        AuthService.loginWithCredentials(payload, mockHeaders),
+      ).rejects.toThrow(signInError);
+    });
   });
 
   describe("loginWithGoogle", () => {
