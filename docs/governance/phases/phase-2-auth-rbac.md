@@ -356,7 +356,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Apply the approved matching/linking policy for customers without unintended duplicate accounts.
 - Preserve every existing privileged role and map denial, provider failure and conflicts safely.
 
-**Additional verification:** Provider-mocked first-time, returning customer, conflict and privileged-account rejection checks.
+**Additional verification:** Provider-mocked first-time, returning customer, conflict and privileged-account rejection checks. Automated Vitest unit test suites (`auth.test.ts`, `auth.validation.test.ts`, `auth.service.test.ts`, `auth.controller.test.ts`, `auth.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved` (2026-09-14)
 

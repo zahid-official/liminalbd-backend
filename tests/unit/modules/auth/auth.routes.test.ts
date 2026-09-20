@@ -50,6 +50,9 @@ describe("AuthRoutes Unit Tests", () => {
       const route = findRoute("/login/google");
       expect(route).toBeDefined();
       expect(route?.methods?.post).toBe(true);
+      expect(route?.methods?.get).toBeUndefined();
+      expect(route?.methods?.put).toBeUndefined();
+      expect(route?.methods?.delete).toBeUndefined();
       expect(route?.stack?.length).toBe(2);
     });
 
@@ -57,6 +60,9 @@ describe("AuthRoutes Unit Tests", () => {
       const route = findRoute("/callback/google");
       expect(route).toBeDefined();
       expect(route?.methods?.get).toBe(true);
+      expect(route?.methods?.post).toBeUndefined();
+      expect(route?.methods?.put).toBeUndefined();
+      expect(route?.methods?.delete).toBeUndefined();
       expect(route?.stack?.length).toBe(1);
     });
 
@@ -64,6 +70,9 @@ describe("AuthRoutes Unit Tests", () => {
       const route = findRoute("/error");
       expect(route).toBeDefined();
       expect(route?.methods?.get).toBe(true);
+      expect(route?.methods?.post).toBeUndefined();
+      expect(route?.methods?.put).toBeUndefined();
+      expect(route?.methods?.delete).toBeUndefined();
       expect(route?.stack?.length).toBe(1);
     });
 

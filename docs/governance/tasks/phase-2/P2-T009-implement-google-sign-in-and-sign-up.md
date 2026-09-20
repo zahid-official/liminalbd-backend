@@ -268,6 +268,14 @@ Per `DEC-020` and user architectural direction:
 - **Code Quality Results:**
   - `pnpm exec tsc --noEmit` — 0 errors (Exit code 0)
   - `pnpm lint` — 0 errors (Exit code 0)
+- **Unit Testing Expansion (Vitest):**
+  - All 5 test steps implemented with 100% statement, branch, function, and line coverage across target units:
+    1. `tests/unit/config/auth.test.ts`: Google social provider config, account linking (`trustedProviders: ["google"]`), customer profile hook (`databaseHooks.user.create.after`), administrative linking guard (`databaseHooks.account.create.before` testing both `ADMIN` and `SUPER_ADMIN`), and Google callback path guard (`databaseHooks.session.create.before` testing both `ADMIN` and `SUPER_ADMIN`). (29/29 passed, 100% coverage on `auth.ts`).
+    2. `tests/unit/modules/auth/auth.validation.test.ts`: `loginWithGoogleSchema` and `linkGoogleSchema` with dedicated `describe` blocks covering valid relative paths, omitted queries, extraneous parameter stripping, non-string rejections, and >2048 character limit. (66/66 passed, 100% coverage on `auth.validation.ts`).
+    3. `tests/unit/modules/auth/auth.service.test.ts`: `AuthService.loginWithGoogle` covering custom `redirectTo`, default fallback to `/dashboard`, undefined `authHeaders` handling, multiple cookie forwarding, and upstream error propagation. (31/31 passed, 100% statement/func/line coverage on `auth.service.ts`).
+    4. `tests/unit/modules/auth/auth.controller.test.ts`: `AuthController.loginWithGoogle` and `AuthController.handleOAuthError` covering header conversion, empty cookie branches, omitted query handling, URL encoding of error strings, and `catchAsync` error forwarding. (23/23 passed, 100% coverage on `auth.controller.ts`).
+    5. `tests/unit/modules/auth/auth.routes.test.ts`: `POST /login/google`, `GET /callback/google`, and `GET /error` route registrations, middleware stack depths, and strict HTTP method exclusivity. (15/15 passed, 100% coverage on `auth.routes.ts`).
+  - Total full suite test count: 266 passed across 23 test files.
 - **Deviations from Original Plan:**
   - Replaced body payload for `/login/google` with query-based `redirectTo` (`POST /api/v1/auth/login/google?redirectTo=...`) validated through `validateRequest` middleware, improving frontend ergonomics without requiring a JSON body.
   - Implemented open-redirect defense against protocol-relative URLs (`//attacker.com`) and automated relative-path resolution (`/path` ➔ `${env.FRONTEND_URL}/path`).

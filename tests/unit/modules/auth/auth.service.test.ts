@@ -396,7 +396,7 @@ describe("AuthService Unit Tests", () => {
   });
 
   describe("loginWithGoogle", () => {
-    it("should initialize Google OAuth sign-in flow with resolved callback URL and return URL & cookies", async () => {
+    it("should initialize Google OAuth sign-in flow with custom redirectTo and return URL & cookies", async () => {
       const mockAuthHeaders = new Headers();
       mockAuthHeaders.append(
         "set-cookie",
@@ -432,6 +432,86 @@ describe("AuthService Unit Tests", () => {
         redirect: true,
         setCookies: ["better-auth.state=oauth-state; Path=/"],
       });
+    });
+
+    it("should fallback to default /dashboard callbackURL when redirectTo is omitted", async () => {
+      const signInSocialSpy = vi
+        .spyOn(auth.api, "signInSocial")
+        .mockResolvedValue({
+          headers: new Headers(),
+          response: {
+            url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=...",
+            redirect: true,
+          },
+        } as any);
+
+      const result = await AuthService.loginWithGoogle(mockHeaders);
+
+      expect(signInSocialSpy).toHaveBeenCalledWith({
+        body: {
+          provider: "google",
+          callbackURL: `${env.FRONTEND_URL}/dashboard`,
+        },
+        headers: mockHeaders,
+        returnHeaders: true,
+      });
+
+      expect(result.url).toBe(
+        "https://accounts.google.com/o/oauth2/v2/auth?client_id=...",
+      );
+      expect(result.redirect).toBe(true);
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should safely handle undefined authHeaders and return empty setCookies array", async () => {
+      vi.spyOn(auth.api, "signInSocial").mockResolvedValue({
+        headers: undefined,
+        response: {
+          url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=...",
+          redirect: true,
+        },
+      } as any);
+
+      const result = await AuthService.loginWithGoogle(mockHeaders, "/cart");
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should forward multiple cookies when returned by better-auth", async () => {
+      const mockAuthHeaders = new Headers();
+      mockAuthHeaders.append(
+        "set-cookie",
+        "better-auth.state=state123; Path=/; HttpOnly",
+      );
+      mockAuthHeaders.append(
+        "set-cookie",
+        "better-auth.pkce=pkce456; Path=/; HttpOnly",
+      );
+
+      vi.spyOn(auth.api, "signInSocial").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: {
+          url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=...",
+          redirect: true,
+        },
+      } as any);
+
+      const result = await AuthService.loginWithGoogle(mockHeaders);
+
+      expect(result.setCookies).toEqual([
+        "better-auth.state=state123; Path=/; HttpOnly",
+        "better-auth.pkce=pkce456; Path=/; HttpOnly",
+      ]);
+    });
+
+    it("should propagate errors thrown by auth.api.signInSocial", async () => {
+      vi.spyOn(auth.api, "signInSocial").mockRejectedValue(
+        new Error("OAuth upstream service unavailable"),
+      );
+
+      await expect(
+        AuthService.loginWithGoogle(mockHeaders),
+      ).rejects.toThrow("OAuth upstream service unavailable");
     });
   });
 

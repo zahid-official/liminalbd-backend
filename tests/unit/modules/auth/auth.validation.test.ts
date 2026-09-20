@@ -332,37 +332,100 @@ describe("AuthValidation Unit Tests", () => {
     });
   });
 
-  describe("loginWithGoogleSchema & linkGoogleSchema", () => {
-    const loginSchema = AuthValidation.loginWithGoogleSchema.query;
-    const linkSchema = AuthValidation.linkGoogleSchema.query;
+  describe("loginWithGoogleSchema", () => {
+    const schema = AuthValidation.loginWithGoogleSchema.query;
 
-    it("should accept valid or omitted redirectTo query parameter", () => {
-      expect(loginSchema.safeParse({ redirectTo: "/dashboard" })).toEqual({
-        success: true,
-        data: { redirectTo: "/dashboard" },
+    describe("Successful Validation & Sanitization", () => {
+      it("should accept valid redirectTo relative query parameter", () => {
+        expect(schema.safeParse({ redirectTo: "/dashboard" })).toEqual({
+          success: true,
+          data: { redirectTo: "/dashboard" },
+        });
       });
 
-      expect(loginSchema.safeParse({})).toEqual({
-        success: true,
-        data: {},
+      it("should accept omitted redirectTo query parameter", () => {
+        expect(schema.safeParse({})).toEqual({
+          success: true,
+          data: {},
+        });
       });
 
-      expect(linkSchema.safeParse({ redirectTo: "/settings/security" })).toEqual({
-        success: true,
-        data: { redirectTo: "/settings/security" },
+      it("should strip extraneous or client-injected query parameters", () => {
+        expect(
+          schema.safeParse({
+            redirectTo: "/dashboard",
+            role: "SUPER_ADMIN",
+            callbackURL: "https://evil.com",
+          }),
+        ).toEqual({
+          success: true,
+          data: { redirectTo: "/dashboard" },
+        });
       });
     });
 
-    it("should reject invalid redirectTo parameter", () => {
-      expect(
-        getFirstErrorMessage(loginSchema.safeParse({ redirectTo: 12345 })),
-      ).toBe("Redirect URL must be a valid text string");
+    describe("redirectTo Field Validation", () => {
+      it("should fail when redirectTo is not a string", () => {
+        expect(getFirstErrorMessage(schema.safeParse({ redirectTo: 12345 }))).toBe(
+          "Redirect URL must be a valid text string",
+        );
+      });
 
-      expect(
-        getFirstErrorMessage(
-          loginSchema.safeParse({ redirectTo: `/${"a".repeat(2048)}` }),
-        ),
-      ).toBe("Redirect URL cannot exceed 2048 characters");
+      it("should fail when redirectTo exceeds 2048 characters", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({ redirectTo: `/${"a".repeat(2048)}` }),
+          ),
+        ).toBe("Redirect URL cannot exceed 2048 characters");
+      });
+    });
+  });
+
+  describe("linkGoogleSchema", () => {
+    const schema = AuthValidation.linkGoogleSchema.query;
+
+    describe("Successful Validation & Sanitization", () => {
+      it("should accept valid redirectTo relative query parameter", () => {
+        expect(schema.safeParse({ redirectTo: "/settings/security" })).toEqual({
+          success: true,
+          data: { redirectTo: "/settings/security" },
+        });
+      });
+
+      it("should accept omitted redirectTo query parameter", () => {
+        expect(schema.safeParse({})).toEqual({
+          success: true,
+          data: {},
+        });
+      });
+
+      it("should strip extraneous query parameters", () => {
+        expect(
+          schema.safeParse({
+            redirectTo: "/settings/security",
+            unauthorizedKey: "maliciousValue",
+          }),
+        ).toEqual({
+          success: true,
+          data: { redirectTo: "/settings/security" },
+        });
+      });
+    });
+
+    describe("redirectTo Field Validation", () => {
+      it("should fail when redirectTo is not a string", () => {
+        expect(getFirstErrorMessage(schema.safeParse({ redirectTo: true }))).toBe(
+          "Redirect URL must be a valid text string",
+        );
+      });
+
+      it("should fail when redirectTo exceeds 2048 characters", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({ redirectTo: `/${"x".repeat(2048)}` }),
+          ),
+        ).toBe("Redirect URL cannot exceed 2048 characters");
+      });
     });
   });
 

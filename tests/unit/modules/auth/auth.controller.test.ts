@@ -363,20 +363,32 @@ describe("AuthController Unit Tests", () => {
   });
 
   describe("loginWithGoogle", () => {
-    it("should initialize Google OAuth and return redirect url and cookies", async () => {
+    it("should extract validated query, convert headers faithfully, set cookies, and send 200 response", async () => {
       const mockResult = {
         url: "https://accounts.google.com/o/oauth2/v2/auth",
         redirect: true,
         setCookies: ["oauth_state=state123; Path=/"],
       };
 
-      vi.spyOn(AuthService, "loginWithGoogle").mockResolvedValue(mockResult);
+      const loginSpy = vi
+        .spyOn(AuthService, "loginWithGoogle")
+        .mockResolvedValue(mockResult);
 
-      const req = { headers: {} } as unknown as Request;
+      const req = {
+        headers: {
+          "user-agent": "Vitest-Agent",
+          "x-forwarded-for": "127.0.0.1",
+        },
+      } as unknown as Request;
       const res = makeMockRes({ validatedQuery: { redirectTo: "/dashboard" } });
       const next = vi.fn() as unknown as NextFunction;
 
       await AuthController.loginWithGoogle(req, res, next);
+
+      expect(loginSpy).toHaveBeenCalledWith(expect.any(Headers), "/dashboard");
+      const passedHeaders = loginSpy.mock.calls[0]?.[0] as Headers;
+      expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
+      expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
 
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", mockResult.setCookies);
       expect(res.status).toHaveBeenCalledWith(status.OK);
@@ -388,13 +400,81 @@ describe("AuthController Unit Tests", () => {
           redirect: mockResult.redirect,
         },
       });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should not call res.setHeader when setCookies is empty", async () => {
+      const mockResult = {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
+        redirect: true,
+        setCookies: [],
+      };
+
+      vi.spyOn(AuthService, "loginWithGoogle").mockResolvedValue(mockResult);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({ validatedQuery: { redirectTo: "/dashboard" } });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginWithGoogle(req, res, next);
+
+      expect(res.setHeader).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Google authentication initialized",
+        data: {
+          url: mockResult.url,
+          redirect: mockResult.redirect,
+        },
+      });
+    });
+
+    it("should handle omitted redirectTo query gracefully", async () => {
+      const mockResult = {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
+        redirect: true,
+        setCookies: [],
+      };
+
+      const loginSpy = vi
+        .spyOn(AuthService, "loginWithGoogle")
+        .mockResolvedValue(mockResult);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes(); // res.locals.validated is undefined
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginWithGoogle(req, res, next);
+
+      expect(loginSpy).toHaveBeenCalledWith(expect.any(Headers), undefined);
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.INTERNAL_SERVER_ERROR,
+        PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR,
+        "Failed to initiate OAuth flow",
+      );
+
+      vi.spyOn(AuthService, "loginWithGoogle").mockRejectedValue(serviceError);
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({ validatedQuery: { redirectTo: "/dashboard" } });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginWithGoogle(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 
   describe("handleOAuthError", () => {
-    it("should redirect to frontend login with encoded error when error query param is present", async () => {
+    it("should redirect to frontend login with encoded error parameter when error query is present", async () => {
       const req = {
-        query: { error: "access_denied" },
+        query: { error: "access denied & cancelled" },
       } as unknown as Request;
 
       const res = makeMockRes();
@@ -403,8 +483,9 @@ describe("AuthController Unit Tests", () => {
       await AuthController.handleOAuthError(req, res, next);
 
       expect(res.redirect).toHaveBeenCalledWith(
-        `${env.FRONTEND_URL}/login?error=access_denied`,
+        `${env.FRONTEND_URL}/login?error=access%20denied%20%26%20cancelled`,
       );
+      expect(next).not.toHaveBeenCalled();
     });
 
     it("should fallback to oauth_failed error when query parameter is missing", async () => {
@@ -420,6 +501,21 @@ describe("AuthController Unit Tests", () => {
       expect(res.redirect).toHaveBeenCalledWith(
         `${env.FRONTEND_URL}/login?error=oauth_failed`,
       );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward unexpected redirect errors to next() middleware via catchAsync", async () => {
+      const redirectError = new Error("Redirect failed");
+      const req = { query: { error: "test" } } as unknown as Request;
+      const res = makeMockRes();
+      res.redirect = vi.fn().mockImplementation(() => {
+        throw redirectError;
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.handleOAuthError(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(redirectError);
     });
   });
 

@@ -161,32 +161,51 @@ describe("auth Configuration Unit Tests", () => {
   });
 
   describe("Database Hook: account.create.before", () => {
-    it("should forbid linking Google account for non-CUSTOMER accounts", async () => {
-      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
-        role: UserRole.ADMIN,
-      } as any);
-
+    it("should forbid linking Google account for non-CUSTOMER accounts (ADMIN and SUPER_ADMIN)", async () => {
       const beforeHook = auth.options.databaseHooks?.account?.create?.before;
       expect(beforeHook).toBeDefined();
       if (!beforeHook) throw new Error("account.create.before hook missing");
+
+      // ADMIN role rejection
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.ADMIN,
+      } as any);
 
       await expect(
         beforeHook({
           userId: "user-admin-1",
           providerId: "google",
         } as any),
-      ).rejects.toThrow(APIError);
-
-      try {
-        await beforeHook({
-          userId: "user-admin-1",
-          providerId: "google",
-        } as any);
-      } catch (err) {
-        expect((err as APIError).body?.code).toBe(
-          PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
+        expect(apiError.body?.message).toBe(
+          "Access denied. Administrative accounts cannot link or use Google sign-in.",
         );
-      }
+        return true;
+      });
+
+      // SUPER_ADMIN role rejection
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.SUPER_ADMIN,
+      } as any);
+
+      await expect(
+        beforeHook({
+          userId: "user-super-1",
+          providerId: "google",
+        } as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
+        return true;
+      });
     });
 
     it("should allow linking Google account for CUSTOMER accounts", async () => {
@@ -293,23 +312,24 @@ describe("auth Configuration Unit Tests", () => {
       });
     });
 
-    it("should throw FORBIDDEN when administrative user attempts Google callback session creation", async () => {
+    it("should throw FORBIDDEN when administrative user (ADMIN or SUPER_ADMIN) attempts Google callback session creation", async () => {
       const beforeHook = auth.options.databaseHooks?.session?.create?.before;
       if (!beforeHook) throw new Error("session.create.before hook missing");
       const googleCallbackUrl = new URL(env.GOOGLE_CALLBACK_URL);
-
-      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
-        role: UserRole.ADMIN,
-        status: UserStatus.ACTIVE,
-        deletedAt: null,
-        emailVerified: true,
-      } as any);
 
       const mockContext = {
         request: {
           url: `${googleCallbackUrl.origin}${googleCallbackUrl.pathname}?code=xyz`,
         },
       };
+
+      // ADMIN role rejection
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.ADMIN,
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+        emailVerified: true,
+      } as any);
 
       await expect(
         beforeHook({ userId: "admin-user" } as any, mockContext as any),
@@ -322,6 +342,25 @@ describe("auth Configuration Unit Tests", () => {
         expect(apiError.body?.message).toBe(
           "Access denied. Administrative accounts cannot use Google sign-in.",
         );
+        return true;
+      });
+
+      // SUPER_ADMIN role rejection
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        role: UserRole.SUPER_ADMIN,
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+        emailVerified: true,
+      } as any);
+
+      await expect(
+        beforeHook({ userId: "superadmin-user" } as any, mockContext as any),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(APIError);
+        const apiError = err as APIError;
+        expect(apiError.status).toBe("FORBIDDEN");
+        expect(apiError.statusCode).toBe(403);
+        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
         return true;
       });
     });
