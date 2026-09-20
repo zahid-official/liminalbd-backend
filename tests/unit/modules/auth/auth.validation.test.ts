@@ -783,6 +783,23 @@ describe("AuthValidation Unit Tests", () => {
         });
       });
 
+      it("should preserve explicit revokeOtherSessions: true", () => {
+        const result = schema.safeParse({
+          currentPassword: "OldPassword123!",
+          newPassword: "NewSecurePassword456!",
+          revokeOtherSessions: true,
+        });
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            currentPassword: "OldPassword123!",
+            newPassword: "NewSecurePassword456!",
+            revokeOtherSessions: true,
+          },
+        });
+      });
+
       it("should strip extraneous or privileged client-injected fields", () => {
         const payload = {
           currentPassword: "OldPassword123!",
@@ -821,6 +838,24 @@ describe("AuthValidation Unit Tests", () => {
             }),
           ),
         ).toBe("Current password must be a valid text string");
+
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              currentPassword: true,
+              newPassword: "NewPassword123!",
+            }),
+          ),
+        ).toBe("Current password must be a valid text string");
+
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              currentPassword: ["secret"],
+              newPassword: "NewPassword123!",
+            }),
+          ),
+        ).toBe("Current password must be a valid text string");
       });
 
       it("should fail when currentPassword is empty", () => {
@@ -855,6 +890,28 @@ describe("AuthValidation Unit Tests", () => {
         ).toBe("Password is required");
       });
 
+      it("should fail when newPassword is not a string", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              currentPassword: "OldPassword123!",
+              newPassword: 12345678,
+            }),
+          ),
+        ).toBe("Password must be a valid text string");
+      });
+
+      it("should fail when newPassword is shorter than 8 characters", () => {
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              currentPassword: "OldPassword123!",
+              newPassword: "Pass1!",
+            }),
+          ),
+        ).toBe("Password must be at least 8 characters");
+      });
+
       it("should fail when newPassword does not satisfy password complexity", () => {
         expect(
           getFirstErrorMessage(
@@ -875,6 +932,26 @@ describe("AuthValidation Unit Tests", () => {
               currentPassword: "OldPassword123!",
               newPassword: "NewPassword123!",
               revokeOtherSessions: "yes",
+            }),
+          ),
+        ).toBe("Revoke other sessions must be a boolean");
+
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              currentPassword: "OldPassword123!",
+              newPassword: "NewPassword123!",
+              revokeOtherSessions: 1,
+            }),
+          ),
+        ).toBe("Revoke other sessions must be a boolean");
+
+        expect(
+          getFirstErrorMessage(
+            schema.safeParse({
+              currentPassword: "OldPassword123!",
+              newPassword: "NewPassword123!",
+              revokeOtherSessions: {},
             }),
           ),
         ).toBe("Revoke other sessions must be a boolean");
@@ -941,6 +1018,12 @@ describe("AuthValidation Unit Tests", () => {
         expect(
           getFirstErrorMessage(schema.safeParse({ newPassword: 12345678 })),
         ).toBe("Password must be a valid text string");
+      });
+
+      it("should fail when newPassword is shorter than 8 characters", () => {
+        expect(
+          getFirstErrorMessage(schema.safeParse({ newPassword: "Pass1!" })),
+        ).toBe("Password must be at least 8 characters");
       });
 
       it("should fail when newPassword fails passwordSchema validation", () => {

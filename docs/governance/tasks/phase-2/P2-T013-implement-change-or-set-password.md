@@ -190,6 +190,13 @@
   - `src/app/errors/handleBetterAuthError.ts`: Mapped `INVALID_PASSWORD` to 400 Bad Request (`FR-AUTH-007.1`), `CREDENTIAL_ACCOUNT_NOT_FOUND` to 403 Forbidden (`PASSWORD_CHANGE_NOT_ALLOWED`), and `PASSWORD_ALREADY_SET` to 400 Bad Request (`CONFLICT`).
 - **Migration Created:** None required (reuses existing Better Auth `user`, `account`, and `session` schemas).
 - **Test / Verification Output:**
+  - `pnpm test`: 342/342 unit tests pass across 24 test files with 100% statement, branch, function, and line coverage on `auth.validation.ts`, `handleBetterAuthError.ts`, `auth.service.ts`, and `auth.controller.ts`.
+  - **Vitest Unit Test Suite Expansion (`P2-T013`):**
+    - `tests/unit/modules/auth/auth.validation.test.ts` (80 tests): Added tests verifying `changePasswordSchema` with explicit boolean flags (`revokeOtherSessions: true/false`), non-string type defense (`number`, `boolean`, `array`, `object`), password complexity, length checks, and business invariant refinement (rejecting `newPassword === currentPassword`), plus `setPasswordSchema` type defense, length, and complexity checks.
+    - `tests/unit/errors/handleBetterAuthError.test.ts` (11 tests): Added tests verifying all mapped Better Auth error codes including `INVALID_PASSWORD` (400 `INVALID_CREDENTIALS`), `CREDENTIAL_ACCOUNT_NOT_FOUND` (403 `PASSWORD_CHANGE_NOT_ALLOWED`), and `PASSWORD_ALREADY_SET` (400 `CONFLICT`), bringing `authErrorMap` coverage to 100.0%.
+    - `tests/unit/modules/auth/auth.service.test.ts` (60 tests): Added tests verifying `changePassword` with `revokeOtherSessions: false`, empty cookie arrays, database update failure propagation, and negative state transition guarantees (`updateSpy.not.toHaveBeenCalled()`), plus `setPassword` with existing password conflict, null credential password handling, cookie extraction, and negative guarantees.
+    - `tests/unit/modules/auth/auth.controller.test.ts` (38 tests): Verified `changePassword` and `setPassword` context extraction, standard 200 response envelopes, empty cookie bypass, negative `setHeader` assertions on failure and cookie omission, and `catchAsync` error forwarding.
+    - `tests/unit/modules/auth/auth.routes.test.ts` (15 tests): Verified `POST /change-password` and `POST /set-password` route configurations, `authGuard` enforcement, validation middlewares, and method exclusivity against `get`, `put`, and `delete`.
   - `scratch/verify_p2_t013.ts`: All 9 test scenarios executed and passed with exit code 0:
     - Case 1: Unauthenticated access to `/change-password` and `/set-password` rejected with 401 (`pass: true`)
     - Case 2: Weak password rejected by centralized password policy with 400 `VALIDATION_ERROR` (`pass: true`)
@@ -200,7 +207,7 @@
     - Case 7: Session revocation policy verified — secondary session revoked (401) upon password change (`pass: true`)
     - Case 8: Google-only user sets initial password with 200 OK, `needPasswordChange` cleared, Google account preserved, and user can now authenticate with credentials (`pass: true`)
     - Case 9: Account with existing password blocked from calling `/set-password` with 400 `CONFLICT` (`pass: true`)
-  - `pnpm exec tsc --noEmit`: Exited with code 0 (zero errors).
+  - `pnpm tsc --project tsconfig.test.json --noEmit`: Exited with code 0 (zero errors).
   - `pnpm lint`: Exited with code 0 (zero errors / zero warnings).
 - **Deviations from Original Plan:** None. Maintained strict request immutability (`res.locals.user`), centralized customer profile lifecycle (`DEC-022`), and canonical PRD HTTP 400 error mapping for incorrect current password (`FR-AUTH-007.1`).
 - **Remaining Concerns / Follow-ups:**

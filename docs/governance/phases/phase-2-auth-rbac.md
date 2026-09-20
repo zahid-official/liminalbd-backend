@@ -425,9 +425,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve linked Google authentication and never expose credential data.
 - Cover existing-password, Google-only and invalid-state paths.
 
-**Additional verification:** Credential-method and session-policy behavior checks.
+**Additional verification:** Credential-method and session-policy behavior checks. Automated Vitest unit test suite across validation, service, controller, and route layers with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Approved (2026-09-18)`
+**Human review:** `Approved` (2026-09-18; unit test suite verified 2026-09-20)
 
 #### P2-T014: Implement Logout and Session Revocation
 

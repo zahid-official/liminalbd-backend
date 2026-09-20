@@ -1075,6 +1075,55 @@ describe("AuthService Unit Tests", () => {
       });
     });
 
+    it("should change password with revokeOtherSessions: false when explicitly provided", async () => {
+      const mockAuthHeaders = new Headers();
+      mockAuthHeaders.append("set-cookie", "new_session=active; Path=/");
+
+      const changeSpy = vi.spyOn(auth.api, "changePassword").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: { status: true },
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
+
+      const result = await AuthService.changePassword(
+        "user-id-123",
+        { ...payload, revokeOtherSessions: false },
+        mockHeaders,
+      );
+
+      expect(changeSpy).toHaveBeenCalledWith({
+        body: {
+          currentPassword: "OldPassword123!",
+          newPassword: "NewPassword456!",
+          revokeOtherSessions: false,
+        },
+        headers: mockHeaders,
+        returnHeaders: true,
+      });
+
+      expect(result.setCookies).toEqual(["new_session=active; Path=/"]);
+    });
+
+    it("should return empty setCookies when authHeaders contains no set-cookie entries", async () => {
+      const mockAuthHeaders = new Headers();
+
+      vi.spyOn(auth.api, "changePassword").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: { status: true },
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
+
+      const result = await AuthService.changePassword(
+        "user-id-123",
+        payload,
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([]);
+    });
+
     it("should safely handle undefined authHeaders and return empty setCookies", async () => {
       vi.spyOn(auth.api, "changePassword").mockResolvedValue({
         headers: undefined,
@@ -1105,6 +1154,21 @@ describe("AuthService Unit Tests", () => {
 
       expect(updateSpy).not.toHaveBeenCalled();
     });
+
+    it("should propagate errors thrown by prisma.user.update", async () => {
+      vi.spyOn(auth.api, "changePassword").mockResolvedValue({
+        headers: new Headers(),
+        response: { status: true },
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockRejectedValue(
+        new Error("Database write failure"),
+      );
+
+      await expect(
+        AuthService.changePassword("user-id-123", payload, mockHeaders),
+      ).rejects.toThrow("Database write failure");
+    });
   });
 
   describe("setPassword", () => {
@@ -1112,6 +1176,8 @@ describe("AuthService Unit Tests", () => {
       vi.spyOn(prisma.account, "findUnique").mockResolvedValue({
         password: "already-hashed-password",
       } as any);
+      const setSpy = vi.spyOn(auth.api, "setPassword");
+      const updateSpy = vi.spyOn(prisma.user, "update");
 
       await expect(
         AuthService.setPassword(
@@ -1129,13 +1195,51 @@ describe("AuthService Unit Tests", () => {
         });
         return true;
       });
+
+      expect(setSpy).not.toHaveBeenCalled();
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it("should allow setting password when existing credential account has null password", async () => {
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue({
+        password: null,
+      } as any);
+
+      const setSpy = vi.spyOn(auth.api, "setPassword").mockResolvedValue({
+        headers: new Headers(),
+        response: { status: true },
+      } as any);
+
+      const updateSpy = vi
+        .spyOn(prisma.user, "update")
+        .mockResolvedValue({} as any);
+
+      const result = await AuthService.setPassword(
+        "user-null-pass",
+        { newPassword: "InitialPassword123!" },
+        mockHeaders,
+      );
+
+      expect(setSpy).toHaveBeenCalledWith({
+        body: { newPassword: "InitialPassword123!" },
+        headers: mockHeaders,
+        returnHeaders: true,
+      });
+      expect(updateSpy).toHaveBeenCalledWith({
+        where: { id: "user-null-pass" },
+        data: { needPasswordChange: false },
+      });
+      expect(result.message).toBe("Password has been set successfully.");
     });
 
     it("should set password, clear needPasswordChange flag, and return cookies when no password exists", async () => {
       vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
 
+      const mockAuthHeaders = new Headers();
+      mockAuthHeaders.append("set-cookie", "session_token=initialized; Path=/");
+
       const setSpy = vi.spyOn(auth.api, "setPassword").mockResolvedValue({
-        headers: new Headers(),
+        headers: mockAuthHeaders,
         response: { status: true },
       } as any);
 
@@ -1162,7 +1266,7 @@ describe("AuthService Unit Tests", () => {
 
       expect(result).toEqual({
         message: "Password has been set successfully.",
-        setCookies: [],
+        setCookies: ["session_token=initialized; Path=/"],
       });
     });
 
@@ -1171,6 +1275,25 @@ describe("AuthService Unit Tests", () => {
 
       vi.spyOn(auth.api, "setPassword").mockResolvedValue({
         headers: undefined,
+        response: { status: true },
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
+
+      const result = await AuthService.setPassword(
+        "user-without-pass",
+        { newPassword: "InitialPassword123!" },
+        mockHeaders,
+      );
+
+      expect(result.setCookies).toEqual([]);
+    });
+
+    it("should return empty setCookies when authHeaders contains no set-cookie entries", async () => {
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
+
+      vi.spyOn(auth.api, "setPassword").mockResolvedValue({
+        headers: new Headers(),
         response: { status: true },
       } as any);
 
@@ -1202,6 +1325,27 @@ describe("AuthService Unit Tests", () => {
       ).rejects.toThrow("Upstream setPassword failure");
 
       expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it("should propagate errors thrown by prisma.user.update", async () => {
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
+
+      vi.spyOn(auth.api, "setPassword").mockResolvedValue({
+        headers: new Headers(),
+        response: { status: true },
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockRejectedValue(
+        new Error("Database write failure"),
+      );
+
+      await expect(
+        AuthService.setPassword(
+          "user-without-pass",
+          { newPassword: "InitialPassword123!" },
+          mockHeaders,
+        ),
+      ).rejects.toThrow("Database write failure");
     });
   });
 
