@@ -1,6 +1,6 @@
 # Task: P2-T016 - Implement the Audit-Log Application Boundary
 
-> **Canonical Status:** `🔄 In Progress`  
+> **Canonical Status:** `✅ Done`
 > **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`  
 > **Requirement Reference:** `FR-RBAC-001.6`, `FR-RBAC-003.7`, `FR-RBAC-004.6`, `FR-RBAC-005.4`, `FR-RBAC-006.3`, `FR-ADMIN-001.4`, `FR-ADMIN-002.5`, `FR-CUSTOMER-004.5`  
 > **ERD Reference:** `AuditLog` model, `AuditAction` enum, `AuditEntityType` enum (`prisma/schema/audit.prisma`)  
@@ -32,7 +32,7 @@
      - `entityId?: string | null` (ID of affected record).
      - `previousValue?: Record<string, unknown> | null` (state before action).
      - `newValue?: Record<string, unknown> | null` (state after action).
-     - `metadata?: Record<string, unknown> | null` (context such as IP, user agent, failure reason).
+     - `metadata?: AuditMetadata | null` (typed context with `ip`, `userAgent`, `reason`, and arbitrary extensions).
      - `tx?: Prisma.TransactionClient` (optional transactional client for atomic consistency).
 2. **Audit Service Implementation (`src/app/shared/audit/audit.service.ts`):**
    - Provide `AuditService.record(input: CreateAuditLogInput): Promise<AuditLog>`.
@@ -88,8 +88,8 @@ _Read-only inspection findings before execution:_
 - **Applicable Architecture Flow:**
   `Caller (Service / Guard) → AuditService.record(input) → [tx | prisma].auditLog.create() → PostgreSQL`
 - **Data & Sanitization Contract:**
-  - Sanitization function recursively or shallowly strips sensitive keys: `password`, `currentPassword`, `newPassword`, `token`, `secret`, `credential`, `authorization`, `cookie`.
-  - Nullish payload objects are normalized to `Prisma.JsonNull` or undefined as appropriate for Prisma JSON columns.
+  - Sanitization function recursively strips sensitive keys: `password`, `currentPassword`, `newPassword`, `token`, `secret`, `credential`, `authorization`, `cookie`, `apiKey`.
+  - Nullish payload objects are normalized to `Prisma.JsonNull` or omitted if undefined.
 - **Transaction Flexibility:**
   ```typescript
   const client = input.tx ?? prisma;
@@ -127,10 +127,10 @@ _Read-only inspection findings before execution:_
 
 | Check                      | Required | Command or Method                                       | Result    |
 | :------------------------- | :------- | :------------------------------------------------------ | :-------- |
-| Acceptance criteria        | `Yes`    | Code review + unit test suite verification              | `NOT RUN` |
-| Type check / build         | `Yes`    | `pnpm tsc --project tsconfig.test.json --noEmit` + build| `NOT RUN` |
-| Lint                       | `Yes`    | `pnpm lint`                                             | `NOT RUN` |
-| Tests                      | `Yes`    | `pnpm test`                                             | `NOT RUN` |
+| Acceptance criteria        | `Yes`    | Code review + unit test suite verification              | `PASS`    |
+| Type check / build         | `Yes`    | `pnpm tsc --project tsconfig.test.json --noEmit` + build| `PASS`    |
+| Lint                       | `Yes`    | `pnpm lint`                                             | `PASS`    |
+| Tests                      | `Yes`    | `pnpm test`                                             | `PASS`    |
 | Migration / data integrity | `No`     | Existing `audit_log` table from baseline migration      | `N/A`     |
 | Manual verification        | `No`     | Replaced by exhaustive unit test suite                  | `N/A`     |
 
@@ -158,10 +158,31 @@ _Read-only inspection findings before execution:_
 
 ## 10. Implementation Evidence
 
-_To be completed after code execution and before marking awaiting human review:_
-
 - **Changed Files:**
-- **Migration Created:**
+  - `src/app/shared/audit/audit.interface.ts`: Defines `CreateAuditLogInput` and `AuditMetadata` contract.
+  - `src/app/shared/audit/audit.service.ts`: Implements `AuditService.record` with dual client (`tx` vs `prisma`), recursive sensitive redaction, guard-clause flow, and junior-friendly `CreateAuditLogData` type alias.
+  - `tests/unit/shared/audit/audit.service.test.ts`: 7 unit tests achieving 100% statements, branches, functions, and lines coverage.
+  - `docs/governance/tasks/phase-2/P2-T016-implement-audit-log-boundary.md`: Canonical task tracking and verification record.
+  - `docs/governance/phases/phase-2-auth-rbac.md`: Phase status tracking.
+- **Migration Created:** None (`audit_log` table already exists in baseline migration `20260912090148_init`).
 - **Test / Verification Output:**
+  - `pnpm tsc --project tsconfig.test.json --noEmit`: 0 errors.
+  - `pnpm lint`: 0 errors, 0 warnings.
+  - `pnpm test:coverage tests/unit/shared/audit/audit.service.test.ts`: 7/7 tests passed with 100% coverage across all metrics.
+  - `pnpm test`: 383/383 unit/integration tests passed across 29 test files.
 - **Deviations from Original Plan:**
-- **Remaining Concerns / Follow-ups:**
+  - Added `AuditMetadata` interface in `audit.interface.ts` supporting typed autocomplete for `ip`, `userAgent`, and `reason`.
+  - Added separator-insensitive key normalization (`key.toLowerCase().replace(/[-_]/g, "")`) to reliably catch snake_case and kebab-case secrets.
+  - Refined `sanitizePayload` with early return guard clauses and adopted `CreateAuditLogData` type alias for clear readability.
+- **Remaining Concerns / Follow-ups:** None. Ready for consumption by downstream RBAC and customer lifecycle tasks.
+
+---
+
+## 11. Final Review & Closure
+
+| Field       | Value                                                              |
+| :---------- | :----------------------------------------------------------------- |
+| Final Status| `✅ Done`                                                          |
+| Approved by | `Zahid (Human Lead)`                                               |
+| Approved on | `2026-09-21`                                                       |
+| Notes       | `Task completed and approved with 100% test coverage and strict type safety.` |
