@@ -157,7 +157,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 13    | B          | `P2-T014` | Implement logout and session revocation                                  | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
 | 14    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `✅`   | `P2-T010`                       | None                                         |
 | 15    | C          | `P2-T016` | Implement the audit-log application boundary                             | `✅`   | `P2-T001`, `P2-T010`            | None                                         |
-| 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔄`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 17    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
 | 18    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔲`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
 | 19    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
