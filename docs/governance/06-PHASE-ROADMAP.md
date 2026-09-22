@@ -36,7 +36,7 @@
 
 - `docs/governance/phases/phase-1-foundation.md` is established as a concise retrospective record of the completed foundation.
 - `docs/governance/phases/phase-2-auth-rbac.md` is human-approved with 27 executable tasks. `P2-T003` and `P2-T004` are retired from Phase 2 because Docker is deferred to project-completion tooling work under `DEC-013`. Logging is no longer deferred: Pino adopted under `DEC-024`; Winston dropped. Testing is no longer deferred: Vitest adopted under `DEC-025`; Jest dropped.
-- Phase 2 is `ACTIVE / READY`. Tasks `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, and `P2-T017` are `✅ Done`.
+- Phase 2 is `ACTIVE / READY`. Tasks `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, `P2-T017`, and `P2-T018` are `✅ Done`.
 - Do not begin Phase 2 implementation from this roadmap alone. Follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md) and [phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md).
 
 ## 4. Phase 2 Requirement Coverage

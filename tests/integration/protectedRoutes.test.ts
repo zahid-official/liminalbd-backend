@@ -11,6 +11,7 @@ describe("Protected Routes Supertest Integration Tests", () => {
     "/api/v1/auth/logout-all",
     "/api/v1/auth/link/google",
     "/api/v1/auth/unlink/google",
+    "/api/v1/admin/admins",
   ];
 
   for (const endpoint of protectedPostEndpoints) {
