@@ -130,6 +130,62 @@ describe("authGuard Unit Tests", () => {
     });
   });
 
+  describe("Account Status Restriction Scenarios (403 FORBIDDEN - FR-RBAC-006.1)", () => {
+    it("should reject with 403 FORBIDDEN when user account status is SUSPENDED", async () => {
+      vi.spyOn(auth.api, "getSession").mockResolvedValue({
+        session: mockSession,
+        user: {
+          ...mockUser,
+          status: UserStatus.SUSPENDED,
+        },
+      } as any);
+
+      const req = { headers: {} } as Request;
+      const res = { locals: {} } as Response;
+      const next = vi.fn() as unknown as NextFunction;
+
+      await authGuard(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      const err = vi.mocked(next).mock.calls[0]?.[0];
+      expect(err).toBeInstanceOf(AppError);
+      expect(err).toMatchObject({
+        statusCode: status.FORBIDDEN,
+        code: PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED,
+        message: "Your account has been suspended. Please contact support.",
+      });
+      expect(res.locals.user).toBeUndefined();
+      expect(res.locals.session).toBeUndefined();
+    });
+
+    it("should reject with 403 FORBIDDEN when user account status is DEACTIVATED", async () => {
+      vi.spyOn(auth.api, "getSession").mockResolvedValue({
+        session: mockSession,
+        user: {
+          ...mockUser,
+          status: UserStatus.DEACTIVATED,
+        },
+      } as any);
+
+      const req = { headers: {} } as Request;
+      const res = { locals: {} } as Response;
+      const next = vi.fn() as unknown as NextFunction;
+
+      await authGuard(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      const err = vi.mocked(next).mock.calls[0]?.[0];
+      expect(err).toBeInstanceOf(AppError);
+      expect(err).toMatchObject({
+        statusCode: status.FORBIDDEN,
+        code: PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
+        message: "Your account is deactivated. Please contact support.",
+      });
+      expect(res.locals.user).toBeUndefined();
+      expect(res.locals.session).toBeUndefined();
+    });
+  });
+
   describe("Successful Authentication & Identity Context Injection (Happy Path)", () => {
     it("should attach user and session to res.locals and call next() without arguments", async () => {
       const getSessionSpy = vi.spyOn(auth.api, "getSession").mockResolvedValue({
