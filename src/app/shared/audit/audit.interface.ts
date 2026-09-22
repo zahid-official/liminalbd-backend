@@ -8,7 +8,7 @@ export interface AuditMetadata extends Record<string, unknown> {
   reason?: string | null;
 }
 
-// Input for persisting an audit log entry
+// Input contract for persisting an audit log entry
 export interface CreateAuditLogInput {
   actorId?: string | null;
   action: AuditAction;
