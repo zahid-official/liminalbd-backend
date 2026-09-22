@@ -28,12 +28,12 @@
      - If `status === UserStatus.SUSPENDED`, throw `AppError(status.FORBIDDEN, PUBLIC_ERROR_CODES.ACCOUNT_SUSPENDED, "Your account has been suspended. Please contact support.")`.
      - If `status === UserStatus.DEACTIVATED`, throw `AppError(status.FORBIDDEN, PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED, "Your account is deactivated. Please contact support.")`.
      - Preserve existing `sessionData.user.deletedAt` check throwing `HTTP 401 Unauthorized` (`PUBLIC_ERROR_CODES.UNAUTHORIZED`) for anti-enumeration per `DEC-018`.
-2. **Account Status Contracts & Types (`src/app/shared/account/accountStatus.interface.ts`):**
+2. **Account Status Contracts & Types (`src/app/shared/account/account.interface.ts`):**
    - Define strongly-typed interfaces:
      - `UpdateUserStatusInput`: `actorId?: string | null`, `targetUserId: string`, `newStatus: UserStatus`, `reason?: string`, `tx?: Prisma.TransactionClient`.
      - `SoftDeleteUserInput`: `actorId?: string | null`, `targetUserId: string`, `reason?: string`, `tx?: Prisma.TransactionClient`.
-3. **Account Status & Invalidation Service (`src/app/shared/account/accountStatus.service.ts`):**
-   - Provide `AccountStatusService.updateStatus(input)`:
+3. **Account Status & Invalidation Service (`src/app/shared/account/account.service.ts`):**
+   - Provide `AccountService.updateStatus(input)`:
      - Validate target user exists.
      - Atomically update `User.status` in PostgreSQL.
      - When transitioning to a restricted status (`SUSPENDED` or `DEACTIVATED`), atomically delete all active sessions for that user (`tx.session.deleteMany({ where: { userId: targetUserId } })`).
@@ -41,7 +41,7 @@
        - `SUSPENDED` -> `AuditAction.SUSPEND`
        - `DEACTIVATED` -> `AuditAction.DEACTIVATE`
        - `ACTIVE` -> `AuditAction.REACTIVATE`
-   - Provide `AccountStatusService.softDelete(input)`:
+   - Provide `AccountService.softDelete(input)`:
      - Validate target user exists and is not already soft-deleted.
      - Atomically set `deletedAt = new Date()` on `User`.
      - Atomically delete all active sessions (`tx.session.deleteMany({ where: { userId: targetUserId } })`).
@@ -51,7 +51,7 @@
      - `nonDeletedUserFilter: { deletedAt: null }`
 4. **Automated Unit Testing:**
    - Update `tests/unit/middleware/authGuard.test.ts` to assert 403 rejection for `SUSPENDED` and `DEACTIVATED` accounts.
-   - Create `tests/unit/shared/account/accountStatus.service.test.ts` covering:
+   - Create `tests/unit/shared/account/account.service.test.ts` covering:
      - Status updates to `SUSPENDED` with atomic session deletion and `AuditAction.SUSPEND`.
      - Status updates to `DEACTIVATED` with atomic session deletion and `AuditAction.DEACTIVATE`.
      - Status updates to `ACTIVE` (reactivation) without session deletion and `AuditAction.REACTIVATE`.
@@ -103,7 +103,7 @@ _Read-only inspection findings before execution:_
 
 - **Applicable Architecture Flow:**
   - `Request → authGuard (inspects user.status & deletedAt) → next() or AppError(403/401)`
-  - `Caller (Admin Service / Customer Service) → AccountStatusService.updateStatus / softDelete → [tx | prisma].user.update + session.deleteMany + AuditService.record`
+  - `Caller (Admin Service / Customer Service) → AccountService.updateStatus / softDelete → [tx | prisma].user.update + session.deleteMany + AuditService.record`
 - **Session Revocation Invariant:**
   - Whenever account status becomes `SUSPENDED`, `DEACTIVATED`, or `deletedAt` is set, `session.deleteMany({ where: { userId } })` is executed atomically inside the transaction.
 - **Audit Invariant:**
@@ -116,10 +116,10 @@ _Read-only inspection findings before execution:_
 | Action     | File Path                                                             | Responsibility                                                  |
 | :--------- | :-------------------------------------------------------------------- | :-------------------------------------------------------------- |
 | `[MODIFY]` | `src/app/middleware/authGuard.ts`                                     | Enforce `UserStatus.SUSPENDED` and `DEACTIVATED` with HTTP 403  |
-| `[NEW]`    | `src/app/shared/account/accountStatus.interface.ts`                   | Input contracts for status mutation and soft deletion           |
-| `[NEW]`    | `src/app/shared/account/accountStatus.service.ts`                     | Reusable status mutation, session revocation, and audit logging |
+| `[NEW]`    | `src/app/shared/account/account.interface.ts`                         | Input contracts for status mutation and soft deletion           |
+| `[NEW]`    | `src/app/shared/account/account.service.ts`                           | Reusable status mutation, session revocation, and audit logging |
 | `[MODIFY]` | `tests/unit/middleware/authGuard.test.ts`                             | Add unit tests for `SUSPENDED` and `DEACTIVATED` rejection      |
-| `[NEW]`    | `tests/unit/shared/account/accountStatus.service.test.ts`             | 100% coverage unit tests for AccountStatusService               |
+| `[NEW]`    | `tests/unit/shared/account/account.service.test.ts`                   | 100% coverage unit tests for AccountService                     |
 | `[NEW]`    | `docs/governance/tasks/phase-2/P2-T017-enforce-restricted-account-status.md` | Persistent JIT task plan and evidence record            |
 | `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md`                         | Update task 16 status `🔄 In progress` then `✅ Done`            |
 | `[MODIFY]` | `docs/governance/MEMORY.md`                                           | Update current-state memory upon task completion                |
