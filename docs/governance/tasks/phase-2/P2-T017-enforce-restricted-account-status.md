@@ -1,6 +1,6 @@
 # Task: P2-T017 - Enforce Restricted Account Status Across Protected Access
 
-> **Canonical Status:** `🔄 In progress`  
+> **Canonical Status:** `✅ Done`  
 > **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`  
 > **Requirement Reference:** `FR-RBAC-006` (`FR-RBAC-006.1`, `FR-RBAC-006.2`, `FR-RBAC-006.3`, `FR-RBAC-006.4`)  
 > **ERD Reference:** `User` model, `UserStatus` enum, `Session` model, `AuditLog` model (`prisma/schema/auth.prisma`, `prisma/schema/audit.prisma`)  
@@ -70,7 +70,7 @@
 | Acceptance Criterion | Planned Step | Verification |
 | :------------------- | :----------- | :----------- |
 | Apply status checks during authentication and protected authorization | Step 4 | Unit test in `authGuard.test.ts` asserting 403 for `SUSPENDED` and `DEACTIVATED` |
-| Ensure restricting an account invalidates active sessions | Step 5 | Unit test in `accountStatus.service.test.ts` asserting `session.deleteMany` call |
+| Ensure restricting an account invalidates active sessions | Step 5 | Unit test in `account.service.test.ts` asserting `session.deleteMany` call |
 | Exclude soft-deleted users from normal active-user queries | Step 5 | Exported query filter helper verified in unit tests |
 | Preserve business records and avoid physical deletion | Step 5 | Soft delete updates `deletedAt` without calling `user.delete()` |
 | Produce required audit events and cover every restricted status | Step 5 | Unit tests asserting `AuditService.record` calls with correct actions |
@@ -130,9 +130,9 @@ _Read-only inspection findings before execution:_
 
 1. **Step 3 (Approval & Status Update):** Obtain human approval of this JIT plan, update task status to `🔄 In progress` in task file and phase file (`phase-2-auth-rbac.md`).
 2. **Step 4 (`authGuard` Status Enforcement):** Update `src/app/middleware/authGuard.ts` to inspect `sessionData.user.status` and throw `HTTP 403 Forbidden` (`ACCOUNT_SUSPENDED` or `ACCOUNT_DEACTIVATED`).
-3. **Step 5 (Account Status Service & Invalidation):** Create `src/app/shared/account/accountStatus.interface.ts` and `src/app/shared/account/accountStatus.service.ts` implementing `updateStatus`, `softDelete`, and query filters with atomic session revocation and audit logging.
-4. **Step 6 (Automated Unit Tests):** Update `tests/unit/middleware/authGuard.test.ts` and create `tests/unit/shared/account/accountStatus.service.test.ts` covering all branches and error cases.
-5. **Step 7 (Quality Gates & Polish):** Execute `pnpm test`, `pnpm test:coverage tests/unit/shared/account/accountStatus.service.test.ts`, `pnpm tsc --project tsconfig.test.json --noEmit`, `pnpm lint`, and `git diff --check`.
+3. **Step 5 (Account Status Service & Invalidation):** Create `src/app/shared/account/account.interface.ts` and `src/app/shared/account/account.service.ts` implementing `updateStatus`, `softDelete`, and query filters with atomic session revocation and audit logging.
+4. **Step 6 (Automated Unit Tests):** Update `tests/unit/middleware/authGuard.test.ts` and create `tests/unit/shared/account/account.service.test.ts` covering all branches and error cases.
+5. **Step 7 (Quality Gates & Polish):** Execute `pnpm test`, `pnpm test:coverage tests/unit/shared/account/account.service.test.ts`, `pnpm tsc --project tsconfig.test.json --noEmit`, `pnpm lint`, and `git diff --check`.
 6. **Step 8 (Review Preparation):** Complete Section 7 (Verification & Quality Gates) and Section 10 (Implementation Evidence) in this task file, update phase file status to `🕵️ Awaiting human review`, and present evidence.
 7. **Step 9 (Final Approval & Closure):** Upon human approval, mark `✅ Done` in task file and phase file, update `MEMORY.md`, and present Git commit command.
 
@@ -140,14 +140,14 @@ _Read-only inspection findings before execution:_
 
 ## 7. Verification & Quality Gates
 
-| Check                      | Required | Command or Method                                       | Result    |
-| :------------------------- | :------- | :------------------------------------------------------ | :-------- |
-| Acceptance criteria        | `Yes`    | Code review + unit test suite verification              | `NOT RUN` |
-| Type check / build         | `Yes`    | `pnpm tsc --project tsconfig.test.json --noEmit` + build| `NOT RUN` |
-| Lint                       | `Yes`    | `pnpm lint`                                             | `NOT RUN` |
-| Tests                      | `Yes`    | `pnpm test`                                             | `NOT RUN` |
-| Migration / data integrity | `No`     | Uses existing Prisma schema models and enums            | `N/A`     |
-| Manual verification        | `No`     | Replaced by exhaustive unit test suites                 | `N/A`     |
+| Check                      | Required | Command or Method                                       | Result |
+| :------------------------- | :------- | :------------------------------------------------------ | :----- |
+| Acceptance criteria        | `Yes`    | Code review + unit test suite verification              | `PASS` |
+| Type check / build         | `Yes`    | `pnpm tsc --project tsconfig.test.json --noEmit` + build| `PASS` |
+| Lint                       | `Yes`    | `pnpm lint`                                             | `PASS` |
+| Tests                      | `Yes`    | `pnpm test` (400 passed across 30 files, 100% coverage) | `PASS` |
+| Migration / data integrity | `No`     | Uses existing Prisma schema models and enums            | `N/A`  |
+| Manual verification        | `No`     | Replaced by exhaustive unit test suites                 | `N/A`  |
 
 ---
 
@@ -173,10 +173,21 @@ _Read-only inspection findings before execution:_
 
 ## 10. Implementation Evidence
 
-_To be completed after code execution and before marking awaiting human review:_
-
 - **Changed Files:**
-- **Migration Created:**
+  - `src/app/middleware/authGuard.ts`: Enforced `UserStatus.SUSPENDED` and `UserStatus.DEACTIVATED` rejection with HTTP 403 Forbidden (`ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`).
+  - `src/app/shared/account/account.interface.ts`: Defined `UpdateUserStatusInput` and `SoftDeleteUserInput` contracts.
+  - `src/app/shared/account/account.service.ts`: Implemented `AccountService` (`updateStatus`, `softDelete`) with atomic session deletion (`tx.session.deleteMany`), audit logging via `AuditService.record`, redundant status transition protection (400 `VALIDATION_ERROR`), and exported standard query filters (`activeUserFilter`, `nonDeletedUserFilter`).
+  - `tests/unit/middleware/authGuard.test.ts`: Added unit tests asserting 403 rejection for `SUSPENDED` and `DEACTIVATED` account statuses (12 passed, 100% coverage).
+  - `tests/unit/shared/account/account.service.test.ts`: Created comprehensive unit test suite covering status mutations, session invalidation, soft-delete, audit trails, error bubbling, and query filters (15 passed, 100% coverage).
+- **Migration Created:** None (uses existing Prisma schema and enums).
 - **Test / Verification Output:**
+  - `pnpm test`: 400 passed across 30 test files.
+  - Coverage: 100% statements, branches, functions, and lines on both `authGuard.ts` and `account.service.ts`.
+  - `pnpm tsc --project tsconfig.test.json --noEmit`: 0 errors.
+  - `pnpm lint`: 0 errors.
+  - `git diff --check`: 0 whitespace issues.
 - **Deviations from Original Plan:**
-- **Remaining Concerns / Follow-ups:**
+  - Standardized naming from `accountStatus.service.ts` to `account.service.ts` and `AccountStatusService` to `AccountService` to match the established directory pattern (`src/app/shared/audit/audit.service.ts` and `src/app/shared/email/email.service.ts`).
+  - Added redundant status transition check throwing `400 VALIDATION_ERROR` when user is already in the requested status.
+  - Typed `activeUserFilter` and `nonDeletedUserFilter` with explicit `Prisma.UserWhereInput`.
+- **Remaining Concerns / Follow-ups:** None.

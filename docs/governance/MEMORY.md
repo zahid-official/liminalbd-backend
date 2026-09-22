@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-21
+**Last verified:** 2026-09-22
 
 ## 1. Governance and Phase State
 
@@ -20,9 +20,9 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, and `P2-T016` are `✅ Done`.
+- Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, and `P2-T017` are `✅ Done`.
 - No future phase has approved implementation scope.
-- Next eligible candidate: `P2-T017` (Restricted account status enforcement).
+- Next eligible candidate: `P2-T018` (Super Admin creation of Admin accounts).
 
 ## 2. Current Codebase State
 
@@ -45,8 +45,9 @@
 - Logout and session revocation endpoints (`P2-T014`) are established at `POST /api/v1/auth/logout` and `POST /api/v1/auth/logout-all` protected by `authGuard`; single-session logout invalidates the active session in PostgreSQL and clears cookies via `Max-Age=0` headers; multi-session logout-all atomically revokes every active session for the user across all devices, clears local cookies, guarantees `401 Unauthorized` rejection on subsequent replayed requests, and strictly maintains cross-user session isolation.
 - Reusable role-based access control middleware guard (`rbacGuard`) is established under `src/app/middleware/rbacGuard.ts` (`P2-T015`), enforcing compile-time non-empty role arguments (`...allowedRoles: [UserRole, ...UserRole[]]`), server-derived role authorization strictly from authenticated identity context (`res.locals.user.role`), defense-in-depth `HTTP 401 Unauthorized` for unauthenticated requests, and `HTTP 403 Forbidden` (`PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS`) for unauthorized roles while ignoring client-supplied role claims.
 - Reusable audit log application boundary (`AuditService`) is established under `src/app/shared/audit/audit.service.ts` (`P2-T016`), supporting dual execution: atomic transaction client (`tx?: Prisma.TransactionClient`) or fallback to default `prisma` client, recursive defense-in-depth redaction (`sanitizePayload`) normalizing snake_case and kebab-case keys to redact sensitive fields (`password`, `token`, `secret`, `apiKey`, etc.), safe Prisma JSON normalization (`toPrismaJson`), and strongly typed contract `CreateAuditLogInput` with autocomplete-enabled `AuditMetadata` in `src/app/shared/audit/audit.interface.ts`.
+- Account status enforcement across protected access and reusable account lifecycle management is established (`P2-T017`, `FR-RBAC-006`): `authGuard` (`src/app/middleware/authGuard.ts`) enforces `HTTP 403 Forbidden` (`ACCOUNT_SUSPENDED`, `ACCOUNT_DEACTIVATED`) on restricted accounts while preserving anti-enumeration on soft-deleted accounts (`401 Unauthorized` per `DEC-018`); reusable `AccountService` (`src/app/shared/account/account.service.ts`) coordinates atomic user status mutations (`updateStatus`) and soft-deletion (`softDelete`) with automatic session invalidation in PostgreSQL (`tx.session.deleteMany({ where: { userId } })`), structured audit logging via `AuditService.record`, redundant status transition protection (400 `VALIDATION_ERROR`), and standard query filters (`activeUserFilter`, `nonDeletedUserFilter`) typed explicitly with `Prisma.UserWhereInput`.
 - Pino structured logging is established (`P2-T028`, `DEC-024`): single shared logger instance in `src/app/config/logger.ts`, `pino-http` middleware mounted in `app.ts` (after parsers, before routes) for HTTP request logging with route-path isolation (`url: req.url.split('?')[0]`, omitting raw `req.query` entirely to eliminate query token leaks across mixed-case parameter names and nested URLs) and sensitive field redaction (`authorization`, `cookie`, `res.headers['set-cookie']`, `password`, `token`, `secret`), `server.ts` and `globalErrorHandler.ts` migrated from `console.*` to structured `logger.*` calls (with `requestId: req.id` correlation on internal server errors). Development uses pino-pretty; production emits raw JSON. Log level controlled via optional `LOG_LEVEL` env variable.
-- Vitest testing infrastructure is established (`P2-T029`, `DEC-025`): Vitest 3 with `environment: node`, `globals: false` (explicit imports), `@vitest/coverage-v8` for V8 coverage, `supertest` for HTTP integration tests. Tests live under mirrored `tests/unit/` (`config/`, `errors/`, `middleware/`, `modules/`, `utils/`, `validations/`) and `tests/integration/` hierarchies with exact 1:1 basename alignment (`<filename>.test.ts`). Logger is globally mocked in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`). `pnpm test` runs `vitest run` (383/383 tests passing across 29 test files); `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates V8 coverage report (100% statement and branch coverage across all P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013, P2-T014, P2-T015, and P2-T016 modules, plus protected routes, redirect resolution utilities, and 100% statement coverage with verified real output redaction for logger). Jest is permanently dropped.
+- Vitest testing infrastructure is established (`P2-T029`, `DEC-025`): Vitest 3 with `environment: node`, `globals: false` (explicit imports), `@vitest/coverage-v8` for V8 coverage, `supertest` for HTTP integration tests. Tests live under mirrored `tests/unit/` (`config/`, `errors/`, `middleware/`, `modules/`, `utils/`, `validations/`) and `tests/integration/` hierarchies with exact 1:1 basename alignment (`<filename>.test.ts`). Logger is globally mocked in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`). `pnpm test` runs `vitest run` (400/400 tests passing across 30 test files); `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates V8 coverage report (100% statement, branch, function, and line coverage across all P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013, P2-T014, P2-T015, P2-T016, and P2-T017 modules, plus protected routes, redirect resolution utilities, and 100% statement coverage with verified real output redaction for logger). Jest is permanently dropped.
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
@@ -89,13 +90,13 @@ These are verified observations only. They do not authorize fixes outside an app
 | Check                 | Result                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------- |
 | `pnpm build`          | `PASS` on 2026-09-20                                                                  |
-| `pnpm lint`           | `PASS` on 2026-09-21                                                                  |
-| Automated tests       | `PASS` on 2026-09-21: 376/376 tests pass across 28 test files via Vitest (`DEC-025`), 100% coverage on P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013, P2-T014 & P2-T015 modules |
+| `pnpm lint`           | `PASS` on 2026-09-22                                                                  |
+| Automated tests       | `PASS` on 2026-09-22: 400/400 tests pass across 30 test files via Vitest (`DEC-025`), 100% coverage on P2-T002, P2-T005, P2-T006, P2-T007, P2-T008, P2-T009, P2-T010, P2-T011, P2-T012, P2-T013, P2-T014, P2-T015, P2-T016 & P2-T017 modules |
 | Database / migrations | `PASS` on 2026-09-12: canonical migration `20260912090148_init` applied and verified |
 
 ## 7. Next Action
 
-- Select the next planning candidate from Phase 2 task index: `P2-T016` (Audit-log application boundary).
+- Select the next planning candidate from Phase 2 task index: `P2-T018` (Super Admin creation of Admin accounts).
 - Perform read-only inspection, prepare JIT task plan, resolve prerequisites, and submit for human approval.
 - Mark task as `🔄 In progress` only after explicit human approval.
 - If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.

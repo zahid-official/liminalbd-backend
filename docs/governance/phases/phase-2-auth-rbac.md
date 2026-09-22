@@ -157,7 +157,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 13    | B          | `P2-T014` | Implement logout and session revocation                                  | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
 | 14    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `✅`   | `P2-T010`                       | None                                         |
 | 15    | C          | `P2-T016` | Implement the audit-log application boundary                             | `✅`   | `P2-T001`, `P2-T010`            | None                                         |
-| 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔄`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `✅`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 17    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
 | 18    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔲`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
 | 19    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
@@ -496,9 +496,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve business records and avoid physical deletion.
 - Produce required audit events and cover every restricted status.
 
-**Additional verification:** Status, soft-delete filtering, revocation and audit checks.
+**Additional verification:** Automated Vitest unit test suites (`tests/unit/middleware/authGuard.test.ts` and `tests/unit/shared/account/account.service.test.ts`) covering 403 Forbidden on suspended/deactivated accounts, atomic session revocation, audit logging across all status transitions, soft-delete with timestamp assignment, redundant transition guards, and query filters with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-22)
 
 #### P2-T018: Implement Super Admin Creation of Admin Accounts
 
@@ -714,7 +714,7 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | Outcome        | `Pending`                                                                                                            |
 | Approved by    | `Pending`                                                                                                            |
 | Approved on    | `Pending`                                                                                                            |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, and `P2-T014` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`) |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, and `P2-T017` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
