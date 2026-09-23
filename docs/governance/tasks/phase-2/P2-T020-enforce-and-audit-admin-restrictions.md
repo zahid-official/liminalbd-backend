@@ -1,7 +1,7 @@
 # Task: P2-T020 - Enforce and Audit Admin Restrictions on Privileged Accounts
 
-> **Canonical Status:** `🔄 In progress`  
-> **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`  
+> **Canonical Status:** `✅ Done`
+> **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`
 > **Requirement Reference:** `FR-RBAC-004` (`FR-RBAC-004.1`–`FR-RBAC-004.6`), `FR-ADMIN-002.3`, `FR-RBAC-001.5`  
 > **ERD Reference:** `AuditLog` model, `User` model, `Admin` model (`prisma/schema/audit.prisma`, `prisma/schema/auth.prisma`, `prisma/schema/profiles.prisma`)  
 > **Dependencies:** `P2-T016` (✅ Audit-log application boundary), `P2-T018` (✅ Super Admin creation of Admin accounts), `P2-T019` (✅ Privileged profile, role and status management)  
@@ -115,14 +115,14 @@
 
 ## 7. Verification & Quality Gates
 
-| Check                      | Required | Command or Method                          | Result    |
-| :------------------------- | :------- | :----------------------------------------- | :-------- |
-| Acceptance criteria        | `Yes`    | Code review + unit test suite verification | `NOT RUN` |
-| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                        | `NOT RUN` |
-| Lint                       | `Yes`    | `pnpm lint`                                | `NOT RUN` |
-| Tests                      | `Yes`    | `pnpm test:coverage`                       | `NOT RUN` |
-| Migration / data integrity | `No`     | Uses existing Prisma schema enums          | `N/A`     |
-| Manual verification        | `No`     | Replaced by exhaustive unit test suites    | `N/A`     |
+| Check                      | Required | Command or Method                          | Result |
+| :------------------------- | :------- | :----------------------------------------- | :----- |
+| Acceptance criteria        | `Yes`    | Code review + unit test suite verification | `PASS` |
+| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                        | `PASS` |
+| Lint                       | `Yes`    | `pnpm lint`                                | `PASS` |
+| Tests                      | `Yes`    | `pnpm test:coverage`                       | `PASS` |
+| Migration / data integrity | `No`     | Uses existing Prisma schema enums          | `N/A`  |
+| Manual verification        | `No`     | Replaced by exhaustive unit test suites    | `N/A`  |
 
 ---
 
@@ -130,7 +130,7 @@
 
 - **Active Blockers:** None (`P2-B001` resolved).
 - **Design Assumptions:**
-  - Audit logging for unauthorized attempts is critical for security monitoring. The audit log must record `action: AuditAction.UNAUTHORIZED_ATTEMPT`, `entityType: AuditEntityType.ADMIN`, actor ID, and metadata with the attempted operation and reason.
+  - Audit logging for unauthorized attempts is critical for security monitoring. The audit log records `action: AuditAction.UNAUTHORIZED_ATTEMPT`, `entityType: AuditEntityType.ADMIN`, actor ID, target entity ID, and metadata with the attempted operation, attempted role/status, and reason.
 
 ---
 
@@ -147,10 +147,21 @@
 
 ## 10. Implementation Evidence
 
-_To be completed after code execution and before marking awaiting human review:_
-
 - **Changed Files:**
-- **Migration Created:**
+  - `src/app/modules/admin/admin.service.ts`: Enforced defense-in-depth authorization and self-mutation checks, recording `AuditAction.UNAUTHORIZED_ATTEMPT` before throwing `AppError(403)` or `AppError(400)`. Inlined transactional execution and cleaned up redundant wrappers.
+  - `src/app/modules/admin/admin.interface.ts`: Streamlined service input interfaces.
+  - `src/app/shared/audit/audit.interface.ts`: Explicitly typed `AuditMetadata` properties for unauthorized attempts and business reasons.
+  - `src/app/shared/account/account.service.ts`: Inlined transactional logic, removed speculative `tx` param, and ensured clean variable return pattern.
+  - `src/app/shared/account/account.interface.ts`: Streamlined service inputs.
+  - `src/app/shared/audit/audit.service.ts`: Ensured clean variable assignment and return.
+  - `tests/unit/modules/admin/admin.service.test.ts`: Added assertions verifying `AuditService.record` calls for non-Super Admin creation, non-Super Admin update, self-role mutation, and self-lockout attempts.
+  - `tests/unit/shared/account/account.service.test.ts`: Cleaned obsolete caller-passed `tx` tests.
+- **Migration Created:** None (`AuditAction.UNAUTHORIZED_ATTEMPT` and `AuditEntityType.ADMIN` already defined in Prisma schema).
 - **Test / Verification Output:**
-- **Deviations from Original Plan:**
-- **Remaining Concerns / Follow-ups:**
+  - `pnpm tsc --noEmit`: 0 errors.
+  - `pnpm lint`: 0 errors across `./src` and `./tests`.
+  - `pnpm test`: 35/35 test files passed, 452/452 tests passed.
+  - `pnpm test:coverage`: 94.76% total statement coverage; `admin.service.ts` has 100% statement, 100% branch, 100% function, and 100% line coverage.
+  - `git diff --check`: Clean, 0 whitespace or conflict errors.
+- **Deviations from Original Plan:** Streamlined unnecessary transaction indirection and speculative `tx` parameters in line with KISS/YAGNI architecture principles approved by user.
+- **Remaining Concerns / Follow-ups:** None. Ready for human review.

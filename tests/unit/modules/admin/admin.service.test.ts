@@ -74,7 +74,7 @@ describe("AdminService Unit Tests", () => {
 
   describe("createAdmin", () => {
     describe("Authorization Defense-in-Depth", () => {
-      it("should reject non-SUPER_ADMIN callers with 403 FORBIDDEN", async () => {
+      it("should reject non-SUPER_ADMIN callers with 403 FORBIDDEN and record unauthorized attempt audit log", async () => {
         await expect(
           AdminService.createAdmin({
             actorId: "admin-actor-1",
@@ -88,9 +88,19 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: "admin-actor-1",
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          metadata: {
+            attemptedAction: "CREATE_ADMIN",
+            attemptedRole: UserRole.ADMIN,
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
       });
 
-      it("should reject CUSTOMER callers with 403 FORBIDDEN", async () => {
+      it("should reject CUSTOMER callers with 403 FORBIDDEN and record unauthorized attempt audit log", async () => {
         await expect(
           AdminService.createAdmin({
             actorId: "customer-actor-1",
@@ -104,6 +114,16 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: "customer-actor-1",
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          metadata: {
+            attemptedAction: "CREATE_ADMIN",
+            attemptedRole: UserRole.ADMIN,
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
       });
     });
 
@@ -275,7 +295,7 @@ describe("AdminService Unit Tests", () => {
     };
 
     describe("Authorization Defense-in-Depth", () => {
-      it("should reject non-SUPER_ADMIN callers with 403 FORBIDDEN", async () => {
+      it("should reject non-SUPER_ADMIN callers with 403 FORBIDDEN and record unauthorized attempt audit log", async () => {
         await expect(
           AdminService.updateAdmin({
             actorId: "admin-actor-1",
@@ -290,9 +310,20 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: "admin-actor-1",
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          entityId: targetId,
+          metadata: {
+            attemptedAction: "UPDATE_ADMIN",
+            attemptedPayload: { role: UserRole.SUPER_ADMIN },
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
       });
 
-      it("should reject CUSTOMER callers with 403 FORBIDDEN", async () => {
+      it("should reject CUSTOMER callers with 403 FORBIDDEN and record unauthorized attempt audit log", async () => {
         await expect(
           AdminService.updateAdmin({
             actorId: "customer-actor-1",
@@ -307,11 +338,22 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: "customer-actor-1",
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          entityId: targetId,
+          metadata: {
+            attemptedAction: "UPDATE_ADMIN",
+            attemptedPayload: { status: UserStatus.SUSPENDED },
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
       });
     });
 
     describe("Self-Role Mutation & Self-Lockout Prevention", () => {
-      it("should reject Super Admin mutating their own role with 400 VALIDATION_ERROR", async () => {
+      it("should reject Super Admin mutating their own role with 400 VALIDATION_ERROR and record audit log", async () => {
         await expect(
           AdminService.updateAdmin({
             actorId: targetId,
@@ -326,9 +368,20 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: targetId,
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          entityId: targetId,
+          metadata: {
+            attemptedAction: "SELF_ROLE_MUTATION",
+            attemptedRole: UserRole.ADMIN,
+            reason: "SELF_ROLE_MUTATION_FORBIDDEN",
+          },
+        });
       });
 
-      it("should reject Super Admin suspending their own account with 400 VALIDATION_ERROR", async () => {
+      it("should reject Super Admin suspending their own account with 400 VALIDATION_ERROR and record audit log", async () => {
         await expect(
           AdminService.updateAdmin({
             actorId: targetId,
@@ -343,9 +396,20 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: targetId,
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          entityId: targetId,
+          metadata: {
+            attemptedAction: "SELF_LOCKOUT_ATTEMPT",
+            attemptedStatus: UserStatus.SUSPENDED,
+            reason: "SELF_LOCKOUT_FORBIDDEN",
+          },
+        });
       });
 
-      it("should reject Super Admin deactivating their own account with 400 VALIDATION_ERROR", async () => {
+      it("should reject Super Admin deactivating their own account with 400 VALIDATION_ERROR and record audit log", async () => {
         await expect(
           AdminService.updateAdmin({
             actorId: targetId,
@@ -360,6 +424,17 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: targetId,
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          entityId: targetId,
+          metadata: {
+            attemptedAction: "SELF_LOCKOUT_ATTEMPT",
+            attemptedStatus: UserStatus.DEACTIVATED,
+            reason: "SELF_LOCKOUT_FORBIDDEN",
+          },
+        });
       });
 
       it("should allow Super Admin setting status to ACTIVE on their own account without error", async () => {
