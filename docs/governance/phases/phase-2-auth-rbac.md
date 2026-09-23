@@ -161,7 +161,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 17    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `✅`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
 | 18    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `✅`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
 | 19    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `✅`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
-| 20    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔲`   | `P2-T019`                       | `P2-B001`                                    |
+| 20    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔄`   | `P2-T019`                       | `P2-B001`                                    |
 | 21    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 22    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `🔲`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
 | 23    | D          | `P2-T024` | Implement Customer profile and email updates                             | `🔲`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |

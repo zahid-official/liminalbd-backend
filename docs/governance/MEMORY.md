@@ -21,7 +21,7 @@
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
 - Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, `P2-T017`, `P2-T018`, `P2-T019`, and `P2-T020` are `✅ Done`.
-- Next planning candidate: `P2-T021` (Implement the Super Admin Admin-list operation - `🔲`).
+- Active task in progress: `P2-T021` (Implement the Super Admin Admin-list operation - `🔄 In progress`).
 
 ## 2. Current Codebase State
 
