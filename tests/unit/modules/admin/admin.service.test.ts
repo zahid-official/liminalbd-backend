@@ -20,12 +20,16 @@ describe("AdminService Unit Tests", () => {
     user: {
       findUnique: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
     };
     account: {
       create: ReturnType<typeof vi.fn>;
     };
     admin: {
       create: ReturnType<typeof vi.fn>;
+    };
+    session: {
+      deleteMany: ReturnType<typeof vi.fn>;
     };
   };
 
@@ -44,12 +48,16 @@ describe("AdminService Unit Tests", () => {
       user: {
         findUnique: vi.fn(),
         create: vi.fn(),
+        update: vi.fn(),
       },
       account: {
         create: vi.fn(),
       },
       admin: {
         create: vi.fn(),
+      },
+      session: {
+        deleteMany: vi.fn(),
       },
     };
 
@@ -269,6 +277,418 @@ describe("AdminService Unit Tests", () => {
         expect(mockTx.user.create).toHaveBeenCalledTimes(1);
         expect(mockTx.account.create).toHaveBeenCalledTimes(1);
         expect(mockTx.admin.create).toHaveBeenCalledTimes(1);
+        expect(AuditService.record).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe("updateAdmin", () => {
+    const actorId = "super-admin-actor-1";
+    const targetId = "target-admin-user-1";
+
+    const mockAdminProfile = {
+      contactNumber: "01700000000",
+      address: "Dhaka, Bangladesh",
+      createdAt: new Date("2026-09-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-20T10:00:00.000Z"),
+    };
+
+    const mockExistingAdmin = {
+      id: targetId,
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      deletedAt: null,
+      admin: mockAdminProfile,
+    };
+
+    const mockUpdatedUser = {
+      id: targetId,
+      name: "Existing Admin",
+      email: "existingadmin@liminalbd.com",
+      emailVerified: true,
+      role: UserRole.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
+      needPasswordChange: false,
+      createdAt: new Date("2026-09-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-23T11:00:00.000Z"),
+    };
+
+    describe("Authorization Defense-in-Depth", () => {
+      it("should reject non-SUPER_ADMIN callers with 403 FORBIDDEN", async () => {
+        await expect(
+          AdminService.updateAdmin({
+            actorId: "admin-actor-1",
+            actorRole: UserRole.ADMIN,
+            targetId,
+            payload: { role: UserRole.SUPER_ADMIN },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message: "Only Super Admin can update an Admin account",
+        });
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it("should reject CUSTOMER callers with 403 FORBIDDEN", async () => {
+        await expect(
+          AdminService.updateAdmin({
+            actorId: "customer-actor-1",
+            actorRole: UserRole.CUSTOMER,
+            targetId,
+            payload: { status: UserStatus.SUSPENDED },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message: "Only Super Admin can update an Admin account",
+        });
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("Self-Role Mutation & Self-Lockout Prevention", () => {
+      it("should reject Super Admin mutating their own role with 400 VALIDATION_ERROR", async () => {
+        await expect(
+          AdminService.updateAdmin({
+            actorId: targetId,
+            actorRole: UserRole.SUPER_ADMIN,
+            targetId,
+            payload: { role: UserRole.ADMIN },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.BAD_REQUEST,
+          code: PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+          message: "Super Admin cannot modify their own role",
+        });
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it("should reject Super Admin suspending their own account with 400 VALIDATION_ERROR", async () => {
+        await expect(
+          AdminService.updateAdmin({
+            actorId: targetId,
+            actorRole: UserRole.SUPER_ADMIN,
+            targetId,
+            payload: { status: UserStatus.SUSPENDED },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.BAD_REQUEST,
+          code: PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+          message: "Super Admin cannot suspend or deactivate their own account",
+        });
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it("should reject Super Admin deactivating their own account with 400 VALIDATION_ERROR", async () => {
+        await expect(
+          AdminService.updateAdmin({
+            actorId: targetId,
+            actorRole: UserRole.SUPER_ADMIN,
+            targetId,
+            payload: { status: UserStatus.DEACTIVATED },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.BAD_REQUEST,
+          code: PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+          message: "Super Admin cannot suspend or deactivate their own account",
+        });
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it("should allow Super Admin setting status to ACTIVE on their own account without error", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockExistingAdmin);
+        mockTx.user.update.mockResolvedValue({
+          ...mockUpdatedUser,
+          role: UserRole.SUPER_ADMIN,
+          status: UserStatus.ACTIVE,
+        });
+
+        const result = await AdminService.updateAdmin({
+          actorId: targetId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: { status: UserStatus.ACTIVE },
+        });
+
+        expect(result).toBeDefined();
+        expect(mockTx.user.update).toHaveBeenCalledWith({
+          where: { id: targetId },
+          data: { status: UserStatus.ACTIVE },
+          select: expect.any(Object),
+        });
+        expect(AuditService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: AuditAction.REACTIVATE,
+          }),
+        );
+      });
+    });
+
+    describe("Target Account Existence & Role Validation", () => {
+      it("should reject with 404 USER_NOT_FOUND when target user does not exist", async () => {
+        mockTx.user.findUnique.mockResolvedValue(null);
+
+        await expect(
+          AdminService.updateAdmin({
+            actorId,
+            actorRole: UserRole.SUPER_ADMIN,
+            targetId,
+            payload: { role: UserRole.SUPER_ADMIN },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Admin user not found",
+        });
+
+        expect(mockTx.user.update).not.toHaveBeenCalled();
+      });
+
+      it("should reject with 404 USER_NOT_FOUND when target user is soft-deleted", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockExistingAdmin,
+          deletedAt: new Date("2026-09-22T00:00:00.000Z"),
+        });
+
+        await expect(
+          AdminService.updateAdmin({
+            actorId,
+            actorRole: UserRole.SUPER_ADMIN,
+            targetId,
+            payload: { role: UserRole.SUPER_ADMIN },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Admin user not found",
+        });
+
+        expect(mockTx.user.update).not.toHaveBeenCalled();
+      });
+
+      it("should reject with 404 USER_NOT_FOUND when target user has CUSTOMER role", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockExistingAdmin,
+          role: UserRole.CUSTOMER,
+        });
+
+        await expect(
+          AdminService.updateAdmin({
+            actorId,
+            actorRole: UserRole.SUPER_ADMIN,
+            targetId,
+            payload: { role: UserRole.SUPER_ADMIN },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Admin user not found",
+        });
+
+        expect(mockTx.user.update).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("Successful Role and Status Updates & Invariants", () => {
+      it("should promote ADMIN to SUPER_ADMIN with ROLE_CHANGE audit action and without revoking sessions", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockExistingAdmin);
+        mockTx.user.update.mockResolvedValue(mockUpdatedUser);
+
+        const result = await AdminService.updateAdmin({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: { role: UserRole.SUPER_ADMIN },
+        });
+
+        expect(mockTx.user.update).toHaveBeenCalledWith({
+          where: { id: targetId },
+          data: { role: UserRole.SUPER_ADMIN },
+          select: expect.any(Object),
+        });
+
+        expect(mockTx.session.deleteMany).not.toHaveBeenCalled();
+
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId,
+          action: AuditAction.ROLE_CHANGE,
+          entityType: AuditEntityType.ADMIN,
+          entityId: targetId,
+          previousValue: { role: UserRole.ADMIN },
+          newValue: { role: UserRole.SUPER_ADMIN },
+          metadata: {
+            updatedVia: "SUPER_ADMIN_MANAGEMENT",
+          },
+          tx: mockTx,
+        });
+
+        expect(result).toEqual({
+          ...mockUpdatedUser,
+          admin: mockAdminProfile,
+        });
+      });
+
+      it("should demote SUPER_ADMIN to ADMIN with ROLE_CHANGE audit action", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockExistingAdmin,
+          role: UserRole.SUPER_ADMIN,
+        });
+        mockTx.user.update.mockResolvedValue({
+          ...mockUpdatedUser,
+          role: UserRole.ADMIN,
+        });
+
+        await AdminService.updateAdmin({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: { role: UserRole.ADMIN },
+        });
+
+        expect(mockTx.user.update).toHaveBeenCalledWith({
+          where: { id: targetId },
+          data: { role: UserRole.ADMIN },
+          select: expect.any(Object),
+        });
+
+        expect(AuditService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: AuditAction.ROLE_CHANGE,
+            previousValue: { role: UserRole.SUPER_ADMIN },
+            newValue: { role: UserRole.ADMIN },
+          }),
+        );
+      });
+
+      it("should suspend account, revoke active sessions, and record SUSPEND audit action", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockExistingAdmin);
+        mockTx.user.update.mockResolvedValue({
+          ...mockUpdatedUser,
+          role: UserRole.ADMIN,
+          status: UserStatus.SUSPENDED,
+        });
+
+        await AdminService.updateAdmin({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: { status: UserStatus.SUSPENDED },
+        });
+
+        expect(mockTx.user.update).toHaveBeenCalledWith({
+          where: { id: targetId },
+          data: { status: UserStatus.SUSPENDED },
+          select: expect.any(Object),
+        });
+
+        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
+          where: { userId: targetId },
+        });
+
+        expect(AuditService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: AuditAction.SUSPEND,
+            previousValue: { status: UserStatus.ACTIVE },
+            newValue: { status: UserStatus.SUSPENDED },
+          }),
+        );
+      });
+
+      it("should deactivate account, revoke active sessions, and record DEACTIVATE audit action", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockExistingAdmin);
+        mockTx.user.update.mockResolvedValue({
+          ...mockUpdatedUser,
+          role: UserRole.ADMIN,
+          status: UserStatus.DEACTIVATED,
+        });
+
+        await AdminService.updateAdmin({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: { status: UserStatus.DEACTIVATED },
+        });
+
+        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
+          where: { userId: targetId },
+        });
+
+        expect(AuditService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: AuditAction.DEACTIVATE,
+            previousValue: { status: UserStatus.ACTIVE },
+            newValue: { status: UserStatus.DEACTIVATED },
+          }),
+        );
+      });
+
+      it("should handle combined role and status update with UPDATE audit action and session revocation", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockExistingAdmin);
+        mockTx.user.update.mockResolvedValue({
+          ...mockUpdatedUser,
+          role: UserRole.SUPER_ADMIN,
+          status: UserStatus.SUSPENDED,
+        });
+
+        await AdminService.updateAdmin({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: {
+            role: UserRole.SUPER_ADMIN,
+            status: UserStatus.SUSPENDED,
+          },
+        });
+
+        expect(mockTx.user.update).toHaveBeenCalledWith({
+          where: { id: targetId },
+          data: {
+            role: UserRole.SUPER_ADMIN,
+            status: UserStatus.SUSPENDED,
+          },
+          select: expect.any(Object),
+        });
+
+        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
+          where: { userId: targetId },
+        });
+
+        expect(AuditService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: AuditAction.UPDATE,
+            previousValue: {
+              role: UserRole.ADMIN,
+              status: UserStatus.ACTIVE,
+            },
+            newValue: {
+              role: UserRole.SUPER_ADMIN,
+              status: UserStatus.SUSPENDED,
+            },
+          }),
+        );
+      });
+
+      it("should execute directly on caller-provided tx client without invoking prisma.$transaction", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockExistingAdmin);
+        mockTx.user.update.mockResolvedValue(mockUpdatedUser);
+
+        await AdminService.updateAdmin({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: { role: UserRole.SUPER_ADMIN },
+          tx: mockTx as unknown as Prisma.TransactionClient,
+        });
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(mockTx.user.findUnique).toHaveBeenCalledTimes(1);
+        expect(mockTx.user.update).toHaveBeenCalledTimes(1);
         expect(AuditService.record).toHaveBeenCalledTimes(1);
       });
     });

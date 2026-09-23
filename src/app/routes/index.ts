@@ -19,11 +19,11 @@ const moduleRoutes: ModuleRoute[] = [
     route: AuthRoutes,
   },
   {
-    path: "/admin",
+    path: "/admins",
     route: AdminRoutes,
   },
   {
-    path: "/customer",
+    path: "/customers",
     route: CustomerRoutes,
   },
 ];

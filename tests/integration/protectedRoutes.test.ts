@@ -11,13 +11,32 @@ describe("Protected Routes Supertest Integration Tests", () => {
     "/api/v1/auth/logout-all",
     "/api/v1/auth/link/google",
     "/api/v1/auth/unlink/google",
-    "/api/v1/admin/admins",
+    "/api/v1/admins",
   ];
 
   for (const endpoint of protectedPostEndpoints) {
     it(`should reject unauthenticated request to ${endpoint} with 401 UNAUTHORIZED`, async () => {
       const res = await request(getApp())
         .post(endpoint)
+        .send({});
+
+      expect(res.status).toBe(401);
+      expect(res.body).toMatchObject({
+        success: false,
+        code: PUBLIC_ERROR_CODES.UNAUTHORIZED,
+        message: "Authentication required. Please sign in.",
+      });
+    });
+  }
+
+  const protectedPatchEndpoints = [
+    "/api/v1/admins/11111111-1111-4111-8111-111111111111",
+  ];
+
+  for (const endpoint of protectedPatchEndpoints) {
+    it(`should reject unauthenticated request to ${endpoint} with 401 UNAUTHORIZED`, async () => {
+      const res = await request(getApp())
+        .patch(endpoint)
         .send({});
 
       expect(res.status).toBe(401);

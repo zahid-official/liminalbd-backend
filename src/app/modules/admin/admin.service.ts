@@ -135,6 +135,26 @@ const createAdmin = async (input: CreateAdminServiceInput) => {
   );
 };
 
+// Map user status transitions to semantic audit actions
+const STATUS_AUDIT_ACTION_MAP: Record<UserStatus, AuditAction> = {
+  [UserStatus.ACTIVE]: AuditAction.REACTIVATE,
+  [UserStatus.SUSPENDED]: AuditAction.SUSPEND,
+  [UserStatus.DEACTIVATED]: AuditAction.DEACTIVATE,
+};
+
+// Resolve granular audit action based on mutated attributes
+const resolveAuditAction = (payload: UpdateAdminInput): AuditAction => {
+  if (payload.role && !payload.status) {
+    return AuditAction.ROLE_CHANGE;
+  }
+
+  if (payload.status && !payload.role) {
+    return STATUS_AUDIT_ACTION_MAP[payload.status];
+  }
+
+  return AuditAction.UPDATE;
+};
+
 // Execute Admin account update
 const executeUpdateAdmin = async (
   tx: Prisma.TransactionClient,
@@ -144,7 +164,20 @@ const executeUpdateAdmin = async (
 ) => {
   const targetUser = await tx.user.findUnique({
     where: { id: targetId },
-    include: { admin: true },
+    select: {
+      id: true,
+      role: true,
+      status: true,
+      deletedAt: true,
+      admin: {
+        select: {
+          contactNumber: true,
+          address: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+    },
   });
 
   if (
@@ -159,7 +192,7 @@ const executeUpdateAdmin = async (
     );
   }
 
-  // Prepare update data
+  // Build selective update payload for provided attributes
   const updateData: Prisma.UserUpdateInput = {};
   if (payload.role) {
     updateData.role = payload.role;
@@ -171,9 +204,20 @@ const executeUpdateAdmin = async (
   const updatedUser = await tx.user.update({
     where: { id: targetId },
     data: updateData,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      emailVerified: true,
+      role: true,
+      status: true,
+      needPasswordChange: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
-  // Invalidate active sessions if account status is restricted
+  // Invalidate active sessions when restricting account access
   if (
     payload.status === UserStatus.SUSPENDED ||
     payload.status === UserStatus.DEACTIVATED
@@ -183,7 +227,7 @@ const executeUpdateAdmin = async (
     });
   }
 
-  // Record audit trail with before and after changes
+  // Record audit trail with previous and new attribute values
   const previousValue: Record<string, unknown> = {};
   const newValue: Record<string, unknown> = {};
 
@@ -198,7 +242,7 @@ const executeUpdateAdmin = async (
 
   await AuditService.record({
     actorId,
-    action: AuditAction.UPDATE,
+    action: resolveAuditAction(payload),
     entityType: AuditEntityType.ADMIN,
     entityId: targetId,
     previousValue,
@@ -209,27 +253,9 @@ const executeUpdateAdmin = async (
     tx,
   });
 
-  // Prepare Admin profile for response
-  const adminProfile = targetUser.admin
-    ? {
-        contactNumber: targetUser.admin.contactNumber,
-        address: targetUser.admin.address,
-        createdAt: targetUser.admin.createdAt,
-        updatedAt: targetUser.admin.updatedAt,
-      }
-    : null;
-
   return {
-    id: updatedUser.id,
-    name: updatedUser.name,
-    email: updatedUser.email,
-    emailVerified: updatedUser.emailVerified,
-    role: updatedUser.role,
-    status: updatedUser.status,
-    needPasswordChange: updatedUser.needPasswordChange,
-    createdAt: updatedUser.createdAt,
-    updatedAt: updatedUser.updatedAt,
-    admin: adminProfile,
+    ...updatedUser,
+    admin: targetUser.admin,
   };
 };
 
@@ -245,12 +271,23 @@ const updateAdmin = async (input: UpdateAdminServiceInput) => {
     );
   }
 
-  if (actorId === targetId && payload.role !== undefined) {
-    throw new AppError(
-      status.BAD_REQUEST,
-      PUBLIC_ERROR_CODES.VALIDATION_ERROR,
-      "Super Admin cannot modify their own role",
-    );
+  // Prevent self-role mutation and self-lockout
+  if (actorId === targetId) {
+    if (payload.role !== undefined) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+        "Super Admin cannot modify their own role",
+      );
+    }
+
+    if (payload.status && payload.status !== UserStatus.ACTIVE) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+        "Super Admin cannot suspend or deactivate their own account",
+      );
+    }
   }
 
   if (tx) {

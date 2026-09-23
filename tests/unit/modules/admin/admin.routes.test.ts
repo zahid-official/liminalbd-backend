@@ -24,14 +24,31 @@ describe("AdminRoutes Unit Tests", () => {
     return layer?.route;
   };
 
-  it("should configure POST /admins route with authGuard, rbacGuard, validation, and controller handlers", () => {
-    const route = findRoute("/admins");
+  it("should configure POST / route with authGuard, rbacGuard, validation, and controller handlers", () => {
+    const route = findRoute("/");
 
     expect(route).toBeDefined();
     expect(route?.methods?.post).toBe(true);
 
     // Method exclusivity
     expect(route?.methods?.get).toBeUndefined();
+    expect(route?.methods?.put).toBeUndefined();
+    expect(route?.methods?.delete).toBeUndefined();
+
+    // Guard and middleware stack assertions
+    expect(route?.stack?.length).toBe(4);
+    expect(route?.stack?.[0]?.handle).toBe(authGuard);
+  });
+
+  it("should configure PATCH /:id route with authGuard, rbacGuard, validation, and controller handlers", () => {
+    const route = findRoute("/:id");
+
+    expect(route).toBeDefined();
+    expect(route?.methods?.patch).toBe(true);
+
+    // Method exclusivity
+    expect(route?.methods?.get).toBeUndefined();
+    expect(route?.methods?.post).toBeUndefined();
     expect(route?.methods?.put).toBeUndefined();
     expect(route?.methods?.delete).toBeUndefined();
 

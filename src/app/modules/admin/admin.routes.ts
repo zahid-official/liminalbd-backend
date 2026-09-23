@@ -10,11 +10,20 @@ const router: Router = Router();
 
 // Create Admin account
 router.post(
-  "/admins",
+  "/",
   authGuard,
   rbacGuard(UserRole.SUPER_ADMIN),
   validateRequest(AdminValidation.createAdminSchema),
   AdminController.createAdmin,
+);
+
+// Update Admin account
+router.patch(
+  "/:id",
+  authGuard,
+  rbacGuard(UserRole.SUPER_ADMIN),
+  validateRequest(AdminValidation.updateAdminSchema),
+  AdminController.updateAdmin,
 );
 
 // Export Admin routes

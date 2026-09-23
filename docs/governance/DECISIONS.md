@@ -20,6 +20,28 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-027: Standardize Pluralized RESTful Resource Routes for Entity Collections
+
+**Recorded:** 2026-09-23
+**Status:** `ACCEPTED`
+
+**Decision:**
+Standardize entity collection endpoints under clean, pluralized RESTful resource paths (`/api/v1/admins` for administrative accounts and `/api/v1/customers` for customer accounts) at the application routing registry (`src/app/routes/index.ts`), superseding legacy paths (`/api/v1/admin/admins` and `/api/v1/customer`). Internal code organization remains strictly singular (`src/app/modules/admin/`, `src/app/modules/customer/`, `AdminService`, `CustomerService`) per standard Domain-Driven Design and object-oriented naming conventions.
+
+**Why:**
+1. **Elimination of Word Stuttering & Asymmetry:** Supersedes the legacy stuttering path `/api/v1/admin/admins` and aligns `/admins` and `/customers` into a consistent, symmetrical plural scheme.
+2. **Global RESTful Convention Alignment:** Industry-standard RESTful API guidelines (Stripe, GitHub, Shopify, Google Cloud) mandate plural nouns for entity collections in HTTP paths while retaining singular names for classes and modules.
+3. **Decoupled Identity Architecture:** User identity endpoints (`/me`, `/profile`) reside exclusively in identity/user portals, cleanly separating self-service identity from administrative resource management and eliminating route shadowing risks.
+
+**Consequences:**
+- `src/app/routes/index.ts` mounts `AdminRoutes` under `/admins` and `CustomerRoutes` under `/customers`.
+- `src/app/modules/admin/admin.routes.ts` mounts endpoints on `/` (`POST /api/v1/admins`) and `/:id` (`PATCH /api/v1/admins/:id`).
+- Module folders and file basenames remain singular (`modules/admin/`, `modules/customer/`).
+- All integration and route tests assert against `/api/v1/admins` and `/api/v1/admins/:id`.
+- Task plan `P2-T019` is synchronized with this canonical path.
+
+---
+
 ### DEC-026: Separation of Privileged Admin Governance from Personal Profile Management
 
 **Recorded:** 2026-09-23  

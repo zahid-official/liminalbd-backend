@@ -11,14 +11,21 @@ import { UserRole, UserStatus } from "../../../../src/generated/prisma/enums.js"
 interface MockResponseOptions {
   user?: Partial<AuthUser>;
   validatedBody?: unknown;
+  validatedParams?: unknown;
 }
 
-const makeMockRes = ({ user, validatedBody }: MockResponseOptions = {}) => {
+const makeMockRes = ({
+  user,
+  validatedBody,
+  validatedParams,
+}: MockResponseOptions = {}) => {
   return {
     locals: {
       user,
-      validated:
-        validatedBody !== undefined ? { body: validatedBody } : undefined,
+      validated: {
+        ...(validatedBody !== undefined ? { body: validatedBody } : {}),
+        ...(validatedParams !== undefined ? { params: validatedParams } : {}),
+      },
     },
     status: vi.fn().mockReturnThis(),
     json: vi.fn(),
@@ -107,6 +114,95 @@ describe("AdminController Unit Tests", () => {
       const next = vi.fn() as unknown as NextFunction;
 
       await AdminController.createAdmin(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("updateAdmin", () => {
+    const targetId = "target-admin-uuid-1";
+    const mockParams = { id: targetId };
+    const mockPayload = {
+      role: UserRole.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
+    };
+
+    const mockAuthUser = {
+      id: "super-admin-uuid-1",
+      role: UserRole.SUPER_ADMIN,
+    } as AuthUser;
+
+    const mockResult = {
+      id: targetId,
+      name: "Updated Admin",
+      email: "updatedadmin@liminalbd.com",
+      emailVerified: true,
+      role: UserRole.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
+      needPasswordChange: false,
+      createdAt: new Date("2026-09-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-23T12:00:00.000Z"),
+      admin: {
+        contactNumber: "01700000000",
+        address: "Dhaka, Bangladesh",
+        createdAt: new Date("2026-09-20T10:00:00.000Z"),
+        updatedAt: new Date("2026-09-20T10:00:00.000Z"),
+      },
+    };
+
+    it("should extract validated params, payload and actor context, invoke AdminService.updateAdmin, and return 200 response", async () => {
+      const updateAdminSpy = vi
+        .spyOn(AdminService, "updateAdmin")
+        .mockResolvedValue(mockResult);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedParams: mockParams,
+        validatedBody: mockPayload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AdminController.updateAdmin(req, res, next);
+
+      expect(updateAdminSpy).toHaveBeenCalledTimes(1);
+      expect(updateAdminSpy).toHaveBeenCalledWith({
+        actorId: mockAuthUser.id,
+        actorRole: UserRole.SUPER_ADMIN,
+        targetId,
+        payload: mockPayload,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Admin account updated successfully",
+        data: mockResult,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.NOT_FOUND,
+        PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        "Admin user not found",
+      );
+
+      vi.spyOn(AdminService, "updateAdmin").mockRejectedValue(serviceError);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedParams: mockParams,
+        validatedBody: mockPayload,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AdminController.updateAdmin(req, res, next);
 
       expect(next).toHaveBeenCalledTimes(1);
       expect(next).toHaveBeenCalledWith(serviceError);

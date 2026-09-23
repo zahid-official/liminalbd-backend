@@ -156,4 +156,150 @@ describe("AdminValidation Unit Tests", () => {
       );
     });
   });
+
+  describe("updateAdminSchema", () => {
+    describe("Params Validation (id)", () => {
+      const paramsSchema = AdminValidation.updateAdminSchema.params;
+
+      it("should pass when id is a valid UUID", () => {
+        const validId = "c9bf9e57-1685-4c89-bafb-ff5af830be8a";
+        const result = paramsSchema.safeParse({ id: validId });
+
+        expect(result).toEqual({
+          success: true,
+          data: { id: validId },
+        });
+      });
+
+      it("should trim surrounding whitespace from UUID", () => {
+        const validId = "c9bf9e57-1685-4c89-bafb-ff5af830be8a";
+        const result = paramsSchema.safeParse({ id: `  ${validId}  ` });
+
+        expect(result).toEqual({
+          success: true,
+          data: { id: validId },
+        });
+      });
+
+      it("should fail when id is missing or undefined", () => {
+        const result = paramsSchema.safeParse({});
+
+        expect(getFirstErrorMessage(result)).toBe("Admin ID is required");
+      });
+
+      it("should fail when id is not a string", () => {
+        const result = paramsSchema.safeParse({ id: 12345 });
+
+        expect(getFirstErrorMessage(result)).toBe("Admin ID must be a valid text string");
+      });
+
+      it("should fail when id is an invalid UUID format", () => {
+        const result = paramsSchema.safeParse({ id: "invalid-uuid-string" });
+
+        expect(getFirstErrorMessage(result)).toBe("Invalid Admin ID format");
+      });
+    });
+
+    describe("Body Validation (role & status)", () => {
+      const bodySchema = AdminValidation.updateAdminSchema.body;
+
+      it("should pass when only role is provided with valid value", () => {
+        const result = bodySchema.safeParse({ role: "ADMIN" });
+
+        expect(result).toEqual({
+          success: true,
+          data: { role: "ADMIN" },
+        });
+
+        const superAdminResult = bodySchema.safeParse({ role: "SUPER_ADMIN" });
+        expect(superAdminResult).toEqual({
+          success: true,
+          data: { role: "SUPER_ADMIN" },
+        });
+      });
+
+      it("should pass when only status is provided with valid value", () => {
+        for (const status of ["ACTIVE", "SUSPENDED", "DEACTIVATED"]) {
+          const result = bodySchema.safeParse({ status });
+          expect(result).toEqual({
+            success: true,
+            data: { status },
+          });
+        }
+      });
+
+      it("should pass when both valid role and status are provided", () => {
+        const result = bodySchema.safeParse({
+          role: "SUPER_ADMIN",
+          status: "SUSPENDED",
+        });
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            role: "SUPER_ADMIN",
+            status: "SUSPENDED",
+          },
+        });
+      });
+
+      it("should strip client-injected fields (e.g. name, email, password, isSuperAdmin)", () => {
+        const result = bodySchema.safeParse({
+          role: "ADMIN",
+          name: "Injected Name",
+          email: "injected@example.com",
+          password: "InjectedPassword123!",
+          isSuperAdmin: true,
+        });
+
+        expect(result).toEqual({
+          success: true,
+          data: { role: "ADMIN" },
+        });
+      });
+
+      it("should fail when role is CUSTOMER", () => {
+        const result = bodySchema.safeParse({ role: "CUSTOMER" });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "Role must be either ADMIN or SUPER_ADMIN",
+        );
+      });
+
+      it("should fail when role is an unknown string", () => {
+        const result = bodySchema.safeParse({ role: "MODERATOR" });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "Role must be either ADMIN or SUPER_ADMIN",
+        );
+      });
+
+      it("should fail when status is an invalid enum value", () => {
+        const result = bodySchema.safeParse({ status: "PENDING" });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "Status must be a valid account status",
+        );
+      });
+
+      it("should fail when empty object is provided", () => {
+        const result = bodySchema.safeParse({});
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "At least one field must be provided for update",
+        );
+      });
+
+      it("should fail when all fields are undefined", () => {
+        const result = bodySchema.safeParse({
+          role: undefined,
+          status: undefined,
+        });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "At least one field must be provided for update",
+        );
+      });
+    });
+  });
 });

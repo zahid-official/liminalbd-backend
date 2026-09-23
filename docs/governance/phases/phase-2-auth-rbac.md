@@ -159,7 +159,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 15    | C          | `P2-T016` | Implement the audit-log application boundary                             | `✅`   | `P2-T001`, `P2-T010`            | None                                         |
 | 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `✅`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 17    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `✅`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
-| 18    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔄`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
+| 18    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `✅`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
 | 19    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
 | 20    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔲`   | `P2-T019`                       | `P2-B001`                                    |
 | 21    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
@@ -301,7 +301,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Always assign `CUSTOMER`; ignore or reject client role/status/ownership input and never create a privileged account.
 - Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract (pure User identity attributes under `DEC-017` and `PRD.md` line 140).
 - Never store or log a plain-text password; cover success and meaningful failure paths.
-- *(Architectural Note under DEC-021 & DEC-022: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customer/register`, using primitive schemas from `src/app/validations/common.validation.ts`, with 1-to-1 `Customer` profile creation centralized via Better Auth's `databaseHooks.user.create.after`).*
+- *(Architectural Note under DEC-021, DEC-022 & DEC-027: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customers/register` [pluralized per `DEC-027`, superseding `/api/v1/customer/register`], using primitive schemas from `src/app/validations/common.validation.ts`, with 1-to-1 `Customer` profile creation centralized via Better Auth's `databaseHooks.user.create.after`).*
 
 **Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts. Automated Vitest unit test suites (`common.validation.test.ts`, `customer.validation.test.ts`, `customer.service.test.ts`, `customer.controller.test.ts`, `customer.routes.test.ts` — 37 tests) with 100% statement, branch, function, and line coverage.
 
@@ -530,9 +530,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Reject missing targets and invalid status transitions with the required HTTP behavior.
 - Apply changes atomically with complete audit before/after values.
 
-**Additional verification:** Role-transition, self-mutation, status, authorization and audit checks.
+**Additional verification:** Automated Vitest unit test suites (`tests/unit/modules/admin/` — 50 tests covering validation, service, controller, and routes; plus `tests/integration/protectedRoutes.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-23)
 
 #### P2-T020: Enforce and Audit Admin Restrictions on Privileged Accounts
 
@@ -681,7 +681,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 | ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status     |
 | --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/customer/register` per `DEC-021` and `POST /api/v1/auth/login` approved under `P2-T006`/`P2-T008`; `POST /api/v1/auth/login/google` and `GET /api/v1/auth/callback/google` approved under `P2-T009`/`DEC-020`) | `RESOLVED` |
+| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/customers/register` per `DEC-021`/`DEC-027`, `POST /api/v1/admins` and `PATCH /api/v1/admins/:id` per `DEC-027`, and `POST /api/v1/auth/login` approved under `P2-T006`/`P2-T008`; `POST /api/v1/auth/login/google` and `GET /api/v1/auth/callback/google` approved under `P2-T009`/`DEC-020`) | `RESOLVED` |
 | `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Session lifetime (7d), renewal (1d), `SameSite: "lax"`, CSRF and cookie policy approved under `P2-T005` on 2026-09-08                                    | `RESOLVED` |
 | `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy (customer-only linking enabled; admin linking rejected per `DEC-020`; verified in `P2-T009` and `P2-T011`) | `RESOLVED` |
 | `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN`     |
