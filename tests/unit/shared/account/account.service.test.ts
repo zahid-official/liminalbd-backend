@@ -111,49 +111,7 @@ describe("AccountService Unit Tests", () => {
         expect(result).toEqual(updatedUser);
       });
 
-      it("should update status to DEACTIVATED and use caller transaction without calling prisma.$transaction", async () => {
-        mockTx.user.findUnique.mockResolvedValue({
-          id: mockTargetUser.id,
-          status: UserStatus.ACTIVE,
-          deletedAt: null,
-        });
 
-        const updatedUser: User = {
-          ...mockTargetUser,
-          status: UserStatus.DEACTIVATED,
-        };
-        mockTx.user.update.mockResolvedValue(updatedUser);
-        mockTx.session.deleteMany.mockResolvedValue({ count: 1 });
-
-        const externalTx = mockTx as unknown as Prisma.TransactionClient;
-
-        const result = await AccountService.updateStatus({
-          actorId: null,
-          targetUserId: mockTargetUser.id,
-          newStatus: UserStatus.DEACTIVATED,
-          tx: externalTx,
-        });
-
-        expect(prisma.$transaction).not.toHaveBeenCalled();
-        expect(mockTx.user.update).toHaveBeenCalledWith({
-          where: { id: mockTargetUser.id },
-          data: { status: UserStatus.DEACTIVATED },
-        });
-        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
-          where: { userId: mockTargetUser.id },
-        });
-        expect(AuditService.record).toHaveBeenCalledWith({
-          actorId: null,
-          action: AuditAction.DEACTIVATE,
-          entityType: AuditEntityType.USER,
-          entityId: mockTargetUser.id,
-          previousValue: { status: UserStatus.ACTIVE },
-          newValue: { status: UserStatus.DEACTIVATED },
-          metadata: null,
-          tx: externalTx,
-        });
-        expect(result).toEqual(updatedUser);
-      });
 
       it("should reactivate user (status ACTIVE) without deleting active sessions", async () => {
         mockTx.user.findUnique.mockResolvedValue({
@@ -330,43 +288,7 @@ describe("AccountService Unit Tests", () => {
         expect(result).toEqual(softDeletedUser);
       });
 
-      it("should execute soft-delete directly on provided transaction client without calling prisma.$transaction", async () => {
-        mockTx.user.findUnique.mockResolvedValue({
-          id: mockTargetUser.id,
-          status: UserStatus.ACTIVE,
-          deletedAt: null,
-        });
 
-        const softDeletedUser: User = {
-          ...mockTargetUser,
-          deletedAt: new Date(),
-        };
-        mockTx.user.update.mockResolvedValue(softDeletedUser);
-        mockTx.session.deleteMany.mockResolvedValue({ count: 1 });
-
-        const externalTx = mockTx as unknown as Prisma.TransactionClient;
-
-        const result = await AccountService.softDelete({
-          targetUserId: mockTargetUser.id,
-          tx: externalTx,
-        });
-
-        expect(prisma.$transaction).not.toHaveBeenCalled();
-        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
-          where: { userId: mockTargetUser.id },
-        });
-        expect(AuditService.record).toHaveBeenCalledWith({
-          actorId: null,
-          action: AuditAction.SOFT_DELETE,
-          entityType: AuditEntityType.USER,
-          entityId: mockTargetUser.id,
-          previousValue: { deletedAt: null },
-          newValue: { deletedAt: softDeletedUser.deletedAt },
-          metadata: null,
-          tx: externalTx,
-        });
-        expect(result).toEqual(softDeletedUser);
-      });
     });
 
     describe("Validation and Error Scenarios", () => {

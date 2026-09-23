@@ -82,7 +82,8 @@ const record = async (input: CreateAuditLogInput): Promise<AuditLog> => {
     data.metadata = toPrismaJson(input.metadata);
   }
 
-  return await client.auditLog.create({ data });
+  const result = await client.auditLog.create({ data });
+  return result;
 };
 
 // Export audit service

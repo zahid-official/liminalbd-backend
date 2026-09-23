@@ -218,9 +218,6 @@ describe("AdminService Unit Tests", () => {
             status: UserStatus.ACTIVE,
             needPasswordChange: true,
           },
-          metadata: {
-            createdVia: "SUPER_ADMIN_PROVISIONING",
-          },
           tx: mockTx,
         });
 
@@ -242,42 +239,6 @@ describe("AdminService Unit Tests", () => {
             updatedAt: mockUpdatedAt,
           },
         });
-      });
-
-      it("should execute directly on caller-provided transaction client without invoking prisma.$transaction", async () => {
-        const mockCreatedAt = new Date("2026-09-23T10:00:00.000Z");
-        const mockUpdatedAt = new Date("2026-09-23T10:00:00.000Z");
-
-        mockTx.user.findUnique.mockResolvedValue(null);
-        mockTx.user.create.mockImplementation(async ({ data }: any) => ({
-          ...data,
-          createdAt: mockCreatedAt,
-          updatedAt: mockUpdatedAt,
-        }));
-        mockTx.account.create.mockImplementation(async ({ data }: any) => ({
-          ...data,
-          createdAt: mockCreatedAt,
-          updatedAt: mockUpdatedAt,
-        }));
-        mockTx.admin.create.mockImplementation(async ({ data }: any) => ({
-          ...data,
-          createdAt: mockCreatedAt,
-          updatedAt: mockUpdatedAt,
-        }));
-
-        await AdminService.createAdmin({
-          actorId: "super-admin-1",
-          actorRole: UserRole.SUPER_ADMIN,
-          payload: mockPayload,
-          tx: mockTx as unknown as Prisma.TransactionClient,
-        });
-
-        expect(prisma.$transaction).not.toHaveBeenCalled();
-        expect(mockTx.user.findUnique).toHaveBeenCalledTimes(1);
-        expect(mockTx.user.create).toHaveBeenCalledTimes(1);
-        expect(mockTx.account.create).toHaveBeenCalledTimes(1);
-        expect(mockTx.admin.create).toHaveBeenCalledTimes(1);
-        expect(AuditService.record).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -522,9 +483,6 @@ describe("AdminService Unit Tests", () => {
           entityId: targetId,
           previousValue: { role: UserRole.ADMIN },
           newValue: { role: UserRole.SUPER_ADMIN },
-          metadata: {
-            updatedVia: "SUPER_ADMIN_MANAGEMENT",
-          },
           tx: mockTx,
         });
 
@@ -674,23 +632,7 @@ describe("AdminService Unit Tests", () => {
         );
       });
 
-      it("should execute directly on caller-provided tx client without invoking prisma.$transaction", async () => {
-        mockTx.user.findUnique.mockResolvedValue(mockExistingAdmin);
-        mockTx.user.update.mockResolvedValue(mockUpdatedUser);
 
-        await AdminService.updateAdmin({
-          actorId,
-          actorRole: UserRole.SUPER_ADMIN,
-          targetId,
-          payload: { role: UserRole.SUPER_ADMIN },
-          tx: mockTx as unknown as Prisma.TransactionClient,
-        });
-
-        expect(prisma.$transaction).not.toHaveBeenCalled();
-        expect(mockTx.user.findUnique).toHaveBeenCalledTimes(1);
-        expect(mockTx.user.update).toHaveBeenCalledTimes(1);
-        expect(AuditService.record).toHaveBeenCalledTimes(1);
-      });
     });
   });
 });

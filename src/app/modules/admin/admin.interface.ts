@@ -1,4 +1,3 @@
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserRole } from "../../../generated/prisma/enums.js";
 import type { CreateAdminInput, UpdateAdminInput } from "./admin.validation.js";
 
@@ -7,7 +6,6 @@ export interface CreateAdminServiceInput {
   actorId: string;
   actorRole: UserRole;
   payload: CreateAdminInput;
-  tx?: Prisma.TransactionClient;
 }
 
 // Input contract for updating an Admin account
@@ -16,5 +14,4 @@ export interface UpdateAdminServiceInput {
   actorRole: UserRole;
   targetId: string;
   payload: UpdateAdminInput;
-  tx?: Prisma.TransactionClient;
 }

@@ -1,19 +1,16 @@
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserStatus } from "../../../generated/prisma/enums.js";
 
 // Input contract for updating a user's account status
 export interface UpdateUserStatusInput {
-  actorId?: string | null;
+  actorId?: string;
   targetUserId: string;
   newStatus: UserStatus;
-  reason?: string | null;
-  tx?: Prisma.TransactionClient;
+  reason?: string;
 }
 
 // Input contract for soft-deleting a user account
 export interface SoftDeleteUserInput {
-  actorId?: string | null;
+  actorId?: string;
   targetUserId: string;
-  reason?: string | null;
-  tx?: Prisma.TransactionClient;
+  reason?: string;
 }
