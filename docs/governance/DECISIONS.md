@@ -20,6 +20,28 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-026: Separation of Privileged Admin Governance from Personal Profile Management
+
+**Recorded:** 2026-09-23  
+**Status:** `ACCEPTED`
+
+**Decision:**
+Restrict the privileged administrative update endpoint (`PATCH /api/v1/admin/admins/:id`) strictly to governance, access control, and account lifecycle mutations (`role`: `ADMIN ↔ SUPER_ADMIN`, `status`: `ACTIVE | SUSPENDED | DEACTIVATED`). Remove personal identity and profile fields (`name`, `contactNumber`, `address`) from this privileged Super Admin endpoint. Personal profile fields are strictly reserved for self-service profile management (e.g. `PATCH /api/v1/users/me` or `/profile`), allowing staff and users to manage their own personal data.
+
+**Why:**
+1. **Separation of Concerns & Privilege Minimization:** Privileged administrative boundaries exist to govern system access, roles, and account lifecycle states, not to tamper with or unilaterally modify the personally identifiable information (PII) of other staff members.
+2. **Data Privacy & Accountability:** Preventing Super Admins from arbitrarily altering other employees' personal names, contact numbers, or physical addresses upholds identity integrity and aligns with modern enterprise data privacy and HR governance standards.
+3. **Clean Architecture & Focused Contracts:** Simplifies the request contract, service transaction boundaries, and audit logging of administrative management, keeping privileged administrative updates tightly focused on RBAC and account security.
+
+**Consequences:**
+- `updateAdminSchema` in `src/app/modules/admin/admin.validation.ts` validates only `role` and `status` in the request body, rejecting empty payloads.
+- `UpdateAdminServiceInput` in `src/app/modules/admin/admin.interface.ts` defines `{ role?: UserRole; status?: UserStatus; }`.
+- `AdminService.updateAdmin` mutates only `User.role` and `User.status`, atomically invalidates active sessions when restricting an account (`SUSPENDED` / `DEACTIVATED`), and records audit trails for governance transitions.
+- Personal profile modifications (`name`, `contactNumber`, `address`) will be handled under self-service profile management endpoints.
+- Task plan `P2-T019` is updated to reflect this refined governance boundary.
+
+---
+
 ### DEC-025: Adopt Vitest as the Immediate Test Framework, Superseding DEC-013 Jest Deferral
 
 **Recorded:** 2026-09-19  

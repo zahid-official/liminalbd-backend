@@ -40,15 +40,13 @@
    - Protected by `authGuard` and `rbacGuard(UserRole.SUPER_ADMIN)`.
    - Non-authenticated requests receive `HTTP 401 Unauthorized` (`PUBLIC_ERROR_CODES.UNAUTHORIZED`).
    - Non-Super Admin callers (`ADMIN`, `CUSTOMER`) receive `HTTP 403 Forbidden` (`PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS`).
-3. **Request Contract & Validation (`admin.validation.ts`):**
+3. **Request Contract & Validation (`admin.validation.ts` per `DEC-026`):**
    - Params schema: `id` (valid UUID string).
    - Body schema (`updateAdminSchema`):
-     - `name`: string (optional, 2 to 100 characters, trimmed).
-     - `contactNumber`: string or null (optional, max 20 chars, trimmed).
-     - `address`: string or null (optional, max 255 chars, trimmed).
      - `role`: enum of permitted privileged roles (`UserRole.ADMIN | UserRole.SUPER_ADMIN`, optional). Disallow assigning `CUSTOMER`.
      - `status`: enum of valid user statuses (`UserStatus.ACTIVE | UserStatus.SUSPENDED | UserStatus.DEACTIVATED`, optional).
      - At least one field must be provided in body (non-empty update payload).
+     - *Note (`DEC-026`):* Personal profile fields (`name`, `contactNumber`, `address`) are explicitly excluded from privileged Super Admin management and reserved for self-service profile management.
 4. **Target Account Invariants (`admin.service.ts`):**
    - Verify target user exists, is not soft-deleted (`deletedAt === null`), and is a privileged user (`role === ADMIN` or `role === SUPER_ADMIN`).
    - If target does not exist, is soft-deleted, or is a `CUSTOMER`, throw `HTTP 404 Not Found` (`PUBLIC_ERROR_CODES.USER_NOT_FOUND`).
@@ -60,8 +58,7 @@
    - If `status` is updated to `SUSPENDED` or `DEACTIVATED`, atomically revoke all active sessions of the target user in PostgreSQL (`tx.session.deleteMany({ where: { userId: targetUserId } })`).
 8. **Atomic Execution & Audit Trail (`FR-ADMIN-002.5`, `FR-RBAC-003.7`):**
    - Executes inside `prisma.$transaction` (or caller `tx`):
-     - Updates `User` record if `name`, `role`, or `status` is provided.
-     - Updates `Admin` profile record if `contactNumber` or `address` is provided.
+     - Updates `User` record (`role`, `status`).
      - Invalidates sessions if status is restricted.
      - Records audit event via `AuditService.record({ actorId, action: AuditAction.UPDATE, entityType: AuditEntityType.ADMIN, entityId: targetUserId, previousValue, newValue, tx })`.
 9. **Standard Symmetrical Response (`admin.controller.ts`):**
@@ -71,6 +68,7 @@
 
 ### Out of Scope
 
+- Modifying personal profile fields (`name`, `contactNumber`, `address`) via privileged administrative endpoint (`DEC-026`).
 - Preventing Admin users from modifying other privileged accounts at service boundaries (`P2-T020`).
 - Listing Admin accounts with pagination and filters (`P2-T021`).
 - Self-service admin profile updates (Super Admin centralized management only).
