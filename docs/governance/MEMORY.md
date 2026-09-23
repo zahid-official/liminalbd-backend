@@ -21,8 +21,7 @@
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
 - Phase 2, Authentication & RBAC: `ACTIVE / READY` (execution plan approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, `P2-T017`, `P2-T018`, and `P2-T019` are `✅ Done`.
-- No future phase has approved implementation scope.
-- Next eligible candidate: `P2-T020` (Enforce and audit Admin restrictions on privileged accounts).
+- Active task in progress: `P2-T020` (Enforce and audit Admin restrictions on privileged accounts - `🔄 In progress`).
 
 ## 2. Current Codebase State
 
@@ -98,9 +97,9 @@ These are verified observations only. They do not authorize fixes outside an app
 
 ## 7. Next Action
 
-- Select the next planning candidate from Phase 2 task index: `P2-T020` (Enforce and audit Admin restrictions on privileged accounts).
-- Perform read-only inspection, prepare JIT task plan using `docs/governance/tasks/_template.md`, and submit for human approval.
-- If a task is already `🔄` or `🕵️`, resume or resolve it before selecting another.
+- Resume and complete the active task: `P2-T020` (Enforce and audit Admin restrictions on privileged accounts - `🔄 In progress`).
+- Execute Step 4 (Service layer enforcement), Step 5 (Automated unit tests), Step 6 (Quality gates), and Step 7 (Review preparation).
+- Do not select or start any other task until `P2-T020` is formally approved and marked `✅ Done`.
 
 ## 8. Maintenance Rule
 
