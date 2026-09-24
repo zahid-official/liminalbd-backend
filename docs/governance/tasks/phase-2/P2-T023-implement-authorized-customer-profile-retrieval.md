@@ -1,6 +1,6 @@
 # Task: P2-T023 - Implement Authorized Customer Profile Retrieval
 
-> **Canonical Status:** `🔄 In progress`  
+> **Canonical Status:** `✅ Done`  
 > **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`  
 > **Requirement Reference:** `FR-CUSTOMER-003`, `FR-RBAC-005` (`FR-RBAC-005.1`–`FR-RBAC-005.4`)  
 > **ERD Reference:** `User` model, `Customer` model (`prisma/schema/auth.prisma`, `prisma/schema/profiles.prisma`)  
@@ -179,14 +179,14 @@
 
 ## 7. Verification & Quality Gates
 
-| Check                      | Required | Command or Method                               | Result    |
-| :------------------------- | :------- | :---------------------------------------------- | :-------- |
-| Acceptance criteria        | `Yes`    | Inspection against FR-CUSTOMER-003 requirements | `NOT RUN` |
-| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                             | `NOT RUN` |
-| Lint                       | `Yes`    | `pnpm lint`                                     | `NOT RUN` |
-| Tests                      | `Yes`    | `pnpm test tests/unit/modules/customer`         | `NOT RUN` |
-| Migration / data integrity | `No`     | Schema unchanged                                | `N/A`     |
-| Manual verification        | `No`     | Automated test suite covers all criteria        | `N/A`     |
+| Check                      | Required | Command or Method                               | Result                                                         |
+| :------------------------- | :------- | :---------------------------------------------- | :------------------------------------------------------------- |
+| Acceptance criteria        | `Yes`    | Inspection against FR-CUSTOMER-003 requirements | `Passed`                                                       |
+| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                             | `Passed (0 errors)`                                            |
+| Lint                       | `Yes`    | `pnpm lint`                                     | `Passed (0 warnings/errors)`                                   |
+| Tests                      | `Yes`    | `pnpm test tests/unit/modules/customer`         | `Passed (31/31 passed in customer module, 539/539 full suite)` |
+| Migration / data integrity | `No`     | Schema unchanged                                | `N/A`                                                          |
+| Manual verification        | `No`     | Automated test suite covers all criteria        | `N/A`                                                          |
 
 ---
 
@@ -215,7 +215,26 @@
 ## 10. Implementation Evidence
 
 - **Changed Files:**
-- **Migration Created:**
+  - `src/app/modules/customer/customer.interface.ts`: Defined `GetCustomerProfileServiceInput` input contract.
+  - `src/app/modules/customer/customer.validation.ts`: Added `getCustomerProfileSchema` with piped trimmed UUID param validation.
+  - `src/app/modules/customer/customer.service.ts`: Implemented `getCustomerProfile` with ownership check (`AuthorizationService.authorizeOwnership`), flat DTO projection, and defensive `updatedAt` calculation.
+  - `src/app/modules/customer/customer.controller.ts`: Implemented `getCustomerProfile` handler with context passing and standardized JSON response.
+  - `src/app/modules/customer/customer.routes.ts`: Mounted `GET /:id` with `authGuard`, `validateRequest`, and `CustomerController.getCustomerProfile`.
+  - `tests/unit/modules/customer/customer.validation.test.ts`: Added 5 unit tests for `getCustomerProfileSchema`.
+  - `tests/unit/modules/customer/customer.service.test.ts`: Added 7 unit tests for `getCustomerProfile` covering ownership, admin access, 403 breach, 404 not found, timestamp comparison, and null relation.
+  - `tests/unit/modules/customer/customer.controller.test.ts`: Added 2 unit tests for `getCustomerProfile` handling 200 OK flow and error propagation.
+  - `tests/unit/modules/customer/customer.routes.test.ts`: Added unit test verifying `GET /:id` layer configuration and method exclusivity.
+- **Migration Created:** None (PostgreSQL schema unchanged).
 - **Test / Verification Output:**
+  - `pnpm tsc --noEmit`: 0 errors.
+  - `pnpm lint`: 0 issues/warnings.
+  - `pnpm test tests/unit/modules/customer`: 4 test files, 31 tests passed.
+  - `pnpm test:coverage tests/unit/modules/customer`: 100% Stmts / Branch / Funcs / Lines across all executable files in `src/app/modules/customer`.
+  - `pnpm test`: 37 test files, 539 tests passed (0 failures).
 - **Deviations from Original Plan:**
+  - Omitted explicit `CustomerProfileResponse` type from `customer.interface.ts` in strict adherence to KISS & YAGNI and consistency with `admin.interface.ts` (TypeScript infers the return type accurately from service literal).
+  - Flattened DTO projection returned from service instead of leaking nested DB relation structure, preventing frontend stutter (`customer.customer.contactNumber`).
+  - Added clean ternary `updatedAt` resolution comparing `targetUser.customer.updatedAt` vs `targetUser.updatedAt` for the true latest modification timestamp.
 - **Remaining Concerns / Follow-ups:**
+  - Next task `P2-T024` will implement customer profile update (`PATCH /api/v1/customers/:id`).
+

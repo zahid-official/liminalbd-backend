@@ -155,4 +155,47 @@ describe("CustomerValidation Unit Tests", () => {
       );
     });
   });
+
+  describe("getCustomerProfileSchema Validation", () => {
+    const paramsSchema = CustomerValidation.getCustomerProfileSchema.params;
+    const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+
+    it("should successfully parse valid UUID parameter", () => {
+      const result = paramsSchema.safeParse({ id: validUuid });
+
+      expect(result).toEqual({
+        success: true,
+        data: { id: validUuid },
+      });
+    });
+
+    it("should trim whitespace around valid UUID parameter", () => {
+      const result = paramsSchema.safeParse({ id: `  ${validUuid}  ` });
+
+      expect(result).toEqual({
+        success: true,
+        data: { id: validUuid },
+      });
+    });
+
+    it("should fail when id is undefined with required message", () => {
+      expect(getFirstErrorMessage(paramsSchema.safeParse({}))).toBe(
+        "Customer ID is required",
+      );
+    });
+
+    it("should fail when id is not a string with custom text string message", () => {
+      expect(getFirstErrorMessage(paramsSchema.safeParse({ id: 12345 }))).toBe(
+        "Customer ID must be a valid text string",
+      );
+    });
+
+    it("should fail when id is not a valid UUID format", () => {
+      expect(
+        getFirstErrorMessage(
+          paramsSchema.safeParse({ id: "invalid-uuid-123" }),
+        ),
+      ).toBe("Invalid Customer ID format");
+    });
+  });
 });

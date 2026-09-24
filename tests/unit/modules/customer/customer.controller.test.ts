@@ -3,6 +3,7 @@ import status from "http-status";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "../../../../src/app/errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
+import type { AuthUser } from "../../../../src/app/modules/auth/auth.interface.js";
 import { CustomerController } from "../../../../src/app/modules/customer/customer.controller.js";
 import { CustomerService } from "../../../../src/app/modules/customer/customer.service.js";
 import {
@@ -11,14 +12,23 @@ import {
 } from "../../../../src/generated/prisma/enums.js";
 
 interface MockResponseOptions {
+  user?: Partial<AuthUser>;
   validatedBody?: unknown;
+  validatedParams?: unknown;
 }
 
-const makeMockRes = ({ validatedBody }: MockResponseOptions = {}) => {
+const makeMockRes = ({
+  user,
+  validatedBody,
+  validatedParams,
+}: MockResponseOptions = {}) => {
   return {
     locals: {
+      user,
       validated:
-        validatedBody !== undefined ? { body: validatedBody } : undefined,
+        validatedBody !== undefined || validatedParams !== undefined
+          ? { body: validatedBody, params: validatedParams }
+          : undefined,
     },
     status: vi.fn().mockReturnThis(),
     json: vi.fn(),
@@ -102,6 +112,84 @@ describe("CustomerController Unit Tests", () => {
       const next = vi.fn() as unknown as NextFunction;
 
       await CustomerController.registerCustomer(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getCustomerProfile", () => {
+    const customerId = "cust-user-100";
+    const mockCurrentUser: Partial<AuthUser> = {
+      id: customerId,
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+    };
+    const mockProfile = {
+      id: customerId,
+      name: "Zahidul Islam",
+      email: "zahid@liminalbd.com",
+      emailVerified: true,
+      image: null,
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      contactNumber: "+8801700000000",
+      address: "Dhaka, Bangladesh",
+      createdAt: new Date("2026-09-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-24T12:00:00.000Z"),
+    };
+
+    it("should extract params and user context, invoke CustomerService, and return 200 OK", async () => {
+      const getProfileSpy = vi
+        .spyOn(CustomerService, "getCustomerProfile")
+        .mockResolvedValue(mockProfile);
+
+      const req = {} as unknown as Request;
+      const res = makeMockRes({
+        user: mockCurrentUser,
+        validatedParams: { id: customerId },
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.getCustomerProfile(req, res, next);
+
+      expect(getProfileSpy).toHaveBeenCalledTimes(1);
+      expect(getProfileSpy).toHaveBeenCalledWith({
+        actorId: customerId,
+        actorRole: UserRole.CUSTOMER,
+        targetId: customerId,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Customer profile retrieved successfully",
+        data: mockProfile,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service error to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.NOT_FOUND,
+        PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        "Customer not found",
+      );
+
+      vi.spyOn(CustomerService, "getCustomerProfile").mockRejectedValue(
+        serviceError,
+      );
+
+      const req = {} as unknown as Request;
+      const res = makeMockRes({
+        user: mockCurrentUser,
+        validatedParams: { id: customerId },
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.getCustomerProfile(req, res, next);
 
       expect(next).toHaveBeenCalledTimes(1);
       expect(next).toHaveBeenCalledWith(serviceError);

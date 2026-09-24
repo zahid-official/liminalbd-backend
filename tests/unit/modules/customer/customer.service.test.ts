@@ -2,9 +2,12 @@ import status from "http-status";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { auth } from "../../../../src/app/config/auth.js";
 import { prisma } from "../../../../src/app/config/prisma.js";
+import { AppError } from "../../../../src/app/errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import { CustomerService } from "../../../../src/app/modules/customer/customer.service.js";
+import { AuthorizationService } from "../../../../src/app/shared/authorization/authorization.service.js";
 import {
+  AuditEntityType,
   UserRole,
   UserStatus,
 } from "../../../../src/generated/prisma/enums.js";
@@ -140,6 +143,219 @@ describe("CustomerService Unit Tests", () => {
           createdAt,
         });
       });
+    });
+  });
+
+  describe("getCustomerProfile", () => {
+    const customerId = "cust-user-100";
+    const userCreatedAt = new Date("2026-09-20T10:00:00.000Z");
+    const userUpdatedAt = new Date("2026-09-21T12:00:00.000Z");
+    const customerUpdatedAt = new Date("2026-09-23T15:00:00.000Z");
+
+    const mockTargetUser = {
+      id: customerId,
+      name: "Zahidul Islam",
+      email: "zahid@liminalbd.com",
+      emailVerified: true,
+      image: "https://avatar.example.com/user.jpg",
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      createdAt: userCreatedAt,
+      updatedAt: userUpdatedAt,
+      customer: {
+        contactNumber: "+8801700000000",
+        address: "Banani, Dhaka",
+        updatedAt: customerUpdatedAt,
+      },
+    };
+
+    it("should throw 404 USER_NOT_FOUND when customer user does not exist or is soft-deleted", async () => {
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(null);
+
+      await expect(
+        CustomerService.getCustomerProfile({
+          actorId: customerId,
+          actorRole: UserRole.CUSTOMER,
+          targetId: "non-existent-id",
+        }),
+      ).rejects.toMatchObject({
+        statusCode: status.NOT_FOUND,
+        code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        message: "Customer not found",
+      });
+
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: "non-existent-id",
+          role: UserRole.CUSTOMER,
+          deletedAt: null,
+        },
+        select: expect.any(Object),
+      });
+    });
+
+    it("should authorize and return flattened profile when Customer accesses their own profile", async () => {
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+        mockTargetUser as any,
+      );
+      const authSpy = vi
+        .spyOn(AuthorizationService, "authorizeOwnership")
+        .mockResolvedValue();
+
+      const result = await CustomerService.getCustomerProfile({
+        actorId: customerId,
+        actorRole: UserRole.CUSTOMER,
+        targetId: customerId,
+      });
+
+      expect(authSpy).toHaveBeenCalledWith({
+        actorId: customerId,
+        actorRole: UserRole.CUSTOMER,
+        resourceOwnerId: customerId,
+        resourceType: AuditEntityType.CUSTOMER,
+        resourceId: customerId,
+        action: "GET_CUSTOMER_PROFILE",
+        policy: {
+          allowAdmin: true,
+          allowSuperAdmin: true,
+        },
+      });
+
+      expect(result).toEqual({
+        id: customerId,
+        name: "Zahidul Islam",
+        email: "zahid@liminalbd.com",
+        emailVerified: true,
+        image: "https://avatar.example.com/user.jpg",
+        role: UserRole.CUSTOMER,
+        status: UserStatus.ACTIVE,
+        contactNumber: "+8801700000000",
+        address: "Banani, Dhaka",
+        createdAt: userCreatedAt,
+        updatedAt: customerUpdatedAt, // reflects newer customer updatedAt
+      });
+    });
+
+    it("should allow Admin to view customer profile under authorized policy", async () => {
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+        mockTargetUser as any,
+      );
+      const authSpy = vi
+        .spyOn(AuthorizationService, "authorizeOwnership")
+        .mockResolvedValue();
+
+      const result = await CustomerService.getCustomerProfile({
+        actorId: "admin-actor-1",
+        actorRole: UserRole.ADMIN,
+        targetId: customerId,
+      });
+
+      expect(authSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: "admin-actor-1",
+          actorRole: UserRole.ADMIN,
+          policy: { allowAdmin: true, allowSuperAdmin: true },
+        }),
+      );
+
+      expect(result.id).toBe(customerId);
+    });
+
+    it("should allow Super Admin to view customer profile under authorized policy", async () => {
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+        mockTargetUser as any,
+      );
+      const authSpy = vi
+        .spyOn(AuthorizationService, "authorizeOwnership")
+        .mockResolvedValue();
+
+      const result = await CustomerService.getCustomerProfile({
+        actorId: "super-admin-1",
+        actorRole: UserRole.SUPER_ADMIN,
+        targetId: customerId,
+      });
+
+      expect(authSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: "super-admin-1",
+          actorRole: UserRole.SUPER_ADMIN,
+        }),
+      );
+
+      expect(result.id).toBe(customerId);
+    });
+
+    it("should propagate 403 FORBIDDEN_ACCESS when AuthorizationService rejects cross-customer access", async () => {
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+        mockTargetUser as any,
+      );
+      vi.spyOn(AuthorizationService, "authorizeOwnership").mockRejectedValue(
+        new AppError(
+          status.FORBIDDEN,
+          PUBLIC_ERROR_CODES.FORBIDDEN_ACCESS,
+          "You do not have permission to access or modify this resource",
+        ),
+      );
+
+      await expect(
+        CustomerService.getCustomerProfile({
+          actorId: "attacker-customer-2",
+          actorRole: UserRole.CUSTOMER,
+          targetId: customerId,
+        }),
+      ).rejects.toMatchObject({
+        statusCode: status.FORBIDDEN,
+        code: PUBLIC_ERROR_CODES.FORBIDDEN_ACCESS,
+      });
+    });
+
+    it("should return user.updatedAt when user record is more recent than customer profile", async () => {
+      const olderCustomerDate = new Date("2026-09-18T10:00:00.000Z");
+      const newerUserDate = new Date("2026-09-24T18:00:00.000Z");
+
+      const userWithNewerUpdate = {
+        ...mockTargetUser,
+        updatedAt: newerUserDate,
+        customer: {
+          ...mockTargetUser.customer,
+          updatedAt: olderCustomerDate,
+        },
+      };
+
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+        userWithNewerUpdate as any,
+      );
+      vi.spyOn(AuthorizationService, "authorizeOwnership").mockResolvedValue();
+
+      const result = await CustomerService.getCustomerProfile({
+        actorId: customerId,
+        actorRole: UserRole.CUSTOMER,
+        targetId: customerId,
+      });
+
+      expect(result.updatedAt).toEqual(newerUserDate);
+    });
+
+    it("should handle null customer relation gracefully with null defaults and user.updatedAt", async () => {
+      const userWithoutCustomer = {
+        ...mockTargetUser,
+        customer: null,
+      };
+
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+        userWithoutCustomer as any,
+      );
+      vi.spyOn(AuthorizationService, "authorizeOwnership").mockResolvedValue();
+
+      const result = await CustomerService.getCustomerProfile({
+        actorId: customerId,
+        actorRole: UserRole.CUSTOMER,
+        targetId: customerId,
+      });
+
+      expect(result.contactNumber).toBeNull();
+      expect(result.address).toBeNull();
+      expect(result.updatedAt).toEqual(userUpdatedAt);
     });
   });
 });
