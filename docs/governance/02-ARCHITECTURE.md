@@ -208,6 +208,7 @@ Provider SDK → Integration Boundary → Business Service
 - Request validation occurs at the middleware layer using Zod, storing parsed and normalized data in `res.locals.validated` (`ValidatedLocals<T>`) rather than mutating `req`.
 - Cookie-based session handling through Better Auth.
 - Do not expose session secrets as application-managed access/refresh tokens without an approved architecture change.
+- Unified Resource DTOs: Extended entities (e.g., User with Customer or Admin profiles) must return unified, flattened DTO representations rather than raw relational schema hierarchies, preventing internal schema leakage (`DEC-028`).
 
 ## 9. Architectural Change Rule
 

@@ -20,6 +20,31 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-028: Standardize Flattened Resource DTOs and Dynamic Latest-Timestamp Resolution for Extended User Profiles
+
+**Recorded:** 2026-09-24  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Flattened Resource DTOs:** Public and administrative API responses for extended user entities (e.g. `Customer`, `Admin`) must return a unified, flattened Data Transfer Object (DTO) at the service/API boundary. Relational database profile tables must not be exposed as nested child objects (e.g. avoid `{ id, ..., customer: { contactNumber, address } }` or `{ id, ..., admin: { contactNumber, address } }`). All permitted profile attributes (`contactNumber`, `address`) must be projected directly on the root resource representation.
+2. **Defensive Nullish Coalescing:** Optional or unpopulated profile attributes must resolve via defensive nullish coalescing (`profile?.field ?? null`) to ensure consistent, predictable JSON schema contracts across all account lifecycle phases (creation, initial state, unpopulated fields).
+3. **Dynamic Latest-Timestamp Resolution:** When an entity is composed of multiple normalized tables (e.g. `User` and `Customer` or `User` and `Admin`), the response `updatedAt` timestamp must dynamically evaluate and reflect the most recent modification across both records (`const updatedAt = profile && profile.updatedAt > user.updatedAt ? profile.updatedAt : user.updatedAt;`), reusing existing Date references without superfluous heap allocations or mathematical conversions.
+4. **Symmetrical Cross-Module Consistency:** This convention applies symmetrically across all user extensions, including customer profile retrieval (`P2-T023`), admin provisioning (`P2-T018`), admin update (`P2-T019`), and admin listing (`P2-T021`).
+
+**Why:**
+1. **Zero Database Schema Leakage:** Clients consuming the API must not be coupled to the internal normalization details of the relational database. A customer or admin is conceptually a single unified business resource.
+2. **Developer Ergonomics & Elimination of Stuttering:** Eliminates awkward repetitive nesting in frontend applications (e.g. `response.data.customer.contactNumber` or `response.data.admin.contactNumber`), providing direct access via `response.data.contactNumber`.
+3. **Cache Invalidation & Timestamp Accuracy:** If a user updates only their contact number or address, only the profile table's `updatedAt` is updated in PostgreSQL. Reflecting the latest timestamp between `user.updatedAt` and `profile.updatedAt` ensures HTTP caching mechanisms (ETag, Last-Modified) and frontend state synchronizers always observe the true latest modification.
+4. **KISS, YAGNI & Performance:** Idiomatic direct comparison (`>`) leverages JavaScript's native date value comparison without creating new `Date` instances on the heap, ensuring high throughput and optimal memory usage.
+
+**Consequences:**
+- `CustomerService.getCustomerProfile` returns a flattened object with latest `updatedAt`.
+- `AdminService.createAdmin`, `AdminService.updateAdmin`, and `AdminService.getAdmins` return flattened admin profile objects with latest `updatedAt`.
+- Future user extension modules (e.g. vendor, designer, staff profiles in later phases) must follow this identical flattened DTO and latest-timestamp pattern.
+- Unit and integration tests assert against flattened resource structures.
+
+---
+
 ### DEC-027: Standardize Pluralized RESTful Resource Routes for Entity Collections
 
 **Recorded:** 2026-09-23

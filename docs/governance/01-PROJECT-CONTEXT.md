@@ -26,7 +26,8 @@ The backend should be:
 - scalable;
 - consistent across modules;
 - auditable where business operations require traceability;
-- suitable for cloud and container-based deployment.
+- suitable for cloud and container-based deployment;
+- built to high-craft engineering standards upholding KISS, YAGNI, DRY, and Clean Code principles for developer clarity and junior accessibility.
 
 ## 3. Users and Access Model
 

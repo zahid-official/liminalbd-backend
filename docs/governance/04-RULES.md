@@ -17,6 +17,7 @@
 
 - Follow [02-ARCHITECTURE.md](02-ARCHITECTURE.md) and [03-CODING-STANDARDS.md](03-CODING-STANDARDS.md).
 - Preserve established repository patterns where they align with approved requirements and decisions.
+- Uphold **KISS, YAGNI, DRY & Clean Code** across all implementations: write junior-friendly, production-grade code; avoid speculative abstractions, ceremonial future-proofing, or redundant interfaces; eliminate unnecessary repetition without awkward coupling.
 - Respect layer responsibilities, repository access boundaries and approved integration boundaries.
 - Use Better Auth for authentication/session mechanics, Zod for boundary validation and shared response helpers and typed errors.
 - Do not build a second authentication/session system or scatter provider SDK calls across unrelated feature logic.
@@ -33,7 +34,7 @@
 - Enforce the PRD's privileged-account restrictions on administrative operations.
 - Never bypass authorization or weaken security controls as a temporary shortcut.
 - Read secrets through approved environment/configuration boundaries. Never hard-code, commit or log them.
-- Expose only data permitted by the approved contract and authorization rules. Never expose secrets, stack traces, Prisma details or provider internals to clients.
+- Expose only data permitted by the approved contract and authorization rules. Never expose secrets, stack traces, Prisma relational structures, or provider internals to clients; always project flattened resource DTOs with defensive nullish handling (`?? null`) to prevent database schema leakage (`DEC-028`).
 - Preserve the approved cookie-based session contract. Do not introduce application-managed access/refresh tokens without an approved architecture change.
 
 ## 4. Data Integrity

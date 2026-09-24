@@ -252,14 +252,10 @@ describe("AdminService Unit Tests", () => {
           role: UserRole.ADMIN,
           status: UserStatus.ACTIVE,
           needPasswordChange: true,
+          contactNumber: null,
+          address: null,
           createdAt: mockCreatedAt,
           updatedAt: mockUpdatedAt,
-          admin: {
-            contactNumber: null,
-            address: null,
-            createdAt: mockCreatedAt,
-            updatedAt: mockUpdatedAt,
-          },
         });
       });
     });
@@ -565,7 +561,8 @@ describe("AdminService Unit Tests", () => {
 
         expect(result).toEqual({
           ...mockUpdatedUser,
-          admin: mockAdminProfile,
+          contactNumber: mockAdminProfile.contactNumber,
+          address: mockAdminProfile.address,
         });
       });
 
@@ -708,12 +705,38 @@ describe("AdminService Unit Tests", () => {
           }),
         );
       });
+
+      it("should return admin.updatedAt when admin profile record is more recent than user record", async () => {
+        const olderUserDate = new Date("2026-09-20T10:00:00.000Z");
+        const newerAdminDate = new Date("2026-09-24T18:00:00.000Z");
+
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockExistingAdmin,
+          admin: {
+            ...mockAdminProfile,
+            updatedAt: newerAdminDate,
+          },
+        });
+        mockTx.user.update.mockResolvedValue({
+          ...mockUpdatedUser,
+          updatedAt: olderUserDate,
+        });
+
+        const result = await AdminService.updateAdmin({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          targetId,
+          payload: { role: UserRole.ADMIN },
+        });
+
+        expect(result.updatedAt).toEqual(newerAdminDate);
+      });
     });
   });
 
   describe("getAdmins", () => {
     const actorId = "super-admin-id";
-    const mockAdminItem = {
+    const mockAdminDbRecord = {
       id: "admin-user-1",
       name: "Admin One",
       email: "admin1@liminalbd.com",
@@ -729,6 +752,20 @@ describe("AdminService Unit Tests", () => {
         createdAt: new Date("2026-01-01T00:00:00.000Z"),
         updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       },
+    };
+
+    const expectedAdminItem = {
+      id: "admin-user-1",
+      name: "Admin One",
+      email: "admin1@liminalbd.com",
+      emailVerified: true,
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      needPasswordChange: false,
+      contactNumber: "01711111111",
+      address: "Dhaka, Bangladesh",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
     };
 
     describe("Authorization Defense-in-Depth", () => {
@@ -802,7 +839,7 @@ describe("AdminService Unit Tests", () => {
       it("should retrieve admins with default pagination, default sorting, and safe projection", async () => {
         const findManySpy = vi
           .spyOn(prisma.user, "findMany")
-          .mockResolvedValue([mockAdminItem as any]);
+          .mockResolvedValue([mockAdminDbRecord as any]);
         const countSpy = vi.spyOn(prisma.user, "count").mockResolvedValue(1);
 
         const result = await AdminService.getAdmins({
@@ -853,7 +890,7 @@ describe("AdminService Unit Tests", () => {
         });
 
         expect(result).toEqual({
-          data: [mockAdminItem],
+          data: [expectedAdminItem],
           meta: {
             page: 1,
             limit: 10,
@@ -909,7 +946,7 @@ describe("AdminService Unit Tests", () => {
       it("should apply multi-field text search when searchTerm is provided", async () => {
         const findManySpy = vi
           .spyOn(prisma.user, "findMany")
-          .mockResolvedValue([mockAdminItem as any]);
+          .mockResolvedValue([mockAdminDbRecord as any]);
         vi.spyOn(prisma.user, "count").mockResolvedValue(1);
 
         await AdminService.getAdmins({
@@ -992,6 +1029,38 @@ describe("AdminService Unit Tests", () => {
           total: 0,
           totalPages: 0,
         });
+      });
+
+      it("should return admin.updatedAt when admin profile record is more recent than user record", async () => {
+        const olderUserDate = new Date("2026-01-01T00:00:00.000Z");
+        const newerAdminDate = new Date("2026-01-05T00:00:00.000Z");
+
+        const adminWithNewerProfile = {
+          ...mockAdminDbRecord,
+          updatedAt: olderUserDate,
+          admin: {
+            ...mockAdminDbRecord.admin,
+            updatedAt: newerAdminDate,
+          },
+        };
+
+        vi.spyOn(prisma.user, "findMany").mockResolvedValue([
+          adminWithNewerProfile as any,
+        ]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        const result = await AdminService.getAdmins({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          },
+        });
+
+        expect(result.data[0]?.updatedAt).toEqual(newerAdminDate);
       });
     });
   });

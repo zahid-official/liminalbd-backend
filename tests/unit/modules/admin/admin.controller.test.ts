@@ -64,14 +64,10 @@ describe("AdminController Unit Tests", () => {
         role: UserRole.ADMIN,
         status: UserStatus.ACTIVE,
         needPasswordChange: true,
+        contactNumber: null,
+        address: null,
         createdAt: new Date("2026-09-23T10:00:00.000Z"),
         updatedAt: new Date("2026-09-23T10:00:00.000Z"),
-        admin: {
-          contactNumber: null,
-          address: null,
-          createdAt: new Date("2026-09-23T10:00:00.000Z"),
-          updatedAt: new Date("2026-09-23T10:00:00.000Z"),
-        },
       };
 
       const createAdminSpy = vi
@@ -149,14 +145,10 @@ describe("AdminController Unit Tests", () => {
       role: UserRole.SUPER_ADMIN,
       status: UserStatus.ACTIVE,
       needPasswordChange: false,
+      contactNumber: "01700000000",
+      address: "Dhaka, Bangladesh",
       createdAt: new Date("2026-09-20T10:00:00.000Z"),
       updatedAt: new Date("2026-09-23T12:00:00.000Z"),
-      admin: {
-        contactNumber: "01700000000",
-        address: "Dhaka, Bangladesh",
-        createdAt: new Date("2026-09-20T10:00:00.000Z"),
-        updatedAt: new Date("2026-09-20T10:00:00.000Z"),
-      },
     };
 
     it("should extract validated params, payload and actor context, invoke AdminService.updateAdmin, and return 200 response", async () => {
@@ -242,14 +234,10 @@ describe("AdminController Unit Tests", () => {
           role: UserRole.ADMIN,
           status: UserStatus.ACTIVE,
           needPasswordChange: false,
+          contactNumber: "01700000000",
+          address: "Dhaka, Bangladesh",
           createdAt: new Date("2026-09-20T10:00:00.000Z"),
           updatedAt: new Date("2026-09-23T12:00:00.000Z"),
-          admin: {
-            contactNumber: "01700000000",
-            address: "Dhaka, Bangladesh",
-            createdAt: new Date("2026-09-20T10:00:00.000Z"),
-            updatedAt: new Date("2026-09-20T10:00:00.000Z"),
-          },
         },
       ],
       meta: {

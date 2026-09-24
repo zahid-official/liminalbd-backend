@@ -145,14 +145,10 @@ const createAdmin = async (input: CreateAdminServiceInput) => {
       role: user.role,
       status: user.status,
       needPasswordChange: user.needPasswordChange,
+      contactNumber: adminProfile.contactNumber ?? null,
+      address: adminProfile.address ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      admin: {
-        contactNumber: adminProfile.contactNumber,
-        address: adminProfile.address,
-        createdAt: adminProfile.createdAt,
-        updatedAt: adminProfile.updatedAt,
-      },
     };
   });
 
@@ -315,9 +311,23 @@ const updateAdmin = async (input: UpdateAdminServiceInput) => {
       tx,
     });
 
+    const updatedAt =
+      targetUser.admin && targetUser.admin.updatedAt > updatedUser.updatedAt
+        ? targetUser.admin.updatedAt
+        : updatedUser.updatedAt;
+
     return {
-      ...updatedUser,
-      admin: targetUser.admin,
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      emailVerified: updatedUser.emailVerified,
+      role: updatedUser.role,
+      status: updatedUser.status,
+      needPasswordChange: updatedUser.needPasswordChange,
+      contactNumber: targetUser.admin?.contactNumber ?? null,
+      address: targetUser.admin?.address ?? null,
+      createdAt: updatedUser.createdAt,
+      updatedAt,
     };
   });
 
@@ -403,11 +413,32 @@ const getAdmins = async (input: GetAdminsServiceInput) => {
     prisma.user.count({ where }),
   ]);
 
+  const formattedAdmins = admins.map((adminUser) => {
+    const updatedAt =
+      adminUser.admin && adminUser.admin.updatedAt > adminUser.updatedAt
+        ? adminUser.admin.updatedAt
+        : adminUser.updatedAt;
+
+    return {
+      id: adminUser.id,
+      name: adminUser.name,
+      email: adminUser.email,
+      emailVerified: adminUser.emailVerified,
+      role: adminUser.role,
+      status: adminUser.status,
+      needPasswordChange: adminUser.needPasswordChange,
+      contactNumber: adminUser.admin?.contactNumber ?? null,
+      address: adminUser.admin?.address ?? null,
+      createdAt: adminUser.createdAt,
+      updatedAt,
+    };
+  });
+
   // Generate standardized pagination metadata
   const meta = buildPaginationMeta(page, limit, total);
 
   return {
-    data: admins,
+    data: formattedAdmins,
     meta,
   };
 };

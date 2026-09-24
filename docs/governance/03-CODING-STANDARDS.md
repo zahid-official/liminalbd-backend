@@ -4,14 +4,16 @@
 > These standards apply across modules and AI/IDE environments unless an approved
 > requirement or decision explicitly requires otherwise.
 
-## 1. Core Principles
+## 1. Core Principles: KISS, YAGNI, DRY & Clean Code
 
-- Prefer clear, predictable, maintainable code over clever abstractions.
-- Follow established repository patterns before introducing new ones.
-- Respect the boundaries defined in `02-ARCHITECTURE.md`.
-- Implement only approved requirements. Do not invent behavior.
-- Keep changes focused on the active task.
-- Avoid premature abstraction, duplication, speculative code and unrelated refactors.
+All code in this repository must embody professional engineering standards designed for long-term production reliability, junior-friendly readability, and architectural elegance:
+
+- **KISS (Keep It Simple, Stupid):** Prioritize clear, self-explanatory, and maintainable logic over clever or intricate abstractions. Code should read like plain English and be readily understandable by junior developers without cognitive overhead.
+- **YAGNI (You Aren't Gonna Need It):** Implement only what is explicitly required for the current approved task. Strictly avoid speculative features, premature abstractions, redundant type wrappers, or future-proofing mechanisms that add immediate complexity.
+- **DRY (Don't Repeat Yourself):** Consolidate genuine domain logic, shared validation schemas, and common utilities without creating rigid or awkward coupling. Do not duplicate contracts across layers when TypeScript inference and established patterns already provide type safety.
+- **Clean Code & Professionalism:** Write robust, defensive, production-grade code adhering to clean architecture. Ensure zero database schema leakage, explicit nullish handling (`?? null`), deterministic return contracts, and zero lint or type errors.
+- **Respect Boundaries:** Follow established repository patterns before introducing new ones. Strictly respect the layer boundaries defined in `02-ARCHITECTURE.md`.
+- **Focused Scope:** Implement only approved requirements. Keep changes focused strictly on the active task without unrelated refactors.
 
 ## 2. TypeScript and Types
 
@@ -335,6 +337,7 @@ Never hard-code secrets. Read them through approved configuration boundaries.
   - For existence checks, always use `select: { id: true }`.
   - For validation and guard queries (e.g., status or verification checks), select only the specific fields being inspected (e.g., `select: { id: true, emailVerified: true }`).
   - Unbounded full-entity fetches (`SELECT *`) without explicit `select` (or `omit` where applicable) are strictly prohibited across all services and repositories to eliminate over-fetching, conserve Node.js heap memory, protect against sensitive data leakage, and maintain optimal database I/O.
+- **Unified Resource DTOs & Zero Schema Leakage (`DEC-028`):** When projecting extended domain entities (such as `Customer` or `Admin` profiles linked to `User`), services must return a flattened, unified Data Transfer Object rather than leaking internal database relation structures. Extended profile attributes (`contactNumber`, `address`) must be flattened onto the root response object with defensive nullish coalescing (`?? null`), and compound timestamps must dynamically resolve to the latest modification timestamp (`updatedAt = profile && profile.updatedAt > user.updatedAt ? profile.updatedAt : user.updatedAt`).
 
 ## 20. External Providers
 

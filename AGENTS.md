@@ -124,6 +124,15 @@ Before implementing or modifying code, follow:
 
 These documents define the required conventions, boundaries and prohibited behavior.
 
+### Engineering Craftsmanship: KISS, YAGNI, DRY & Clean Code
+
+All implementations must maintain enterprise-grade professionalism, readability, and junior accessibility:
+
+- **KISS (Keep It Simple, Stupid):** Prioritize simple, plain-English, self-documenting code over clever or intricate abstractions. Code must be straightforward for any junior developer to grasp immediately without cognitive friction.
+- **YAGNI (You Aren't Gonna Need It):** Build only what is explicitly approved for the current task. Strictly avoid speculative features, premature abstractions, redundant type wrappers, or ceremonial future-proofing.
+- **DRY (Don't Repeat Yourself):** Consolidate shared logic and schemas cleanly without creating awkward, tight coupling or artificial indirection.
+- **Clean Code & Professionalism:** Deliver robust, defensive, and production-grade code adhering to clean architecture and self-documenting clarity.
+
 When AI preference conflicts with an established repository rule or approved decision, follow the repository source of truth.
 
 AI agents must never install new npm/pnpm packages or introduce unapproved third-party architectural libraries without explicit human approval.
