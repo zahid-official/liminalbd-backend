@@ -172,15 +172,17 @@
   - `src/app/errors/errorCodes.ts`: Registered `FORBIDDEN_ACCESS` error code for resource-level authorization failures.
   - `src/app/shared/authorization/authorization.interface.ts`: Created `OwnershipPolicy` and `AuthorizeOwnershipInput` interface contracts with clean optional property standard (`exactOptionalPropertyTypes`).
   - `src/app/shared/authorization/authorization.service.ts`: Implemented `AuthorizationService.authorizeOwnership` with `isAuthorizedRole` policy evaluation and `AuditAction.UNAUTHORIZED_ATTEMPT` logging before throwing 403 `FORBIDDEN_ACCESS`.
-  - `tests/unit/shared/authorization/authorization.service.test.ts`: 16 exhaustive unit tests covering owner access, cross-customer rejection, Super Admin / Admin policies, allow-lists, optional fields, and route guard bypass protection.
-  - `docs/governance/phases/phase-2-auth-rbac.md`: Task index updated to `🕵️`.
+  - `tests/unit/shared/authorization/authorization.service.test.ts`: 17 exhaustive unit tests covering owner access, cross-customer rejection, customer override exclusion invariant (FR-RBAC-005.1), Super Admin / Admin policies, allow-lists, optional fields, and route guard bypass protection.
+  - `docs/governance/phases/phase-2-auth-rbac.md`: Task index updated to `✅` and Human review recorded as Approved.
 - **Migration Created:** None (Existing Prisma models and enums satisfy all requirements).
 - **Test / Verification Output:**
-  - Vitest Authorization Service: 16/16 tests passing with 100% statement, branch, function, and line coverage.
-  - Full Repository Test Suite: 523/523 tests passing across all 37 test files with 0 failures.
+  - Vitest Authorization Service: 17/17 tests passing with 100% statement, branch, function, and line coverage.
+  - Full Repository Test Suite: 524/524 tests passing across all 37 test files with 0 failures.
   - Quality Gates: `pnpm tsc --noEmit` (PASS), `pnpm lint` (PASS), `pnpm build` (PASS).
-- **Deviations from Original Plan:**
+- **Deviations & Refinements from Original Plan:**
   - Omitted `index.ts` from `src/app/shared/authorization/` to maintain exact consistency with sibling shared services (`shared/account/`, `shared/audit/`).
   - Omitted speculative `metadata` property from `AuthorizeOwnershipInput` in adherence to KISS and YAGNI.
   - Streamlined `isAuthorizedRole` using clear boolean checks (`!== false`, `=== true`) rather than nullish coalescing flags.
+  - Hardened customer non-override invariant (`FR-RBAC-005.1`) via early check `if (role === UserRole.CUSTOMER) return false;` in `isAuthorizedRole` so customers can never possess administrative override privileges over another customer's resource under any policy configuration.
+  - Added explicit `: Promise<void>` return type to `authorizeOwnership` for strict TypeScript contract conformance.
 - **Remaining Concerns / Follow-ups:** None.
