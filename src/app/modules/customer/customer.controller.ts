@@ -1,10 +1,15 @@
 import { fromNodeHeaders } from "better-auth/node";
 import type { Request, Response } from "express";
 import status from "http-status";
+import type { UserRole } from "../../../generated/prisma/enums.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+import type { AuthUser } from "../auth/auth.interface.js";
 import { CustomerService } from "./customer.service.js";
-import type { RegisterCustomerInput } from "./customer.validation.js";
+import type {
+  GetCustomerProfileParams,
+  RegisterCustomerInput,
+} from "./customer.validation.js";
 
 // Register customer account
 const registerCustomer = catchAsync(async (req: Request, res: Response) => {
@@ -19,7 +24,26 @@ const registerCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Retrieve customer profile by ID
+const getCustomerProfile = catchAsync(async (_req: Request, res: Response) => {
+  const user = res.locals.user as AuthUser;
+  const params = res.locals.validated?.params as GetCustomerProfileParams;
+
+  const result = await CustomerService.getCustomerProfile({
+    actorId: user.id,
+    actorRole: user.role as UserRole,
+    targetId: params.id,
+  });
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: "Customer profile retrieved successfully",
+    data: result,
+  });
+});
+
 // Export customer controller
 export const CustomerController = {
   registerCustomer,
+  getCustomerProfile,
 };

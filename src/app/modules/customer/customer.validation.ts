@@ -24,10 +24,29 @@ const registerCustomerSchema = {
   }),
 };
 
+// Get Customer Profile Schema
+const getCustomerProfileSchema = {
+  params: z.object({
+    id: z
+      .string({
+        error: (issue) =>
+          issue.input === undefined
+            ? "Customer ID is required"
+            : "Customer ID must be a valid text string",
+      })
+      .trim()
+      .pipe(z.uuid({ error: "Invalid Customer ID format" })),
+  }),
+};
+
 // Inferred input types
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
+export type GetCustomerProfileParams = z.infer<
+  typeof getCustomerProfileSchema.params
+>;
 
 // Export customer validation schemas
 export const CustomerValidation = {
   registerCustomerSchema,
+  getCustomerProfileSchema,
 };

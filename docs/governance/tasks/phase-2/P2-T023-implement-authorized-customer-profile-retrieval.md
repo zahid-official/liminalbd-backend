@@ -30,7 +30,7 @@
 
 - Implement request validation schema `getCustomerProfileSchema` in `src/app/modules/customer/customer.validation.ts` validating UUID route parameter `:id`.
 - Define type contracts in `src/app/modules/customer/customer.interface.ts`:
-  - `CustomerProfileResponse`: Sanitized composite representation combining permitted `User` and `Customer` profile fields.
+  - `GetCustomerProfileServiceInput`: Service input contract containing `actorId`, `actorRole`, and `targetId`.
 - Implement `CustomerService.getCustomerProfile` in `src/app/modules/customer/customer.service.ts`:
   - Query target user by `:id` with `role: UserRole.CUSTOMER` and `deletedAt: null`, including relation `customer`.
   - If target customer does not exist, throw `AppError(status.NOT_FOUND, PUBLIC_ERROR_CODES.USER_NOT_FOUND, "Customer not found")`.
@@ -158,12 +158,12 @@
    - Draft JIT task file `P2-T023-implement-authorized-customer-profile-retrieval.md` and present to user for approval.
 3. **Step 3: Planning Gate & Status Update**
    - Upon explicit approval, update `phase-2-auth-rbac.md` and task file status to `🔄 In progress`.
-4. **Step 4: Interface & Request Validation Implementation**
-   - Create `src/app/modules/customer/customer.interface.ts` with `CustomerProfileResponse`.
+4. **Step 4: Interface & Request Validation Implementation** (Completed)
+   - Create `src/app/modules/customer/customer.interface.ts` with `GetCustomerProfileServiceInput`.
    - Update `src/app/modules/customer/customer.validation.ts` with `getCustomerProfileSchema`.
-5. **Step 5: Customer Service Implementation**
+5. **Step 5: Customer Service Implementation** (Completed)
    - Implement `CustomerService.getCustomerProfile` enforcing ownership check and data projection.
-6. **Step 6: Customer Controller & Route Implementation**
+6. **Step 6: Customer Controller & Route Implementation** (Completed)
    - Implement `CustomerController.getCustomerProfile`.
    - Mount `GET /:id` in `CustomerRoutes` with `authGuard` and validation.
 7. **Step 7: Automated Unit Test Suite Implementation**
