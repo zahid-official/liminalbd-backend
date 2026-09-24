@@ -12,12 +12,14 @@ interface MockResponseOptions {
   user?: Partial<AuthUser>;
   validatedBody?: unknown;
   validatedParams?: unknown;
+  validatedQuery?: unknown;
 }
 
 const makeMockRes = ({
   user,
   validatedBody,
   validatedParams,
+  validatedQuery,
 }: MockResponseOptions = {}) => {
   return {
     locals: {
@@ -25,6 +27,7 @@ const makeMockRes = ({
       validated: {
         ...(validatedBody !== undefined ? { body: validatedBody } : {}),
         ...(validatedParams !== undefined ? { params: validatedParams } : {}),
+        ...(validatedQuery !== undefined ? { query: validatedQuery } : {}),
       },
     },
     status: vi.fn().mockReturnThis(),
@@ -203,6 +206,105 @@ describe("AdminController Unit Tests", () => {
       const next = vi.fn() as unknown as NextFunction;
 
       await AdminController.updateAdmin(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getAdmins", () => {
+    const mockAuthUser = {
+      id: "super-admin-uuid-1",
+      role: UserRole.SUPER_ADMIN,
+    } as AuthUser;
+
+    const mockQuery = {
+      page: 1,
+      limit: 10,
+      sortBy: "createdAt" as const,
+      sortOrder: "desc" as const,
+      searchTerm: "admin",
+      status: UserStatus.ACTIVE,
+    };
+
+    const mockResult = {
+      data: [
+        {
+          id: "admin-uuid-1",
+          name: "Admin User",
+          email: "admin@liminalbd.com",
+          emailVerified: true,
+          role: UserRole.ADMIN,
+          status: UserStatus.ACTIVE,
+          needPasswordChange: false,
+          createdAt: new Date("2026-09-20T10:00:00.000Z"),
+          updatedAt: new Date("2026-09-23T12:00:00.000Z"),
+          admin: {
+            contactNumber: "01700000000",
+            address: "Dhaka, Bangladesh",
+            createdAt: new Date("2026-09-20T10:00:00.000Z"),
+            updatedAt: new Date("2026-09-20T10:00:00.000Z"),
+          },
+        },
+      ],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+
+    it("should extract validated query and actor context, invoke AdminService.getAdmins, and return 200 response with data and meta", async () => {
+      const getAdminsSpy = vi
+        .spyOn(AdminService, "getAdmins")
+        .mockResolvedValue(mockResult);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedQuery: mockQuery,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AdminController.getAdmins(req, res, next);
+
+      expect(getAdminsSpy).toHaveBeenCalledTimes(1);
+      expect(getAdminsSpy).toHaveBeenCalledWith({
+        actorId: mockAuthUser.id,
+        actorRole: UserRole.SUPER_ADMIN,
+        query: mockQuery,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Admins retrieved successfully",
+        data: mockResult.data,
+        meta: mockResult.meta,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.FORBIDDEN,
+        PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        "Only Super Admin can list Admin accounts",
+      );
+
+      vi.spyOn(AdminService, "getAdmins").mockRejectedValue(serviceError);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedQuery: mockQuery,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AdminController.getAdmins(req, res, next);
 
       expect(next).toHaveBeenCalledTimes(1);
       expect(next).toHaveBeenCalledWith(serviceError);

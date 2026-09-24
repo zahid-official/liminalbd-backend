@@ -1,6 +1,6 @@
 # Task: P2-T021 - Implement the Super Admin Admin-List Operation
 
-> **Canonical Status:** `🔄 In progress`
+> **Canonical Status:** `✅ Done`
 > **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`
 > **Requirement Reference:** `FR-ADMIN-003` (`FR-ADMIN-003.1`–`FR-ADMIN-003.3`)
 > **ERD Reference:** `User` model, `Admin` model (`prisma/schema/auth.prisma`, `prisma/schema/profiles.prisma`)
@@ -131,10 +131,10 @@
 
 | Check                      | Required | Command or Method                          | Result    |
 | :------------------------- | :------- | :----------------------------------------- | :-------- |
-| Acceptance criteria        | `Yes`    | Code review + unit test suite verification | `NOT RUN` |
-| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                        | `NOT RUN` |
-| Lint                       | `Yes`    | `pnpm lint`                                | `NOT RUN` |
-| Tests                      | `Yes`    | `pnpm test:coverage`                       | `NOT RUN` |
+| Acceptance criteria        | `Yes`    | Code review + unit test suite verification | `PASSED`  |
+| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                        | `PASSED`  |
+| Lint                       | `Yes`    | `pnpm lint`                                | `PASSED`  |
+| Tests                      | `Yes`    | `pnpm test:coverage`                       | `PASSED`  |
 | Migration / data integrity | `No`     | Uses existing Prisma models                | `N/A`     |
 | Manual verification        | `No`     | Replaced by exhaustive unit test suites    | `N/A`     |
 
@@ -163,10 +163,27 @@
 
 ## 10. Implementation Evidence
 
-_To be completed after code execution and before marking awaiting human review:_
-
 - **Changed Files:**
-- **Migration Created:**
+  - `src/app/validations/common.validation.ts` (centralized pagination, status, and redirectUrl schemas)
+  - `src/app/modules/admin/admin.constant.ts` (admin sort fields and searchable fields)
+  - `src/app/modules/admin/admin.validation.ts` (getAdminsQuerySchema)
+  - `src/app/utils/queryBuilder.ts` (pure helpers `buildPaginationMeta` and `buildPrismaQuery`)
+  - `src/app/modules/admin/admin.interface.ts` (GetAdminsServiceInput)
+  - `src/app/modules/admin/admin.service.ts` (AdminService.getAdmins with defense-in-depth, search, pagination, and projection)
+  - `src/app/modules/admin/admin.controller.ts` (AdminController.getAdmins with catchAsync and sendResponse)
+  - `src/app/modules/admin/admin.routes.ts` (GET / route with authGuard, rbacGuard, validateRequest, AdminController.getAdmins)
+  - `docs/governance/03-CODING-STANDARDS.md` (codified clean optional properties standard under §2)
+  - `tests/unit/validations/common.validation.test.ts` (32 unit tests)
+  - `tests/unit/modules/admin/admin.validation.test.ts` (42 unit tests)
+  - `tests/unit/utils/queryBuilder.test.ts` (16 unit tests)
+  - `tests/unit/modules/admin/admin.service.test.ts` (25 unit tests)
+  - `tests/unit/modules/admin/admin.controller.test.ts` (6 unit tests)
+  - `tests/unit/modules/admin/admin.routes.test.ts` (3 unit tests)
+- **Migration Created:** None required (uses existing User and Admin Prisma schema).
 - **Test / Verification Output:**
-- **Deviations from Original Plan:**
-- **Remaining Concerns / Follow-ups:**
+  - `pnpm tsc --noEmit`: 0 errors.
+  - `pnpm lint`: 0 warnings / errors.
+  - `pnpm test`: 36 test files, 507 passed (100%).
+  - `pnpm test:coverage`: 100% statements, branches, functions, and lines across all admin module files and utility files (`admin.controller.ts`, `admin.routes.ts`, `admin.service.ts`, `admin.validation.ts`, `admin.constant.ts`, `queryBuilder.ts`, `common.validation.ts`).
+- **Deviations from Original Plan:** None. Maintained KISS, DRY, and clean architecture without over-engineering. Inferred return types on service methods per project standards.
+- **Remaining Concerns / Follow-ups:** None. Ready for closure upon human review.

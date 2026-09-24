@@ -17,6 +17,15 @@ router.post(
   AdminController.createAdmin,
 );
 
+// Retrieve Admin accounts
+router.get(
+  "/",
+  authGuard,
+  rbacGuard(UserRole.SUPER_ADMIN),
+  validateRequest(AdminValidation.getAdminsQuerySchema),
+  AdminController.getAdmins,
+);
+
 // Update Admin account
 router.patch(
   "/:id",

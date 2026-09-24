@@ -7,6 +7,7 @@ import type { AuthUser } from "../auth/auth.interface.js";
 import { AdminService } from "./admin.service.js";
 import type {
   CreateAdminInput,
+  GetAdminsQueryInput,
   UpdateAdminInput,
   UpdateAdminParams,
 } from "./admin.validation.js";
@@ -49,8 +50,28 @@ const updateAdmin = catchAsync(async (_req: Request, res: Response) => {
   });
 });
 
+// Retrieve paginated Admin accounts
+const getAdmins = catchAsync(async (_req: Request, res: Response) => {
+  const user = res.locals.user as AuthUser;
+  const query = res.locals.validated?.query as GetAdminsQueryInput;
+
+  const result = await AdminService.getAdmins({
+    actorId: user.id,
+    actorRole: user.role as UserRole,
+    query,
+  });
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: "Admins retrieved successfully",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
 // Export Admin controller
 export const AdminController = {
   createAdmin,
   updateAdmin,
+  getAdmins,
 };
