@@ -12,8 +12,15 @@ import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import { AuditService } from "../../shared/audit/audit.service.js";
+import {
+  type BuildPrismaQueryOptions,
+  buildPaginationMeta,
+  buildPrismaQuery,
+} from "../../utils/queryBuilder.js";
+import { ADMIN_SEARCHABLE_FIELDS } from "./admin.constant.js";
 import type {
   CreateAdminServiceInput,
+  GetAdminsServiceInput,
   UpdateAdminServiceInput,
 } from "./admin.interface.js";
 import type { UpdateAdminInput } from "./admin.validation.js";
@@ -317,8 +324,97 @@ const updateAdmin = async (input: UpdateAdminServiceInput) => {
   return result;
 };
 
+// Retrieve paginated Admin accounts
+const getAdmins = async (input: GetAdminsServiceInput) => {
+  const { actorId, actorRole, query } = input;
+
+  if (actorRole !== UserRole.SUPER_ADMIN) {
+    await AuditService.record({
+      actorId,
+      action: AuditAction.UNAUTHORIZED_ATTEMPT,
+      entityType: AuditEntityType.ADMIN,
+      metadata: {
+        attemptedAction: "GET_ADMINS",
+        attemptedRole: actorRole,
+        reason: "FORBIDDEN_ROLE_ACCESS",
+      },
+    });
+
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      "Only Super Admin can list Admin accounts",
+    );
+  }
+
+  // Assemble query options for pagination, sorting and search
+  const queryOptions: BuildPrismaQueryOptions = {
+    page: query.page,
+    limit: query.limit,
+    sortBy: query.sortBy,
+    sortOrder: query.sortOrder,
+    searchableFields: ADMIN_SEARCHABLE_FIELDS,
+  };
+
+  if (query.searchTerm) {
+    queryOptions.searchTerm = query.searchTerm;
+  }
+
+  const { skip, take, orderBy, searchFilter, page, limit } =
+    buildPrismaQuery(queryOptions);
+
+  // Assemble query filters excluding soft-deleted and non-admin users
+  const where: Prisma.UserWhereInput = {
+    role: UserRole.ADMIN,
+    deletedAt: null,
+    ...searchFilter,
+  };
+
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  const [admins, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      skip,
+      take,
+      orderBy,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        emailVerified: true,
+        role: true,
+        status: true,
+        needPasswordChange: true,
+        createdAt: true,
+        updatedAt: true,
+        admin: {
+          select: {
+            contactNumber: true,
+            address: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  // Generate standardized pagination metadata
+  const meta = buildPaginationMeta(page, limit, total);
+
+  return {
+    data: admins,
+    meta,
+  };
+};
+
 // Export Admin service
 export const AdminService = {
   createAdmin,
   updateAdmin,
+  getAdmins,
 };

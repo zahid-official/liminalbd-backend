@@ -706,8 +706,291 @@ describe("AdminService Unit Tests", () => {
           }),
         );
       });
+    });
+  });
 
+  describe("getAdmins", () => {
+    const actorId = "super-admin-id";
+    const mockAdminItem = {
+      id: "admin-user-1",
+      name: "Admin One",
+      email: "admin1@liminalbd.com",
+      emailVerified: true,
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      needPasswordChange: false,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      admin: {
+        contactNumber: "01711111111",
+        address: "Dhaka, Bangladesh",
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      },
+    };
 
+    describe("Authorization Defense-in-Depth", () => {
+      it("should reject non-SUPER_ADMIN callers with 403 FORBIDDEN and record unauthorized attempt audit log", async () => {
+        const findManySpy = vi.spyOn(prisma.user, "findMany");
+        const countSpy = vi.spyOn(prisma.user, "count");
+
+        await expect(
+          AdminService.getAdmins({
+            actorId: "regular-admin-id",
+            actorRole: UserRole.ADMIN,
+            query: {
+              page: 1,
+              limit: 10,
+              sortBy: "createdAt",
+              sortOrder: "desc",
+            },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message: "Only Super Admin can list Admin accounts",
+        });
+
+        expect(findManySpy).not.toHaveBeenCalled();
+        expect(countSpy).not.toHaveBeenCalled();
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: "regular-admin-id",
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          metadata: {
+            attemptedAction: "GET_ADMINS",
+            attemptedRole: UserRole.ADMIN,
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
+      });
+
+      it("should reject CUSTOMER callers with 403 FORBIDDEN and record unauthorized attempt audit log", async () => {
+        await expect(
+          AdminService.getAdmins({
+            actorId: "customer-id",
+            actorRole: UserRole.CUSTOMER,
+            query: {
+              page: 1,
+              limit: 10,
+              sortBy: "createdAt",
+              sortOrder: "desc",
+            },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message: "Only Super Admin can list Admin accounts",
+        });
+
+        expect(AuditService.record).toHaveBeenCalledWith({
+          actorId: "customer-id",
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.ADMIN,
+          metadata: {
+            attemptedAction: "GET_ADMINS",
+            attemptedRole: UserRole.CUSTOMER,
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
+      });
+    });
+
+    describe("Successful Query Execution", () => {
+      it("should retrieve admins with default pagination, default sorting, and safe projection", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([mockAdminItem as any]);
+        const countSpy = vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        const result = await AdminService.getAdmins({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith({
+          where: {
+            role: UserRole.ADMIN,
+            deletedAt: null,
+          },
+          skip: 0,
+          take: 10,
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerified: true,
+            role: true,
+            status: true,
+            needPasswordChange: true,
+            createdAt: true,
+            updatedAt: true,
+            admin: {
+              select: {
+                contactNumber: true,
+                address: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+          },
+        });
+
+        expect(countSpy).toHaveBeenCalledWith({
+          where: {
+            role: UserRole.ADMIN,
+            deletedAt: null,
+          },
+        });
+
+        expect(result).toEqual({
+          data: [mockAdminItem],
+          meta: {
+            page: 1,
+            limit: 10,
+            total: 1,
+            totalPages: 1,
+          },
+        });
+      });
+
+      it("should filter by status when status filter is provided", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([]);
+        const countSpy = vi.spyOn(prisma.user, "count").mockResolvedValue(0);
+
+        const result = await AdminService.getAdmins({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            status: UserStatus.SUSPENDED,
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              role: UserRole.ADMIN,
+              deletedAt: null,
+              status: UserStatus.SUSPENDED,
+            },
+          }),
+        );
+        expect(countSpy).toHaveBeenCalledWith({
+          where: {
+            role: UserRole.ADMIN,
+            deletedAt: null,
+            status: UserStatus.SUSPENDED,
+          },
+        });
+        expect(result.data).toEqual([]);
+        expect(result.meta).toEqual({
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+        });
+      });
+
+      it("should apply multi-field text search when searchTerm is provided", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([mockAdminItem as any]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        await AdminService.getAdmins({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            searchTerm: "rahman",
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              role: UserRole.ADMIN,
+              deletedAt: null,
+              OR: [
+                { name: { contains: "rahman", mode: "insensitive" } },
+                { email: { contains: "rahman", mode: "insensitive" } },
+              ],
+            },
+          }),
+        );
+      });
+
+      it("should apply custom pagination and sorting options correctly", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(25);
+
+        const result = await AdminService.getAdmins({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          query: {
+            page: 3,
+            limit: 5,
+            sortBy: "name",
+            sortOrder: "asc",
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            skip: 10,
+            take: 5,
+            orderBy: { name: "asc" },
+          }),
+        );
+        expect(result.meta).toEqual({
+          page: 3,
+          limit: 5,
+          total: 25,
+          totalPages: 5,
+        });
+      });
+
+      it("should return empty list and zero totalPages when total count is 0", async () => {
+        vi.spyOn(prisma.user, "findMany").mockResolvedValue([]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(0);
+
+        const result = await AdminService.getAdmins({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          },
+        });
+
+        expect(result.data).toEqual([]);
+        expect(result.meta).toEqual({
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+        });
+      });
     });
   });
 });

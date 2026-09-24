@@ -1,6 +1,6 @@
 import type { PaginationMeta } from "../interfaces/response.interface.js";
 
-// Input options contract for building standard Prisma query components
+// Options for building Prisma query components
 export interface BuildPrismaQueryOptions {
   page?: number;
   limit?: number;
@@ -15,7 +15,7 @@ export interface SearchFilter {
   OR: Record<string, { contains: string; mode: "insensitive" }>[];
 }
 
-// Structured result providing query components consumable by Prisma
+// Result object containing computed Prisma query components
 export interface BuiltPrismaQuery {
   skip: number;
   take: number;
@@ -25,7 +25,7 @@ export interface BuiltPrismaQuery {
   limit: number;
 }
 
-// Pure helper function to compute standardized pagination metadata
+// Generate standardized pagination metadata
 const buildPaginationMeta = (
   page = 1,
   limit = 10,
@@ -43,7 +43,7 @@ const buildPaginationMeta = (
   };
 };
 
-// Pure functional helper to compute pagination, sorting, and search filters for Prisma
+// Generate pagination, sorting, and search filters for Prisma
 const buildPrismaQuery = (
   options: BuildPrismaQueryOptions = {},
 ): BuiltPrismaQuery => {
@@ -59,6 +59,7 @@ const buildPrismaQuery = (
   const searchableFields = options.searchableFields;
   let searchFilter: SearchFilter | undefined;
 
+  // Build case-insensitive search filter across searchable fields
   if (searchTerm && searchableFields?.length) {
     const searchConditions = searchableFields.map((field) => ({
       [field]: {

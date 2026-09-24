@@ -24,6 +24,7 @@
 - Reuse Prisma-generated types, inputs and enums when they already provide the required contract. Across all application modules and domain entities (e.g., status, role, audit actions, order statuses, product states), always import and use Prisma enum objects/constants (e.g., `UserStatus.SUSPENDED`, `UserRole.CUSTOMER`) rather than raw magic string literals whenever comparing, filtering, or assigning enum field values.
 - Create module-specific interfaces or types only when they add a real application-level contract.
 - Avoid duplicating Prisma model types without a clear reason.
+- Keep optional properties clean and idiomatic: Declare optional properties using standard optional syntax (`field?: T;`). Never pollute interfaces or type definitions with redundant `| undefined` unions (such as `field?: string | undefined;` or `field?: number | undefined;`). With `exactOptionalPropertyTypes: true` enabled in `tsconfig.json`, call sites must omit the key or conditionally inject it (e.g., `...(val ? { field: val } : {})`) rather than passing explicit `{ field: undefined }`.
 
 ## 3. Naming
 

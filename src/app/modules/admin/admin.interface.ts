@@ -1,5 +1,9 @@
 import type { UserRole } from "../../../generated/prisma/enums.js";
-import type { CreateAdminInput, UpdateAdminInput } from "./admin.validation.js";
+import type {
+  CreateAdminInput,
+  GetAdminsQueryInput,
+  UpdateAdminInput,
+} from "./admin.validation.js";
 
 // Input contract for creating an Admin account
 export interface CreateAdminServiceInput {
@@ -14,4 +18,11 @@ export interface UpdateAdminServiceInput {
   actorRole: UserRole;
   targetId: string;
   payload: UpdateAdminInput;
+}
+
+// Input contract for listing Admin accounts
+export interface GetAdminsServiceInput {
+  actorId: string;
+  actorRole: UserRole;
+  query: GetAdminsQueryInput;
 }
