@@ -4,7 +4,10 @@ import { auth } from "../../../../src/app/config/auth.js";
 import { prisma } from "../../../../src/app/config/prisma.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import { CustomerService } from "../../../../src/app/modules/customer/customer.service.js";
-import { UserRole, UserStatus } from "../../../../src/generated/prisma/enums.js";
+import {
+  UserRole,
+  UserStatus,
+} from "../../../../src/generated/prisma/enums.js";
 
 describe("CustomerService Unit Tests", () => {
   afterEach(() => {

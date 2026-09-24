@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { AuthRoutes } from "../modules/auth/auth.routes.js";
 import { AdminRoutes } from "../modules/admin/admin.routes.js";
+import { AuthRoutes } from "../modules/auth/auth.routes.js";
 import { CustomerRoutes } from "../modules/customer/customer.routes.js";
 
 // Module route interface

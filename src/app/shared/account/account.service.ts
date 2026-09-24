@@ -8,8 +8,8 @@ import {
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
-import { AuditService } from "../audit/audit.service.js";
 import type { CreateAuditLogInput } from "../audit/audit.interface.js";
+import { AuditService } from "../audit/audit.service.js";
 import type {
   SoftDeleteUserInput,
   UpdateUserStatusInput,

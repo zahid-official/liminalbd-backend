@@ -16,34 +16,40 @@ describe("RootRouter Unit Tests", () => {
   });
 
   it("should mount AuthRoutes under /auth", () => {
-    const authLayer = RootRouter.stack.find(
-      (layer: unknown) => {
-        const l = layer as ExpressLayer;
-        return typeof l.match === "function" && l.match("/auth") && l.handle === AuthRoutes;
-      },
-    );
+    const authLayer = RootRouter.stack.find((layer: unknown) => {
+      const l = layer as ExpressLayer;
+      return (
+        typeof l.match === "function" &&
+        l.match("/auth") &&
+        l.handle === AuthRoutes
+      );
+    });
 
     expect(authLayer).toBeDefined();
   });
 
   it("should mount AdminRoutes under /admins per DEC-027", () => {
-    const adminLayer = RootRouter.stack.find(
-      (layer: unknown) => {
-        const l = layer as ExpressLayer;
-        return typeof l.match === "function" && l.match("/admins") && l.handle === AdminRoutes;
-      },
-    );
+    const adminLayer = RootRouter.stack.find((layer: unknown) => {
+      const l = layer as ExpressLayer;
+      return (
+        typeof l.match === "function" &&
+        l.match("/admins") &&
+        l.handle === AdminRoutes
+      );
+    });
 
     expect(adminLayer).toBeDefined();
   });
 
   it("should mount CustomerRoutes under /customers per DEC-027", () => {
-    const customerLayer = RootRouter.stack.find(
-      (layer: unknown) => {
-        const l = layer as ExpressLayer;
-        return typeof l.match === "function" && l.match("/customers") && l.handle === CustomerRoutes;
-      },
-    );
+    const customerLayer = RootRouter.stack.find((layer: unknown) => {
+      const l = layer as ExpressLayer;
+      return (
+        typeof l.match === "function" &&
+        l.match("/customers") &&
+        l.handle === CustomerRoutes
+      );
+    });
 
     expect(customerLayer).toBeDefined();
   });

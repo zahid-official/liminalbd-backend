@@ -42,12 +42,17 @@ describe("resolveCallbackURL Unit Tests", () => {
     });
 
     it("should reject external absolute URLs with different origins and fall back safely", () => {
-      const result = resolveCallbackURL("https://evil-attacker.com/steal-token");
+      const result = resolveCallbackURL(
+        "https://evil-attacker.com/steal-token",
+      );
       expect(result).toBe(`${env.FRONTEND_URL}/dashboard`);
     });
 
     it("should reject HTTP absolute URLs pointing to different domains", () => {
-      const result = resolveCallbackURL("http://untrusted-site.com/callback", "/auth/login");
+      const result = resolveCallbackURL(
+        "http://untrusted-site.com/callback",
+        "/auth/login",
+      );
       expect(result).toBe(`${env.FRONTEND_URL}/auth/login`);
     });
 

@@ -19,34 +19,38 @@ import type {
 } from "./auth.validation.js";
 
 // Request email verification OTP
-const requestEmailVerification = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as RequestEmailVerificationInput;
-  const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.requestEmailVerification(payload, headers);
+const requestEmailVerification = catchAsync(
+  async (req: Request, res: Response) => {
+    const payload = res.locals.validated?.body as RequestEmailVerificationInput;
+    const headers = fromNodeHeaders(req.headers);
+    const result = await AuthService.requestEmailVerification(payload, headers);
 
-  sendResponse(res, {
-    statusCode: status.OK,
-    message: "Verification code sent to your email",
-    data: result,
-  });
-});
+    sendResponse(res, {
+      statusCode: status.OK,
+      message: "Verification code sent to your email",
+      data: result,
+    });
+  },
+);
 
 // Confirm email verification using provided OTP
-const confirmEmailVerification = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as ConfirmEmailVerificationInput;
-  const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.confirmEmailVerification(payload, headers);
+const confirmEmailVerification = catchAsync(
+  async (req: Request, res: Response) => {
+    const payload = res.locals.validated?.body as ConfirmEmailVerificationInput;
+    const headers = fromNodeHeaders(req.headers);
+    const result = await AuthService.confirmEmailVerification(payload, headers);
 
-  if (result.setCookies.length > 0) {
-    res.setHeader("set-cookie", result.setCookies);
-  }
+    if (result.setCookies.length > 0) {
+      res.setHeader("set-cookie", result.setCookies);
+    }
 
-  sendResponse(res, {
-    statusCode: status.OK,
-    message: "Email verified successfully",
-    data: result.user,
-  });
-});
+    sendResponse(res, {
+      statusCode: status.OK,
+      message: "Email verified successfully",
+      data: result.user,
+    });
+  },
+);
 
 // Login with email and password credentials
 const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {

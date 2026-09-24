@@ -7,7 +7,10 @@ import { AppError } from "../../../../src/app/errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import type { AuthUser } from "../../../../src/app/modules/auth/auth.interface.js";
 import { AuthService } from "../../../../src/app/modules/auth/auth.service.js";
-import { UserRole, UserStatus } from "../../../../src/generated/prisma/enums.js";
+import {
+  UserRole,
+  UserStatus,
+} from "../../../../src/generated/prisma/enums.js";
 
 describe("AuthService Unit Tests", () => {
   afterEach(() => {
@@ -205,9 +208,7 @@ describe("AuthService Unit Tests", () => {
             role: UserRole.CUSTOMER,
             status: UserStatus.ACTIVE,
           },
-          setCookies: [
-            "better-auth.session_token=token123; Path=/; HttpOnly",
-          ],
+          setCookies: ["better-auth.session_token=token123; Path=/; HttpOnly"],
         });
       });
 
@@ -276,7 +277,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithCredentials(payload, mockHeaders);
+      const result = await AuthService.loginWithCredentials(
+        payload,
+        mockHeaders,
+      );
 
       expect(result).toEqual({
         user: {
@@ -318,7 +322,8 @@ describe("AuthService Unit Tests", () => {
         expect(err).toMatchObject({
           statusCode: status.FORBIDDEN,
           code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
-          message: "Access denied. This login portal is reserved for customers.",
+          message:
+            "Access denied. This login portal is reserved for customers.",
         });
         return true;
       });
@@ -355,7 +360,8 @@ describe("AuthService Unit Tests", () => {
         expect(err).toMatchObject({
           statusCode: status.FORBIDDEN,
           code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
-          message: "Access denied. This login portal is reserved for customers.",
+          message:
+            "Access denied. This login portal is reserved for customers.",
         });
         return true;
       });
@@ -379,7 +385,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithCredentials(payload, mockHeaders);
+      const result = await AuthService.loginWithCredentials(
+        payload,
+        mockHeaders,
+      );
 
       expect(result.setCookies).toEqual([]);
       expect(result.user.id).toBe("customer-1");
@@ -401,7 +410,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithCredentials(payload, mockHeaders);
+      const result = await AuthService.loginWithCredentials(
+        payload,
+        mockHeaders,
+      );
 
       expect(result.setCookies).toEqual([]);
       expect(result.user.id).toBe("customer-1");
@@ -531,9 +543,9 @@ describe("AuthService Unit Tests", () => {
         new Error("OAuth upstream service unavailable"),
       );
 
-      await expect(
-        AuthService.loginWithGoogle(mockHeaders),
-      ).rejects.toThrow("OAuth upstream service unavailable");
+      await expect(AuthService.loginWithGoogle(mockHeaders)).rejects.toThrow(
+        "OAuth upstream service unavailable",
+      );
     });
   });
 
@@ -736,9 +748,11 @@ describe("AuthService Unit Tests", () => {
 
   describe("unlinkGoogleAccount", () => {
     it("should throw 400 BAD_REQUEST if user has no linked Google account", async () => {
-      const findManySpy = vi.spyOn(prisma.account, "findMany").mockResolvedValue([
-        { id: "acc-1", providerId: "credential", password: "hash" },
-      ] as any);
+      const findManySpy = vi
+        .spyOn(prisma.account, "findMany")
+        .mockResolvedValue([
+          { id: "acc-1", providerId: "credential", password: "hash" },
+        ] as any);
 
       await expect(
         AuthService.unlinkGoogleAccount("user-no-google"),
@@ -827,10 +841,16 @@ describe("AuthService Unit Tests", () => {
     });
 
     it("should unlink Google account successfully when password-protected credential account exists", async () => {
-      const findManySpy = vi.spyOn(prisma.account, "findMany").mockResolvedValue([
-        { id: "acc-google-1", providerId: "google", password: null },
-        { id: "acc-cred-1", providerId: "credential", password: "hashed_password" },
-      ] as any);
+      const findManySpy = vi
+        .spyOn(prisma.account, "findMany")
+        .mockResolvedValue([
+          { id: "acc-google-1", providerId: "google", password: null },
+          {
+            id: "acc-cred-1",
+            providerId: "credential",
+            password: "hashed_password",
+          },
+        ] as any);
 
       const deleteSpy = vi
         .spyOn(prisma.account, "delete")
@@ -877,7 +897,11 @@ describe("AuthService Unit Tests", () => {
     it("should propagate errors thrown by prisma.account.delete", async () => {
       vi.spyOn(prisma.account, "findMany").mockResolvedValue([
         { id: "acc-google-1", providerId: "google", password: null },
-        { id: "acc-cred-1", providerId: "credential", password: "hashed_password" },
+        {
+          id: "acc-cred-1",
+          providerId: "credential",
+          password: "hashed_password",
+        },
       ] as any);
 
       vi.spyOn(prisma.account, "delete").mockRejectedValue(
@@ -945,10 +969,7 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.forgotPassword(
-          { email: "user@example.com" },
-          mockHeaders,
-        ),
+        AuthService.forgotPassword({ email: "user@example.com" }, mockHeaders),
       ).rejects.toThrow("Auth provider unavailable");
     });
   });

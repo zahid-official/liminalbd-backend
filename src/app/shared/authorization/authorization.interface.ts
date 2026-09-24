@@ -1,5 +1,8 @@
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { AuditEntityType, UserRole } from "../../../generated/prisma/enums.js";
+import type {
+  AuditEntityType,
+  UserRole,
+} from "../../../generated/prisma/enums.js";
 
 // Policy governing administrative role access to customer-owned resources
 export interface OwnershipPolicy {

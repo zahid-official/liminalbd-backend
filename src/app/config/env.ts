@@ -25,7 +25,7 @@ const envSchema = z.object({
   // Logging configuration
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"], {
-      error: 'LOG_LEVEL must be one of: fatal, error, warn, info, debug, trace',
+      error: "LOG_LEVEL must be one of: fatal, error, warn, info, debug, trace",
     })
     .optional(),
 

@@ -1,19 +1,19 @@
 import status from "http-status";
-import {
-  AuditAction,
-  UserRole,
-} from "../../../generated/prisma/enums.js";
+import { AuditAction, UserRole } from "../../../generated/prisma/enums.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
-import { AuditService } from "../audit/audit.service.js";
 import type { CreateAuditLogInput } from "../audit/audit.interface.js";
+import { AuditService } from "../audit/audit.service.js";
 import type {
   AuthorizeOwnershipInput,
   OwnershipPolicy,
 } from "./authorization.interface.js";
 
 // Check if administrative role is authorized by policy
-const isAuthorizedRole = (role: UserRole, policy?: OwnershipPolicy): boolean => {
+const isAuthorizedRole = (
+  role: UserRole,
+  policy?: OwnershipPolicy,
+): boolean => {
   // Customers can never possess administrative override access to other users' resources
   if (role === UserRole.CUSTOMER) {
     return false;

@@ -5,7 +5,12 @@ type SafeParseLike =
   | { success: true }
   | {
       success: false;
-      error: { issues: { message: string; path?: readonly PropertyKey[] | PropertyKey[] }[] };
+      error: {
+        issues: {
+          message: string;
+          path?: readonly PropertyKey[] | PropertyKey[];
+        }[];
+      };
     };
 
 const getFirstErrorMessage = (result: SafeParseLike): string | undefined => {
@@ -73,15 +78,15 @@ describe("AuthValidation Unit Tests", () => {
       });
 
       it("should fail when email is not a string", () => {
-        expect(
-          getFirstErrorMessage(schema.safeParse({ email: 98765 })),
-        ).toBe("Email must be a valid text string");
+        expect(getFirstErrorMessage(schema.safeParse({ email: 98765 }))).toBe(
+          "Email must be a valid text string",
+        );
       });
 
       it("should fail when email is an empty string", () => {
-        expect(
-          getFirstErrorMessage(schema.safeParse({ email: "" })),
-        ).toBe("Please provide a valid email address");
+        expect(getFirstErrorMessage(schema.safeParse({ email: "" }))).toBe(
+          "Please provide a valid email address",
+        );
       });
 
       it("should fail when email format is invalid", () => {
@@ -133,9 +138,9 @@ describe("AuthValidation Unit Tests", () => {
 
     describe("email Field Validation", () => {
       it("should fail when email is missing", () => {
-        expect(
-          getFirstErrorMessage(schema.safeParse({ otp: "123456" })),
-        ).toBe("Email address is required");
+        expect(getFirstErrorMessage(schema.safeParse({ otp: "123456" }))).toBe(
+          "Email address is required",
+        );
       });
 
       it("should fail when email format is invalid", () => {
@@ -373,9 +378,9 @@ describe("AuthValidation Unit Tests", () => {
 
     describe("redirectTo Field Validation", () => {
       it("should fail when redirectTo is not a string", () => {
-        expect(getFirstErrorMessage(schema.safeParse({ redirectTo: 12345 }))).toBe(
-          "Redirect URL must be a valid text string",
-        );
+        expect(
+          getFirstErrorMessage(schema.safeParse({ redirectTo: 12345 })),
+        ).toBe("Redirect URL must be a valid text string");
       });
 
       it("should fail when redirectTo exceeds 2048 characters", () => {
@@ -432,9 +437,9 @@ describe("AuthValidation Unit Tests", () => {
 
     describe("redirectTo Field Validation", () => {
       it("should fail when redirectTo is not a string", () => {
-        expect(getFirstErrorMessage(schema.safeParse({ redirectTo: true }))).toBe(
-          "Redirect URL must be a valid text string",
-        );
+        expect(
+          getFirstErrorMessage(schema.safeParse({ redirectTo: true })),
+        ).toBe("Redirect URL must be a valid text string");
         expect(
           getFirstErrorMessage(schema.safeParse({ redirectTo: ["/path"] })),
         ).toBe("Redirect URL must be a valid text string");

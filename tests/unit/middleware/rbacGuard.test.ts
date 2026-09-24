@@ -7,7 +7,10 @@ import { rbacGuard } from "../../../src/app/middleware/rbacGuard.js";
 import { UserRole, UserStatus } from "../../../src/generated/prisma/enums.js";
 
 describe("rbacGuard Unit Tests", () => {
-  const createMockContext = (role?: UserRole, overrides?: Record<string, unknown>) => {
+  const createMockContext = (
+    role?: UserRole,
+    overrides?: Record<string, unknown>,
+  ) => {
     const req = {
       body: {},
       headers: {},

@@ -6,7 +6,10 @@ import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import { AdminController } from "../../../../src/app/modules/admin/admin.controller.js";
 import { AdminService } from "../../../../src/app/modules/admin/admin.service.js";
 import type { AuthUser } from "../../../../src/app/modules/auth/auth.interface.js";
-import { UserRole, UserStatus } from "../../../../src/generated/prisma/enums.js";
+import {
+  UserRole,
+  UserStatus,
+} from "../../../../src/generated/prisma/enums.js";
 
 interface MockResponseOptions {
   user?: Partial<AuthUser>;

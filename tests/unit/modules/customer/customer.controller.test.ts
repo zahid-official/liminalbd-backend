@@ -5,7 +5,10 @@ import { AppError } from "../../../../src/app/errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import { CustomerController } from "../../../../src/app/modules/customer/customer.controller.js";
 import { CustomerService } from "../../../../src/app/modules/customer/customer.service.js";
-import { UserRole, UserStatus } from "../../../../src/generated/prisma/enums.js";
+import {
+  UserRole,
+  UserStatus,
+} from "../../../../src/generated/prisma/enums.js";
 
 interface MockResponseOptions {
   validatedBody?: unknown;

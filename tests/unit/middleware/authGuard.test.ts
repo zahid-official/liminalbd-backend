@@ -212,7 +212,8 @@ describe("authGuard Unit Tests", () => {
         },
       });
 
-      const passedHeaders = getSessionSpy.mock.calls[0]?.[0]?.headers as Headers;
+      const passedHeaders = getSessionSpy.mock.calls[0]?.[0]
+        ?.headers as Headers;
       expect(passedHeaders.get("cookie")).toBe(
         "better-auth.session_token=session-token-abc",
       );

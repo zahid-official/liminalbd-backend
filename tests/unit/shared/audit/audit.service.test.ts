@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../../../../src/app/config/prisma.js";
-import { Prisma } from "../../../../src/generated/prisma/client.js";
-import type { AuditLog } from "../../../../src/generated/prisma/client.js";
-import { AuditAction, AuditEntityType } from "../../../../src/generated/prisma/enums.js";
 import { AuditService } from "../../../../src/app/shared/audit/audit.service.js";
+import type { AuditLog } from "../../../../src/generated/prisma/client.js";
+import { Prisma } from "../../../../src/generated/prisma/client.js";
+import {
+  AuditAction,
+  AuditEntityType,
+} from "../../../../src/generated/prisma/enums.js";
 
 describe("AuditService Unit Tests", () => {
   afterEach(() => {
@@ -54,13 +57,11 @@ describe("AuditService Unit Tests", () => {
     });
 
     it("should handle unauthenticated / system actor with actorId set to null", async () => {
-      const createSpy = vi
-        .spyOn(prisma.auditLog, "create")
-        .mockResolvedValue({
-          ...mockAuditRecord,
-          actorId: null,
-          action: AuditAction.UNAUTHORIZED_ATTEMPT,
-        });
+      const createSpy = vi.spyOn(prisma.auditLog, "create").mockResolvedValue({
+        ...mockAuditRecord,
+        actorId: null,
+        action: AuditAction.UNAUTHORIZED_ATTEMPT,
+      });
 
       const result = await AuditService.record({
         action: AuditAction.UNAUTHORIZED_ATTEMPT,

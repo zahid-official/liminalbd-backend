@@ -13,10 +13,13 @@ const CLIENT_VERSION = "7.0.0";
 describe("handlePrismaError Unit Tests", () => {
   describe("isPrismaError Type Guard", () => {
     it("should return true for PrismaClientKnownRequestError", () => {
-      const error = new Prisma.PrismaClientKnownRequestError("Record not found", {
-        code: "P2025",
-        clientVersion: CLIENT_VERSION,
-      });
+      const error = new Prisma.PrismaClientKnownRequestError(
+        "Record not found",
+        {
+          code: "P2025",
+          clientVersion: CLIENT_VERSION,
+        },
+      );
 
       expect(isPrismaError(error)).toBe(true);
     });
@@ -48,9 +51,12 @@ describe("handlePrismaError Unit Tests", () => {
     });
 
     it("should return true for PrismaClientUnknownRequestError", () => {
-      const error = new Prisma.PrismaClientUnknownRequestError("Unknown query issue", {
-        clientVersion: CLIENT_VERSION,
-      });
+      const error = new Prisma.PrismaClientUnknownRequestError(
+        "Unknown query issue",
+        {
+          clientVersion: CLIENT_VERSION,
+        },
+      );
 
       expect(isPrismaError(error)).toBe(true);
     });
@@ -120,10 +126,13 @@ describe("handlePrismaError Unit Tests", () => {
       const notFoundCodes = ["P2001", "P2015", "P2018", "P2025"] as const;
 
       for (const code of notFoundCodes) {
-        const error = new Prisma.PrismaClientKnownRequestError("Record not found", {
-          code,
-          clientVersion: CLIENT_VERSION,
-        });
+        const error = new Prisma.PrismaClientKnownRequestError(
+          "Record not found",
+          {
+            code,
+            clientVersion: CLIENT_VERSION,
+          },
+        );
 
         const result = handlePrismaError(error);
 
@@ -177,7 +186,9 @@ describe("handlePrismaError Unit Tests", () => {
 
       expect(result.statusCode).toBe(status.BAD_REQUEST);
       expect(result.code).toBe(PUBLIC_ERROR_CODES.VALIDATION_ERROR);
-      expect(result.message).toBe("Provided value is invalid for database field");
+      expect(result.message).toBe(
+        "Provided value is invalid for database field",
+      );
     });
 
     it("should map unmapped P2xxx constraint violations to 400 VALIDATION_ERROR fallback", () => {
@@ -211,7 +222,9 @@ describe("handlePrismaError Unit Tests", () => {
 
       expect(result.statusCode).toBe(status.SERVICE_UNAVAILABLE);
       expect(result.code).toBe(PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR);
-      expect(result.message).toBe("Database service is temporarily unavailable");
+      expect(result.message).toBe(
+        "Database service is temporarily unavailable",
+      );
     });
 
     it("should map PrismaClientInitializationError to 503 SERVICE_UNAVAILABLE", () => {
@@ -224,7 +237,9 @@ describe("handlePrismaError Unit Tests", () => {
 
       expect(result.statusCode).toBe(status.SERVICE_UNAVAILABLE);
       expect(result.code).toBe(PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR);
-      expect(result.message).toBe("Database service is temporarily unavailable");
+      expect(result.message).toBe(
+        "Database service is temporarily unavailable",
+      );
     });
   });
 
@@ -239,7 +254,9 @@ describe("handlePrismaError Unit Tests", () => {
 
       expect(result.statusCode).toBe(status.BAD_REQUEST);
       expect(result.code).toBe(PUBLIC_ERROR_CODES.VALIDATION_ERROR);
-      expect(result.message).toBe("Invalid query arguments provided to database");
+      expect(result.message).toBe(
+        "Invalid query arguments provided to database",
+      );
     });
   });
 

@@ -190,7 +190,9 @@ describe("AdminValidation Unit Tests", () => {
       it("should fail when id is not a string", () => {
         const result = paramsSchema.safeParse({ id: 12345 });
 
-        expect(getFirstErrorMessage(result)).toBe("Admin ID must be a valid text string");
+        expect(getFirstErrorMessage(result)).toBe(
+          "Admin ID must be a valid text string",
+        );
       });
 
       it("should fail when id is an invalid UUID format", () => {
@@ -390,7 +392,9 @@ describe("AdminValidation Unit Tests", () => {
       it("should fail when page is not a valid number", () => {
         const result = querySchema.safeParse({ page: "abc" });
 
-        expect(getFirstErrorMessage(result)).toBe("Page must be a valid number");
+        expect(getFirstErrorMessage(result)).toBe(
+          "Page must be a valid number",
+        );
       });
     });
 
@@ -416,13 +420,21 @@ describe("AdminValidation Unit Tests", () => {
       it("should fail when limit is not a valid number", () => {
         const result = querySchema.safeParse({ limit: "invalid" });
 
-        expect(getFirstErrorMessage(result)).toBe("Limit must be a valid number");
+        expect(getFirstErrorMessage(result)).toBe(
+          "Limit must be a valid number",
+        );
       });
     });
 
     describe("sortBy & sortOrder Validation", () => {
       it("should accept all allowed sort fields", () => {
-        const allowedFields = ["createdAt", "updatedAt", "name", "email", "status"];
+        const allowedFields = [
+          "createdAt",
+          "updatedAt",
+          "name",
+          "email",
+          "status",
+        ];
 
         for (const sortBy of allowedFields) {
           const result = querySchema.safeParse({ sortBy });
@@ -447,7 +459,9 @@ describe("AdminValidation Unit Tests", () => {
 
     describe("searchTerm & status Validation", () => {
       it("should accept valid search terms and trim whitespace", () => {
-        const result = querySchema.safeParse({ searchTerm: "  studio admin  " });
+        const result = querySchema.safeParse({
+          searchTerm: "  studio admin  ",
+        });
 
         expect(result).toEqual({
           success: true,

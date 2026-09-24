@@ -19,7 +19,9 @@ describe("handleBetterAuthError Unit Tests", () => {
       const resEmailPassword = handleBetterAuthError(emailPasswordError);
       expect(resEmailPassword).toBeInstanceOf(AppError);
       expect(resEmailPassword.statusCode).toBe(status.UNAUTHORIZED);
-      expect(resEmailPassword.code).toBe(PUBLIC_ERROR_CODES.INVALID_CREDENTIALS);
+      expect(resEmailPassword.code).toBe(
+        PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
+      );
       expect(resEmailPassword.message).toBe("Invalid email or password");
 
       const resCredentials = handleBetterAuthError(credentialsError);

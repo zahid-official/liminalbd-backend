@@ -181,7 +181,9 @@ describe("auth Configuration Unit Tests", () => {
         const apiError = err as APIError;
         expect(apiError.status).toBe("FORBIDDEN");
         expect(apiError.statusCode).toBe(403);
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        );
         expect(apiError.body?.message).toBe(
           "Access denied. Administrative accounts cannot link or use Google sign-in.",
         );
@@ -203,7 +205,9 @@ describe("auth Configuration Unit Tests", () => {
         const apiError = err as APIError;
         expect(apiError.status).toBe("FORBIDDEN");
         expect(apiError.statusCode).toBe(403);
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        );
         return true;
       });
     });
@@ -256,7 +260,9 @@ describe("auth Configuration Unit Tests", () => {
         const apiError = err as APIError;
         expect(apiError.status).toBe("UNAUTHORIZED");
         expect(apiError.statusCode).toBe(401);
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.INVALID_CREDENTIALS);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
+        );
         expect(apiError.body?.message).toBe("Invalid email or password");
         return true;
       });
@@ -280,7 +286,9 @@ describe("auth Configuration Unit Tests", () => {
         const apiError = err as APIError;
         expect(apiError.status).toBe("UNAUTHORIZED");
         expect(apiError.statusCode).toBe(401);
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.INVALID_CREDENTIALS);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
+        );
         expect(apiError.body?.message).toBe("Invalid email or password");
         return true;
       });
@@ -306,7 +314,9 @@ describe("auth Configuration Unit Tests", () => {
         expect(apiError.status).toBe("UNAUTHORIZED");
         expect(apiError.statusCode).toBe(401);
         // Soft delete MUST take precedence over ACCOUNT_SUSPENDED and EMAIL_NOT_VERIFIED
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.INVALID_CREDENTIALS);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.INVALID_CREDENTIALS,
+        );
         expect(apiError.body?.message).toBe("Invalid email or password");
         return true;
       });
@@ -338,7 +348,9 @@ describe("auth Configuration Unit Tests", () => {
         const apiError = err as APIError;
         expect(apiError.status).toBe("FORBIDDEN");
         expect(apiError.statusCode).toBe(403);
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        );
         expect(apiError.body?.message).toBe(
           "Access denied. Administrative accounts cannot use Google sign-in.",
         );
@@ -360,7 +372,9 @@ describe("auth Configuration Unit Tests", () => {
         const apiError = err as APIError;
         expect(apiError.status).toBe("FORBIDDEN");
         expect(apiError.statusCode).toBe(403);
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        );
         return true;
       });
     });
@@ -383,7 +397,10 @@ describe("auth Configuration Unit Tests", () => {
       };
 
       await expect(
-        beforeHook({ userId: "admin-credential-user" } as any, mockContext as any),
+        beforeHook(
+          { userId: "admin-credential-user" } as any,
+          mockContext as any,
+        ),
       ).resolves.not.toThrow();
     });
 
@@ -459,7 +476,9 @@ describe("auth Configuration Unit Tests", () => {
         const apiError = err as APIError;
         expect(apiError.status).toBe("FORBIDDEN");
         expect(apiError.statusCode).toBe(403);
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
+        );
         expect(apiError.body?.message).toBe(
           "Your account is deactivated. Please contact support.",
         );
@@ -487,7 +506,9 @@ describe("auth Configuration Unit Tests", () => {
         expect(apiError.status).toBe("FORBIDDEN");
         expect(apiError.statusCode).toBe(403);
         // Deactivation MUST take precedence over EMAIL_NOT_VERIFIED
-        expect(apiError.body?.code).toBe(PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED);
+        expect(apiError.body?.code).toBe(
+          PUBLIC_ERROR_CODES.ACCOUNT_DEACTIVATED,
+        );
         expect(apiError.body?.message).toBe(
           "Your account is deactivated. Please contact support.",
         );
@@ -554,7 +575,8 @@ describe("auth Configuration Unit Tests", () => {
         accounts: [{ id: "acc-1", password: "hashed-password" }],
       } as any);
 
-      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      const sendResetPassword =
+        auth.options.emailAndPassword?.sendResetPassword;
       expect(sendResetPassword).toBeDefined();
       if (!sendResetPassword) throw new Error("sendResetPassword missing");
 
@@ -580,7 +602,8 @@ describe("auth Configuration Unit Tests", () => {
 
       vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
 
-      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      const sendResetPassword =
+        auth.options.emailAndPassword?.sendResetPassword;
       if (!sendResetPassword) throw new Error("sendResetPassword missing");
 
       await sendResetPassword({
@@ -609,7 +632,8 @@ describe("auth Configuration Unit Tests", () => {
         accounts: [{ id: "acc-1", password: "hashed-password" }],
       } as any);
 
-      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      const sendResetPassword =
+        auth.options.emailAndPassword?.sendResetPassword;
       if (!sendResetPassword) throw new Error("sendResetPassword missing");
 
       await sendResetPassword({
@@ -639,7 +663,8 @@ describe("auth Configuration Unit Tests", () => {
         accounts: [{ id: "acc-google", password: null }],
       } as any);
 
-      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      const sendResetPassword =
+        auth.options.emailAndPassword?.sendResetPassword;
       if (!sendResetPassword) throw new Error("sendResetPassword missing");
 
       await sendResetPassword({
@@ -665,7 +690,8 @@ describe("auth Configuration Unit Tests", () => {
         .spyOn(AuthMailer, "sendPasswordResetLink")
         .mockResolvedValue();
 
-      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      const sendResetPassword =
+        auth.options.emailAndPassword?.sendResetPassword;
       if (!sendResetPassword) throw new Error("sendResetPassword missing");
 
       await sendResetPassword({
@@ -697,7 +723,8 @@ describe("auth Configuration Unit Tests", () => {
         .spyOn(AuthMailer, "sendPasswordResetLink")
         .mockResolvedValue();
 
-      const sendResetPassword = auth.options.emailAndPassword?.sendResetPassword;
+      const sendResetPassword =
+        auth.options.emailAndPassword?.sendResetPassword;
       if (!sendResetPassword) throw new Error("sendResetPassword missing");
 
       await sendResetPassword({

@@ -1,6 +1,10 @@
+import * as betterAuthCrypto from "better-auth/crypto";
 import status from "http-status";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as betterAuthCrypto from "better-auth/crypto";
+import { prisma } from "../../../../src/app/config/prisma.js";
+import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
+import { AdminService } from "../../../../src/app/modules/admin/admin.service.js";
+import { AuditService } from "../../../../src/app/shared/audit/audit.service.js";
 import type { Prisma } from "../../../../src/generated/prisma/client.js";
 import {
   AuditAction,
@@ -8,10 +12,6 @@ import {
   UserRole,
   UserStatus,
 } from "../../../../src/generated/prisma/enums.js";
-import { prisma } from "../../../../src/app/config/prisma.js";
-import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
-import { AdminService } from "../../../../src/app/modules/admin/admin.service.js";
-import { AuditService } from "../../../../src/app/shared/audit/audit.service.js";
 
 vi.mock("better-auth/crypto");
 
@@ -61,9 +61,11 @@ describe("AdminService Unit Tests", () => {
       },
     };
 
-    vi.spyOn(prisma, "$transaction").mockImplementation(async (callback: any) => {
-      return await callback(mockTx as unknown as Prisma.TransactionClient);
-    });
+    vi.spyOn(prisma, "$transaction").mockImplementation(
+      async (callback: any) => {
+        return await callback(mockTx as unknown as Prisma.TransactionClient);
+      },
+    );
 
     vi.spyOn(AuditService, "record").mockResolvedValue({} as any);
   });

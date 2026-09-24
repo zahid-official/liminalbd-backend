@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
 import { status } from "http-status";
+import { describe, expect, it, vi } from "vitest";
 import { sendResponse } from "../../../src/app/utils/sendResponse.js";
 
 // Minimal Express Response mock
@@ -53,14 +53,20 @@ describe("sendResponse Unit Tests", () => {
     it("omits meta when not provided", () => {
       const { res, json } = makeRes();
       sendResponse(res, { statusCode: status.OK, message: "OK", data: [] });
-      const call = (json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as Record<string, unknown>;
+      const call = (json as ReturnType<typeof vi.fn>).mock
+        .calls[0]?.[0] as Record<string, unknown>;
       expect(call).not.toHaveProperty("meta");
     });
 
     it("includes meta when provided", () => {
       const { res, json } = makeRes();
       const meta = { page: 1, limit: 10, total: 50, totalPages: 5 };
-      sendResponse(res, { statusCode: status.OK, message: "OK", data: [], meta });
+      sendResponse(res, {
+        statusCode: status.OK,
+        message: "OK",
+        data: [],
+        meta,
+      });
       expect(json).toHaveBeenCalledWith(expect.objectContaining({ meta }));
     });
   });

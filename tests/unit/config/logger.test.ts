@@ -6,9 +6,9 @@ import { httpLoggerOptions } from "../../../src/app.js";
 describe("Logger Configuration Unit Tests", () => {
   it("should initialize a valid Pino logger instance with expected levels and methods", async () => {
     // Import the actual logger module unmocked
-    const { logger } = await vi.importActual<typeof import("../../../src/app/config/logger.js")>(
-      "../../../src/app/config/logger.js",
-    );
+    const { logger } = await vi.importActual<
+      typeof import("../../../src/app/config/logger.js")
+    >("../../../src/app/config/logger.js");
 
     expect(logger).toBeDefined();
     expect(typeof logger.info).toBe("function");
@@ -33,9 +33,9 @@ describe("Logger Configuration Unit Tests", () => {
   });
 
   it("should redact sensitive fields using application loggerOptions (password, token, secret, cookie)", async () => {
-    const { loggerOptions } = await vi.importActual<typeof import("../../../src/app/config/logger.js")>(
-      "../../../src/app/config/logger.js",
-    );
+    const { loggerOptions } = await vi.importActual<
+      typeof import("../../../src/app/config/logger.js")
+    >("../../../src/app/config/logger.js");
 
     let captured = "";
     const stream = new Writable({

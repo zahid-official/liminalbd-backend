@@ -1,15 +1,15 @@
 import status from "http-status";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AppError } from "../../../../src/app/errors/AppError.js";
+import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
+import { AuditService } from "../../../../src/app/shared/audit/audit.service.js";
+import { AuthorizationService } from "../../../../src/app/shared/authorization/authorization.service.js";
 import type { Prisma } from "../../../../src/generated/prisma/client.js";
 import {
   AuditAction,
   AuditEntityType,
   UserRole,
 } from "../../../../src/generated/prisma/enums.js";
-import { AppError } from "../../../../src/app/errors/AppError.js";
-import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
-import { AuditService } from "../../../../src/app/shared/audit/audit.service.js";
-import { AuthorizationService } from "../../../../src/app/shared/authorization/authorization.service.js";
 
 describe("AuthorizationService Unit Tests", () => {
   const actorId = "user-customer-1";

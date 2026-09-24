@@ -5,9 +5,15 @@ import { env } from "../../../../src/app/config/env.js";
 import { AppError } from "../../../../src/app/errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import { AuthController } from "../../../../src/app/modules/auth/auth.controller.js";
-import type { AuthSession, AuthUser } from "../../../../src/app/modules/auth/auth.interface.js";
+import type {
+  AuthSession,
+  AuthUser,
+} from "../../../../src/app/modules/auth/auth.interface.js";
 import { AuthService } from "../../../../src/app/modules/auth/auth.service.js";
-import { UserRole, UserStatus } from "../../../../src/generated/prisma/enums.js";
+import {
+  UserRole,
+  UserStatus,
+} from "../../../../src/generated/prisma/enums.js";
 
 interface MockResponseOptions {
   validatedBody?: unknown;
@@ -322,7 +328,9 @@ describe("AuthController Unit Tests", () => {
         setCookies: [],
       };
 
-      vi.spyOn(AuthService, "loginWithCredentials").mockResolvedValue(mockResult);
+      vi.spyOn(AuthService, "loginWithCredentials").mockResolvedValue(
+        mockResult,
+      );
 
       const req = { headers: {} } as unknown as Request;
       const res = makeMockRes({ validatedBody: mockPayload });
@@ -347,7 +355,9 @@ describe("AuthController Unit Tests", () => {
         "Invalid email or password",
       );
 
-      vi.spyOn(AuthService, "loginWithCredentials").mockRejectedValue(serviceError);
+      vi.spyOn(AuthService, "loginWithCredentials").mockRejectedValue(
+        serviceError,
+      );
 
       const req = { headers: {} } as unknown as Request;
       const res = makeMockRes({ validatedBody: mockPayload });
@@ -390,7 +400,10 @@ describe("AuthController Unit Tests", () => {
       expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
       expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
 
-      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", mockResult.setCookies);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        "set-cookie",
+        mockResult.setCookies,
+      );
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -624,7 +637,9 @@ describe("AuthController Unit Tests", () => {
         "A Google account is already linked to your profile.",
       );
 
-      vi.spyOn(AuthService, "linkGoogleAccount").mockRejectedValue(serviceError);
+      vi.spyOn(AuthService, "linkGoogleAccount").mockRejectedValue(
+        serviceError,
+      );
 
       const req = { headers: {} } as unknown as Request;
       const res = makeMockRes({
@@ -672,7 +687,9 @@ describe("AuthController Unit Tests", () => {
         "Cannot unlink your only authentication method. Please set a password first.",
       );
 
-      vi.spyOn(AuthService, "unlinkGoogleAccount").mockRejectedValue(serviceError);
+      vi.spyOn(AuthService, "unlinkGoogleAccount").mockRejectedValue(
+        serviceError,
+      );
 
       const req = {} as unknown as Request;
       const res = makeMockRes({ user: mockCustomerUser });
@@ -721,7 +738,9 @@ describe("AuthController Unit Tests", () => {
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
-      const serviceError = new Error("Failed to process password reset request");
+      const serviceError = new Error(
+        "Failed to process password reset request",
+      );
       vi.spyOn(AuthService, "forgotPassword").mockRejectedValue(serviceError);
 
       const req = { headers: {} } as unknown as Request;
@@ -1009,7 +1028,9 @@ describe("AuthController Unit Tests", () => {
         mockSession.token,
         expect.any(Headers),
       );
-      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", ["session=; Path=/"]);
+      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
+        "session=; Path=/",
+      ]);
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -1076,7 +1097,9 @@ describe("AuthController Unit Tests", () => {
       await AuthController.logoutAll(req, res, next);
 
       expect(logoutAllSpy).toHaveBeenCalledWith(expect.any(Headers));
-      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", ["session=; Path=/"]);
+      expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
+        "session=; Path=/",
+      ]);
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,

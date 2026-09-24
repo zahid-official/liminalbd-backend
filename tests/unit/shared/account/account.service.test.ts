@@ -1,13 +1,6 @@
 import status from "http-status";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../../../../src/app/config/prisma.js";
-import type { Prisma, User } from "../../../../src/generated/prisma/client.js";
-import {
-  AuditAction,
-  AuditEntityType,
-  UserRole,
-  UserStatus,
-} from "../../../../src/generated/prisma/enums.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import {
   AccountService,
@@ -15,6 +8,13 @@ import {
   nonDeletedUserFilter,
 } from "../../../../src/app/shared/account/account.service.js";
 import { AuditService } from "../../../../src/app/shared/audit/audit.service.js";
+import type { Prisma, User } from "../../../../src/generated/prisma/client.js";
+import {
+  AuditAction,
+  AuditEntityType,
+  UserRole,
+  UserStatus,
+} from "../../../../src/generated/prisma/enums.js";
 
 describe("AccountService Unit Tests", () => {
   const mockTargetUser: User = {
@@ -52,9 +52,11 @@ describe("AccountService Unit Tests", () => {
       },
     };
 
-    vi.spyOn(prisma, "$transaction").mockImplementation(async (callback: any) => {
-      return await callback(mockTx as unknown as Prisma.TransactionClient);
-    });
+    vi.spyOn(prisma, "$transaction").mockImplementation(
+      async (callback: any) => {
+        return await callback(mockTx as unknown as Prisma.TransactionClient);
+      },
+    );
 
     vi.spyOn(AuditService, "record").mockResolvedValue({} as any);
   });
@@ -110,8 +112,6 @@ describe("AccountService Unit Tests", () => {
         });
         expect(result).toEqual(updatedUser);
       });
-
-
 
       it("should reactivate user (status ACTIVE) without deleting active sessions", async () => {
         mockTx.user.findUnique.mockResolvedValue({
@@ -287,8 +287,6 @@ describe("AccountService Unit Tests", () => {
         });
         expect(result).toEqual(softDeletedUser);
       });
-
-
     });
 
     describe("Validation and Error Scenarios", () => {

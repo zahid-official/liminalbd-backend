@@ -211,26 +211,28 @@ describe("common.validation Unit Tests", () => {
     });
 
     it("should fail when page is less than 1", () => {
-      expect(getFirstErrorMessage(paginationQuerySchema.safeParse({ page: 0 }))).toBe(
-        "Page must be at least 1",
-      );
+      expect(
+        getFirstErrorMessage(paginationQuerySchema.safeParse({ page: 0 })),
+      ).toBe("Page must be at least 1");
     });
 
     it("should fail when page is not an integer", () => {
-      expect(getFirstErrorMessage(paginationQuerySchema.safeParse({ page: 1.5 }))).toBe(
-        "Page must be an integer",
-      );
+      expect(
+        getFirstErrorMessage(paginationQuerySchema.safeParse({ page: 1.5 })),
+      ).toBe("Page must be an integer");
     });
 
     it("should fail when limit exceeds 100", () => {
-      expect(getFirstErrorMessage(paginationQuerySchema.safeParse({ limit: 150 }))).toBe(
-        "Limit cannot exceed 100",
-      );
+      expect(
+        getFirstErrorMessage(paginationQuerySchema.safeParse({ limit: 150 })),
+      ).toBe("Limit cannot exceed 100");
     });
 
     it("should fail when sortOrder is invalid", () => {
       expect(
-        getFirstErrorMessage(paginationQuerySchema.safeParse({ sortOrder: "invalid" })),
+        getFirstErrorMessage(
+          paginationQuerySchema.safeParse({ sortOrder: "invalid" }),
+        ),
       ).toBe("Sort order must be either 'asc' or 'desc'");
     });
 
