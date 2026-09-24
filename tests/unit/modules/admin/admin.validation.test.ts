@@ -302,4 +302,189 @@ describe("AdminValidation Unit Tests", () => {
       });
     });
   });
+
+  describe("getAdminsQuerySchema", () => {
+    const querySchema = AdminValidation.getAdminsQuerySchema.query;
+
+    describe("Default Values & Normalization", () => {
+      it("should apply default values when query object is empty", () => {
+        const result = querySchema.safeParse({});
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          },
+        });
+      });
+
+      it("should coerce string numbers and sanitize query attributes correctly", () => {
+        const query = {
+          page: "3",
+          limit: "25",
+          sortBy: "name",
+          sortOrder: "asc",
+          searchTerm: "  Zahid Admin  ",
+          status: "ACTIVE",
+        };
+
+        const result = querySchema.safeParse(query);
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 3,
+            limit: 25,
+            sortBy: "name",
+            sortOrder: "asc",
+            searchTerm: "Zahid Admin",
+            status: "ACTIVE",
+          },
+        });
+      });
+
+      it("should strip client-injected fields to prevent query injection", () => {
+        const queryWithInjectedFields = {
+          role: "ADMIN",
+          deletedAt: null,
+          isSuperAdmin: true,
+          arbitraryFilter: "malicious",
+        };
+
+        const result = querySchema.safeParse(queryWithInjectedFields);
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          },
+        });
+      });
+    });
+
+    describe("page Field Validation", () => {
+      it("should fail when page is 0 with min error message", () => {
+        const result = querySchema.safeParse({ page: "0" });
+
+        expect(getFirstErrorMessage(result)).toBe("Page must be at least 1");
+      });
+
+      it("should fail when page is negative with min error message", () => {
+        const result = querySchema.safeParse({ page: "-5" });
+
+        expect(getFirstErrorMessage(result)).toBe("Page must be at least 1");
+      });
+
+      it("should fail when page is a float with integer error message", () => {
+        const result = querySchema.safeParse({ page: "1.5" });
+
+        expect(getFirstErrorMessage(result)).toBe("Page must be an integer");
+      });
+
+      it("should fail when page is not a valid number", () => {
+        const result = querySchema.safeParse({ page: "abc" });
+
+        expect(getFirstErrorMessage(result)).toBe("Page must be a valid number");
+      });
+    });
+
+    describe("limit Field Validation", () => {
+      it("should fail when limit is 0 with min error message", () => {
+        const result = querySchema.safeParse({ limit: "0" });
+
+        expect(getFirstErrorMessage(result)).toBe("Limit must be at least 1");
+      });
+
+      it("should fail when limit exceeds 100 with max error message", () => {
+        const result = querySchema.safeParse({ limit: "101" });
+
+        expect(getFirstErrorMessage(result)).toBe("Limit cannot exceed 100");
+      });
+
+      it("should fail when limit is a float with integer error message", () => {
+        const result = querySchema.safeParse({ limit: "10.5" });
+
+        expect(getFirstErrorMessage(result)).toBe("Limit must be an integer");
+      });
+
+      it("should fail when limit is not a valid number", () => {
+        const result = querySchema.safeParse({ limit: "invalid" });
+
+        expect(getFirstErrorMessage(result)).toBe("Limit must be a valid number");
+      });
+    });
+
+    describe("sortBy & sortOrder Validation", () => {
+      it("should accept all allowed sort fields", () => {
+        const allowedFields = ["createdAt", "updatedAt", "name", "email", "status"];
+
+        for (const sortBy of allowedFields) {
+          const result = querySchema.safeParse({ sortBy });
+          expect(result.success).toBe(true);
+        }
+      });
+
+      it("should fail when sortBy is an invalid field", () => {
+        const result = querySchema.safeParse({ sortBy: "password" });
+
+        expect(getFirstErrorMessage(result)).toBe("Invalid sort field");
+      });
+
+      it("should fail when sortOrder is not 'asc' or 'desc'", () => {
+        const result = querySchema.safeParse({ sortOrder: "ascending" });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "Sort order must be either 'asc' or 'desc'",
+        );
+      });
+    });
+
+    describe("searchTerm & status Validation", () => {
+      it("should accept valid search terms and trim whitespace", () => {
+        const result = querySchema.safeParse({ searchTerm: "  studio admin  " });
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            searchTerm: "studio admin",
+          },
+        });
+      });
+
+      it("should fail when searchTerm exceeds 100 characters", () => {
+        const result = querySchema.safeParse({ searchTerm: "a".repeat(101) });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "Search term cannot exceed 100 characters",
+        );
+      });
+
+      it("should accept valid user statuses", () => {
+        const validStatuses = ["ACTIVE", "SUSPENDED", "DEACTIVATED"];
+
+        for (const status of validStatuses) {
+          const result = querySchema.safeParse({ status });
+          expect(result.success).toBe(true);
+        }
+      });
+
+      it("should fail when status is not a valid UserStatus enum value", () => {
+        const result = querySchema.safeParse({ status: "PENDING" });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "Status must be a valid account status",
+        );
+      });
+    });
+  });
 });

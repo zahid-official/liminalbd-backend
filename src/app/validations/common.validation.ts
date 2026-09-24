@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UserStatus } from "../../generated/prisma/enums.js";
 
 // Shared email validation schema with normalization preceding format checks
 export const emailSchema = z
@@ -45,5 +46,38 @@ export const redirectUrlSchema = z
     error: "Redirect URL must be a valid text string",
   })
   .trim()
-  .max(2048, { error: "Redirect URL cannot exceed 2048 characters" })
-  .optional();
+  .max(2048, { error: "Redirect URL cannot exceed 2048 characters" });
+
+// Shared user account status validation schema
+export const userStatusSchema = z.enum(
+  [UserStatus.ACTIVE, UserStatus.SUSPENDED, UserStatus.DEACTIVATED],
+  { error: "Status must be a valid account status" },
+);
+
+// Shared pagination and search query validation schema
+export const paginationQuerySchema = z.object({
+  page: z.coerce
+    .number({ error: "Page must be a valid number" })
+    .int({ error: "Page must be an integer" })
+    .min(1, { error: "Page must be at least 1" })
+    .default(1),
+
+  limit: z.coerce
+    .number({ error: "Limit must be a valid number" })
+    .int({ error: "Limit must be an integer" })
+    .min(1, { error: "Limit must be at least 1" })
+    .max(100, { error: "Limit cannot exceed 100" })
+    .default(10),
+
+  sortOrder: z
+    .enum(["asc", "desc"], {
+      error: "Sort order must be either 'asc' or 'desc'",
+    })
+    .default("desc"),
+
+  searchTerm: z
+    .string({ error: "Search term must be a valid text string" })
+    .trim()
+    .max(100, { error: "Search term cannot exceed 100 characters" })
+    .optional(),
+});

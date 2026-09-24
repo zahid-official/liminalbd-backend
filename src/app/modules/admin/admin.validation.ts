@@ -1,9 +1,12 @@
 import { z } from "zod";
-import { UserRole, UserStatus } from "../../../generated/prisma/enums.js";
+import { UserRole } from "../../../generated/prisma/enums.js";
 import {
   emailSchema,
+  paginationQuerySchema,
   passwordSchema,
+  userStatusSchema,
 } from "../../validations/common.validation.js";
+import { ADMIN_SORT_FIELDS } from "./admin.constant.js";
 
 // Create Admin Schema
 const createAdminSchema = {
@@ -47,27 +50,35 @@ const updateAdminSchema = {
         })
         .optional(),
 
-      status: z
-        .enum(
-          [UserStatus.ACTIVE, UserStatus.SUSPENDED, UserStatus.DEACTIVATED],
-          {
-            error: "Status must be a valid account status",
-          },
-        )
-        .optional(),
+      status: userStatusSchema.optional(),
     })
     .refine((data) => Object.values(data).some((val) => val !== undefined), {
       message: "At least one field must be provided for update",
     }),
 };
 
+// Get Admins Query Schema
+const getAdminsQuerySchema = {
+  query: paginationQuerySchema.extend({
+    sortBy: z
+      .enum(ADMIN_SORT_FIELDS, {
+        error: "Invalid sort field",
+      })
+      .default("createdAt"),
+
+    status: userStatusSchema.optional(),
+  }),
+};
+
 // Inferred input types
 export type CreateAdminInput = z.infer<typeof createAdminSchema.body>;
 export type UpdateAdminParams = z.infer<typeof updateAdminSchema.params>;
 export type UpdateAdminInput = z.infer<typeof updateAdminSchema.body>;
+export type GetAdminsQueryInput = z.infer<typeof getAdminsQuerySchema.query>;
 
 // Export admin validation schemas
 export const AdminValidation = {
   createAdminSchema,
   updateAdminSchema,
+  getAdminsQuerySchema,
 };

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   emailSchema,
+  paginationQuerySchema,
   passwordSchema,
   redirectUrlSchema,
+  userStatusSchema,
 } from "../../../src/app/validations/common.validation.js";
 
 type SafeParseLike =
@@ -148,8 +150,14 @@ describe("common.validation Unit Tests", () => {
       });
     });
 
-    it("should allow undefined as redirect URL is optional", () => {
-      const result = redirectUrlSchema.safeParse(undefined);
+    it("should fail when redirect URL is undefined without optional modifier", () => {
+      expect(getFirstErrorMessage(redirectUrlSchema.safeParse(undefined))).toBe(
+        "Redirect URL must be a valid text string",
+      );
+    });
+
+    it("should allow undefined when wrapped with .optional()", () => {
+      const result = redirectUrlSchema.optional().safeParse(undefined);
 
       expect(result).toEqual({ success: true, data: undefined });
     });
@@ -165,6 +173,95 @@ describe("common.validation Unit Tests", () => {
 
       expect(getFirstErrorMessage(redirectUrlSchema.safeParse(longUrl))).toBe(
         "Redirect URL cannot exceed 2048 characters",
+      );
+    });
+  });
+
+  describe("paginationQuerySchema", () => {
+    it("should provide default values when parsing empty object", () => {
+      const result = paginationQuerySchema.safeParse({});
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          page: 1,
+          limit: 10,
+          sortOrder: "desc",
+        },
+      });
+    });
+
+    it("should coerce string numbers and sanitize searchTerm correctly", () => {
+      const result = paginationQuerySchema.safeParse({
+        page: "2",
+        limit: "20",
+        sortOrder: "asc",
+        searchTerm: "  test query  ",
+      });
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          page: 2,
+          limit: 20,
+          sortOrder: "asc",
+          searchTerm: "test query",
+        },
+      });
+    });
+
+    it("should fail when page is less than 1", () => {
+      expect(getFirstErrorMessage(paginationQuerySchema.safeParse({ page: 0 }))).toBe(
+        "Page must be at least 1",
+      );
+    });
+
+    it("should fail when page is not an integer", () => {
+      expect(getFirstErrorMessage(paginationQuerySchema.safeParse({ page: 1.5 }))).toBe(
+        "Page must be an integer",
+      );
+    });
+
+    it("should fail when limit exceeds 100", () => {
+      expect(getFirstErrorMessage(paginationQuerySchema.safeParse({ limit: 150 }))).toBe(
+        "Limit cannot exceed 100",
+      );
+    });
+
+    it("should fail when sortOrder is invalid", () => {
+      expect(
+        getFirstErrorMessage(paginationQuerySchema.safeParse({ sortOrder: "invalid" })),
+      ).toBe("Sort order must be either 'asc' or 'desc'");
+    });
+
+    it("should fail when searchTerm exceeds 100 characters", () => {
+      expect(
+        getFirstErrorMessage(
+          paginationQuerySchema.safeParse({ searchTerm: "a".repeat(101) }),
+        ),
+      ).toBe("Search term cannot exceed 100 characters");
+    });
+  });
+
+  describe("userStatusSchema", () => {
+    it("should accept valid UserStatus enum values", () => {
+      const validStatuses = ["ACTIVE", "SUSPENDED", "DEACTIVATED"];
+
+      for (const status of validStatuses) {
+        const result = userStatusSchema.safeParse(status);
+        expect(result).toEqual({ success: true, data: status });
+      }
+    });
+
+    it("should fail when status is an invalid value", () => {
+      expect(getFirstErrorMessage(userStatusSchema.safeParse("PENDING"))).toBe(
+        "Status must be a valid account status",
+      );
+    });
+
+    it("should fail when status is not a string", () => {
+      expect(getFirstErrorMessage(userStatusSchema.safeParse(123))).toBe(
+        "Status must be a valid account status",
       );
     });
   });

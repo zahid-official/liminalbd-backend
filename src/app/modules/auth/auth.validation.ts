@@ -51,14 +51,14 @@ const loginWithCredentialsSchema = {
 // Login With Google Schema
 const loginWithGoogleSchema = {
   query: z.object({
-    redirectTo: redirectUrlSchema,
+    redirectTo: redirectUrlSchema.optional(),
   }),
 };
 
 // Link Google Account Schema
 const linkGoogleSchema = {
   query: z.object({
-    redirectTo: redirectUrlSchema,
+    redirectTo: redirectUrlSchema.optional(),
   }),
 };
 
@@ -66,7 +66,7 @@ const linkGoogleSchema = {
 const forgotPasswordSchema = {
   body: z.object({
     email: emailSchema,
-    redirectTo: redirectUrlSchema,
+    redirectTo: redirectUrlSchema.optional(),
   }),
 };
 
