@@ -7,7 +7,7 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import type { AuthUser } from "../auth/auth.interface.js";
 import { CustomerService } from "./customer.service.js";
 import type {
-  GetCustomerProfileParams,
+  GetCustomerParams,
   RegisterCustomerInput,
 } from "./customer.validation.js";
 
@@ -15,7 +15,7 @@ import type {
 const registerCustomer = catchAsync(async (req: Request, res: Response) => {
   const payload = res.locals.validated?.body as RegisterCustomerInput;
   const headers = fromNodeHeaders(req.headers);
-  const result = await CustomerService.registerCustomer(payload, headers);
+  const result = await CustomerService.registerCustomer({ payload, headers });
 
   sendResponse(res, {
     statusCode: status.CREATED,
@@ -27,7 +27,7 @@ const registerCustomer = catchAsync(async (req: Request, res: Response) => {
 // Retrieve customer profile by ID
 const getCustomerProfile = catchAsync(async (_req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
-  const params = res.locals.validated?.params as GetCustomerProfileParams;
+  const params = res.locals.validated?.params as GetCustomerParams;
 
   const result = await CustomerService.getCustomerProfile({
     actorId: user.id,

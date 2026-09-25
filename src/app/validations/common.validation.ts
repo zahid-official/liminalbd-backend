@@ -1,6 +1,18 @@
 import { z } from "zod";
 import { UserStatus } from "../../generated/prisma/enums.js";
 
+// Shared full name validation schema
+export const nameSchema = z
+  .string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Full name is required"
+        : "Name must be a valid text string",
+  })
+  .trim()
+  .min(2, { error: "Name must be at least 2 characters" })
+  .max(100, { error: "Name cannot exceed 100 characters" });
+
 // Shared email validation schema with normalization preceding format checks
 export const emailSchema = z
   .string({
@@ -47,6 +59,20 @@ export const redirectUrlSchema = z
   })
   .trim()
   .max(2048, { error: "Redirect URL cannot exceed 2048 characters" });
+
+// Shared contact number validation schema
+export const contactNumberSchema = z
+  .string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Phone number is required"
+        : "Phone number must be a valid text string",
+  })
+  .trim()
+  .regex(/^(?:\+8801|01)[3-9]\d{8}$/, {
+    error:
+      "Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)",
+  });
 
 // Shared user account status validation schema
 export const userStatusSchema = z.enum(

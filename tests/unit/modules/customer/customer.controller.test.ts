@@ -75,12 +75,13 @@ describe("CustomerController Unit Tests", () => {
       await CustomerController.registerCustomer(req, res, next);
 
       expect(registerServiceSpy).toHaveBeenCalledTimes(1);
-      expect(registerServiceSpy).toHaveBeenCalledWith(
-        mockPayload,
-        expect.any(Headers),
-      );
+      expect(registerServiceSpy).toHaveBeenCalledWith({
+        payload: mockPayload,
+        headers: expect.any(Headers),
+      });
 
-      const passedHeaders = registerServiceSpy.mock.calls[0]?.[1] as Headers;
+      const passedHeaders = registerServiceSpy.mock.calls[0]?.[0]
+        ?.headers as Headers;
       expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
       expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
 

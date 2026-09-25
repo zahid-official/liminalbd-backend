@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AdminRoutes } from "../../../src/app/modules/admin/admin.routes.js";
 import { AuthRoutes } from "../../../src/app/modules/auth/auth.routes.js";
 import { CustomerRoutes } from "../../../src/app/modules/customer/customer.routes.js";
+import { UserRoutes } from "../../../src/app/modules/user/user.routes.js";
 import { RootRouter } from "../../../src/app/routes/index.js";
 
 interface ExpressLayer {
@@ -12,7 +13,7 @@ interface ExpressLayer {
 describe("RootRouter Unit Tests", () => {
   it("should mount all module routers in stack", () => {
     expect(RootRouter.stack).toBeDefined();
-    expect(RootRouter.stack.length).toBe(3);
+    expect(RootRouter.stack.length).toBe(4);
   });
 
   it("should mount AuthRoutes under /auth", () => {
@@ -26,6 +27,19 @@ describe("RootRouter Unit Tests", () => {
     });
 
     expect(authLayer).toBeDefined();
+  });
+
+  it("should mount UserRoutes under /users", () => {
+    const userLayer = RootRouter.stack.find((layer: unknown) => {
+      const l = layer as ExpressLayer;
+      return (
+        typeof l.match === "function" &&
+        l.match("/users") &&
+        l.handle === UserRoutes
+      );
+    });
+
+    expect(userLayer).toBeDefined();
   });
 
   it("should mount AdminRoutes under /admins per DEC-027", () => {

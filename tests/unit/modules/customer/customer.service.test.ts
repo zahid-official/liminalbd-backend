@@ -2,12 +2,9 @@ import status from "http-status";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { auth } from "../../../../src/app/config/auth.js";
 import { prisma } from "../../../../src/app/config/prisma.js";
-import { AppError } from "../../../../src/app/errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import { CustomerService } from "../../../../src/app/modules/customer/customer.service.js";
-import { AuthorizationService } from "../../../../src/app/shared/authorization/authorization.service.js";
 import {
-  AuditEntityType,
   UserRole,
   UserStatus,
 } from "../../../../src/generated/prisma/enums.js";
@@ -37,7 +34,7 @@ describe("CustomerService Unit Tests", () => {
         const otpSpy = vi.spyOn(auth.api, "sendVerificationOTP");
 
         await expect(
-          CustomerService.registerCustomer(payload, mockHeaders),
+          CustomerService.registerCustomer({ payload, headers: mockHeaders }),
         ).rejects.toMatchObject({
           statusCode: status.CONFLICT,
           code: PUBLIC_ERROR_CODES.USER_ALREADY_EXISTS,
@@ -63,7 +60,7 @@ describe("CustomerService Unit Tests", () => {
         const otpSpy = vi.spyOn(auth.api, "sendVerificationOTP");
 
         await expect(
-          CustomerService.registerCustomer(payload, mockHeaders),
+          CustomerService.registerCustomer({ payload, headers: mockHeaders }),
         ).rejects.toMatchObject({
           statusCode: status.INTERNAL_SERVER_ERROR,
           code: PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR,
@@ -103,10 +100,10 @@ describe("CustomerService Unit Tests", () => {
           .spyOn(auth.api, "sendVerificationOTP")
           .mockResolvedValue({} as any);
 
-        const result = await CustomerService.registerCustomer(
+        const result = await CustomerService.registerCustomer({
           payload,
-          mockHeaders,
-        );
+          headers: mockHeaders,
+        });
 
         expect(findUniqueSpy).toHaveBeenCalledTimes(1);
         expect(findUniqueSpy).toHaveBeenCalledWith({
@@ -198,27 +195,11 @@ describe("CustomerService Unit Tests", () => {
       vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
         mockTargetUser as any,
       );
-      const authSpy = vi
-        .spyOn(AuthorizationService, "authorizeOwnership")
-        .mockResolvedValue();
 
       const result = await CustomerService.getCustomerProfile({
         actorId: customerId,
         actorRole: UserRole.CUSTOMER,
         targetId: customerId,
-      });
-
-      expect(authSpy).toHaveBeenCalledWith({
-        actorId: customerId,
-        actorRole: UserRole.CUSTOMER,
-        resourceOwnerId: customerId,
-        resourceType: AuditEntityType.CUSTOMER,
-        resourceId: customerId,
-        action: "GET_CUSTOMER_PROFILE",
-        policy: {
-          allowAdmin: true,
-          allowSuperAdmin: true,
-        },
       });
 
       expect(result).toEqual({
@@ -236,13 +217,10 @@ describe("CustomerService Unit Tests", () => {
       });
     });
 
-    it("should allow Admin to view customer profile under authorized policy", async () => {
+    it("should allow Admin to view customer profile", async () => {
       vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
         mockTargetUser as any,
       );
-      const authSpy = vi
-        .spyOn(AuthorizationService, "authorizeOwnership")
-        .mockResolvedValue();
 
       const result = await CustomerService.getCustomerProfile({
         actorId: "admin-actor-1",
@@ -250,24 +228,13 @@ describe("CustomerService Unit Tests", () => {
         targetId: customerId,
       });
 
-      expect(authSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actorId: "admin-actor-1",
-          actorRole: UserRole.ADMIN,
-          policy: { allowAdmin: true, allowSuperAdmin: true },
-        }),
-      );
-
       expect(result.id).toBe(customerId);
     });
 
-    it("should allow Super Admin to view customer profile under authorized policy", async () => {
+    it("should allow Super Admin to view customer profile", async () => {
       vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
         mockTargetUser as any,
       );
-      const authSpy = vi
-        .spyOn(AuthorizationService, "authorizeOwnership")
-        .mockResolvedValue();
 
       const result = await CustomerService.getCustomerProfile({
         actorId: "super-admin-1",
@@ -275,26 +242,12 @@ describe("CustomerService Unit Tests", () => {
         targetId: customerId,
       });
 
-      expect(authSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actorId: "super-admin-1",
-          actorRole: UserRole.SUPER_ADMIN,
-        }),
-      );
-
       expect(result.id).toBe(customerId);
     });
 
-    it("should propagate 403 FORBIDDEN_ACCESS when AuthorizationService rejects cross-customer access", async () => {
+    it("should throw 403 FORBIDDEN_ACCESS when a Customer attempts to view another Customer's profile", async () => {
       vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
         mockTargetUser as any,
-      );
-      vi.spyOn(AuthorizationService, "authorizeOwnership").mockRejectedValue(
-        new AppError(
-          status.FORBIDDEN,
-          PUBLIC_ERROR_CODES.FORBIDDEN_ACCESS,
-          "You do not have permission to access or modify this resource",
-        ),
       );
 
       await expect(
@@ -306,6 +259,7 @@ describe("CustomerService Unit Tests", () => {
       ).rejects.toMatchObject({
         statusCode: status.FORBIDDEN,
         code: PUBLIC_ERROR_CODES.FORBIDDEN_ACCESS,
+        message: "You do not have permission to access this resource",
       });
     });
 
@@ -325,7 +279,6 @@ describe("CustomerService Unit Tests", () => {
       vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
         userWithNewerUpdate as any,
       );
-      vi.spyOn(AuthorizationService, "authorizeOwnership").mockResolvedValue();
 
       const result = await CustomerService.getCustomerProfile({
         actorId: customerId,
@@ -345,7 +298,6 @@ describe("CustomerService Unit Tests", () => {
       vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
         userWithoutCustomer as any,
       );
-      vi.spyOn(AuthorizationService, "authorizeOwnership").mockResolvedValue();
 
       const result = await CustomerService.getCustomerProfile({
         actorId: customerId,

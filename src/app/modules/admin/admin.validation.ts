@@ -2,6 +2,7 @@ import { z } from "zod";
 import { UserRole } from "../../../generated/prisma/enums.js";
 import {
   emailSchema,
+  nameSchema,
   paginationQuerySchema,
   passwordSchema,
   userStatusSchema,
@@ -11,19 +12,8 @@ import { ADMIN_SORT_FIELDS } from "./admin.constant.js";
 // Create Admin Schema
 const createAdminSchema = {
   body: z.object({
-    name: z
-      .string({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Full name is required"
-            : "Name must be a valid text string",
-      })
-      .trim()
-      .min(2, { error: "Name must be at least 2 characters" })
-      .max(100, { error: "Name cannot exceed 100 characters" }),
-
+    name: nameSchema,
     email: emailSchema,
-
     password: passwordSchema,
   }),
 };

@@ -1,7 +1,7 @@
-# Task: P2-T024 - Implement Customer Profile and Email Updates
+# Task: P2-T024 - Implement Customer Profile Updates
 
-> **Canonical Status:** `🔄 In Progress`  
-> **Planning Gate:** Approved by Human (2026-09-25) → `🔄 In Progress`
+> **Canonical Status:** `🕵️ Awaiting human review`  
+> **Planning Gate:** Approved by Human (2026-09-25) → `🔄 In Progress` → Implemented & Tested → `🕵️ Awaiting human review`
 
 ---
 
@@ -10,122 +10,67 @@
 - **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`
 - **Task ID:** `P2-T024`
 - **PRD / Requirement Reference:** `FR-CUSTOMER-001`, `FR-RBAC-005`
-- **ERD Reference:** `User`, `Customer`, `AuditLog`
-- **Dependencies:** `P2-T007` (Email Verification), `P2-T022` (Ownership Authorization), `P2-T023` (Customer Profile Retrieval)
+- **ERD Reference:** `User`, `Customer`
+- **Dependencies:** `P2-T007` (Email Verification), `P2-T023` (Customer Profile Retrieval)
 
 ---
 
-## 2. Approved Scope & Acceptance Criteria
+## 2. Approved Scope & Human Directives Applied During Implementation
 
-### In Scope
-
-- Allow Customers to update their own permitted profile fields: `name`, `contactNumber`, `address`, and `image` (avatar URL).
-- Allow Customers to update their email address with format validation and uniqueness check; reset `emailVerified` to `false` and trigger email verification OTP via `auth.api.sendVerificationOTP`.
-- Allow authorized administrators (`ADMIN`, `SUPER_ADMIN`) to update permitted customer business profile fields (`name`, `contactNumber`, `address`, `image`) with audit logging (`AuditAction.UPDATE`, `AuditEntityType.CUSTOMER`).
-- Prohibit administrators from changing a Customer's email address (`HTTP 403 Forbidden`).
-- Enforce resource ownership via `AuthorizationService.authorizeOwnership` (`HTTP 403 Forbidden` for cross-customer access).
-- Prevent modification of roles, account status, credentials, or provider accounts through profile updates via Zod sanitization.
-- Return unified, flattened Customer Profile DTOs adhering to `DEC-028` with defensive `?? null` and native latest `updatedAt` calculation.
-- Resolve `P2-B007` within the approved Phase 2 scope by accepting valid image URL strings or `null`.
-
-### Out of Scope
-
-- Direct binary file upload / storage (Cloudinary integration is deferred to future phase).
-- Password management or credential mutation through profile endpoints (handled via auth module).
-- Customer role, status, or lifecycle changes (handled via dedicated admin endpoints in `P2-T026`).
-- Order, inquiry, or commerce summaries (deferred under `DEC-008`).
-
-### Acceptance Criteria Mapping
-
-| Acceptance Criterion | Planned Step | Verification |
-| :------------------- | :----------- | :----------- |
-| 1. Allow Customers to update only their own permitted name, contact number, address and approved avatar representation | Steps 4, 5, 6, 7 | Automated unit tests in `customer.service.test.ts` |
-| 2. Allow authorized administrators to update only permitted business-profile fields with audit logging | Steps 6, 7 | Automated unit tests verifying `AuditService.createAuditLog` |
-| 3. Prevent profile input from modifying role, status, ownership, credentials or provider-account data | Step 5 | Automated validation tests in `customer.validation.test.ts` |
-| 4. Change email only through the approved account flow with validation, uniqueness and correct verification-state reset | Step 6 | Unit tests covering uniqueness conflict, `emailVerified: false`, and OTP dispatch |
-| 5. Enforce ownership, return required errors and cover the approved avatar resolution from `P2-B007` | Steps 5, 6, 7 | Ownership rejection tests and avatar URL validation tests |
+### Human Architectural & Product Decisions:
+1. **Email Immutability in Profile Updates:** Explicitly decided by Human that email is strictly immutable through profile update (`PATCH /profile`). Email mutation/change with OTP flow removed from profile update scope.
+2. **Strict Self-Service Endpoint (`PATCH /api/v1/customers/profile`):** In alignment with modern REST best practices (GitHub, Stripe, Spotify) and KISS/YAGNI, profile updates operate strictly on the authenticated session user (`PATCH /profile`). This completely eliminates IDOR attack surface by design and removes redundant `:id` route parameter validation and comparison ceremony.
+3. **Strict Non-Nullable Fields:** All updatable fields (`name`, `contactNumber`, `address`, `image`) only accept valid replacement string values when provided, or are omitted (`undefined`) when unchanged. `.nullable()` removed from `image` (avatar) since users only "Change Image" or keep existing avatar.
+4. **Bangladeshi Contact Number Validation:** Contact numbers validated via shared `contactNumberSchema` matching `01[3-9]\d{8}` or `+8801[3-9]\d{8}` with polished message: `"Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)"`.
+5. **Pruning Over-Engineering (`AuthorizationService` Removal):** Since this studio platform has strictly 3 static roles (`CUSTOMER`, `ADMIN`, `SUPER_ADMIN`) and will not introduce speculative dynamic roles, the over-engineered multi-role `AuthorizationService` framework was completely deleted and replaced with direct, readable, 2-line role/ownership guard clauses in `customer.service.ts`.
+6. **API Input Symmetry:** Unified all `CustomerService` methods to accept typed input contracts (`RegisterCustomerData`, `GetCustomerProfileInput`, `UpdateCustomerProfileInput`).
+7. **Universal Self-Service Profile Architecture (`/api/v1/users/profile`):** In alignment with `DEC-026`, `DEC-028`, DRY, and explicit Human directive, self-service profile retrieval and updating are universal concerns for all authenticated roles (`CUSTOMER`, `ADMIN`, `SUPER_ADMIN`). Created universal `user` module mounted at `/api/v1/users/profile` (`GET` and `PATCH`). `UserService` dynamically resolves role-specific profile extensions (`Customer` or `Admin`), preventing redundant module-by-module profile reimplementation.
 
 ---
 
-## 3. Verified Current Codebase State
+## 3. Implementation Evidence
 
-_Findings from read-only repository inspection before planning or writing code:_
-
-- **Current Behavior / Gaps:** 
-  - `CustomerService.registerCustomer` creates a Customer and `CustomerService.getCustomerProfile` retrieves the flattened profile DTO.
-  - No profile update (`PATCH /api/v1/customers/:id`) endpoint or service method currently exists.
-- **Existing Code Patterns to Follow:**
-  - `AuthorizationService.authorizeOwnership` is established in `P2-T022` and used in `P2-T023`.
-  - `DEC-028` establishes flattened resource DTOs with defensive `?? null` and native latest `updatedAt` comparison (`targetUser.customer && targetUser.customer.updatedAt > targetUser.updatedAt ? targetUser.customer.updatedAt : targetUser.updatedAt`).
-  - Validation pattern in `src/app/modules/customer/customer.validation.ts` uses Zod with custom error messages and `.trim()`.
-  - Express controller uses `catchAsync` and `sendResponse`.
-- **Related Existing Files:**
-  - `src/app/modules/customer/customer.interface.ts`
-  - `src/app/modules/customer/customer.validation.ts`
-  - `src/app/modules/customer/customer.service.ts`
-  - `src/app/modules/customer/customer.controller.ts`
-  - `src/app/modules/customer/customer.routes.ts`
-
----
-
-## 4. Implementation Approach
-
-- **Applicable Architecture Flow:**
-  `Route (PATCH /api/v1/customers/:id) → Middleware (authGuard, validateRequest) → Controller → Service → Repository/Prisma → AuditService / Better Auth OTP`
-- **Data / Schema Impact:**
-  - Zero schema migrations needed. The existing `User` and `Customer` models in `prisma/schema/` already contain `name`, `email`, `emailVerified`, `image`, `contactNumber`, `address`, and `updatedAt`.
-- **Public API / Contract Impact:**
-  - Endpoint: `PATCH /api/v1/customers/:id`
-  - Request Params: `{ id: string (UUID) }`
-  - Request Body: Optional fields (`name?`, `email?`, `contactNumber?`, `address?`, `image?`), with refinement requiring at least one field.
-  - Success Response: HTTP 200 OK with flattened Customer Profile DTO.
-- **Security & Authorization Considerations:**
-  - Route is protected by `authGuard`.
-  - Service enforces `AuthorizationService.authorizeOwnership`.
-  - Administrative users attempting to update a customer's `email` are rejected with `HTTP 403 Forbidden`.
-  - Email uniqueness check prevents duplicate email conflicts (`HTTP 409 Conflict`).
-  - Changing email resets `emailVerified` to `false` and dispatches verification OTP.
-  - Administrative updates create an atomic audit log record.
+| Component | File Path | Implementation Summary |
+| :-------- | :-------- | :--------------------- |
+| **Validation** | `src/app/validations/common.validation.ts` | Refined `contactNumberSchema` with BD regex and consolidated shared `nameSchema` across all modules per DRY |
+| **Validation** | `src/app/modules/user/user.validation.ts` | Implemented `updateProfileSchema` with strict body fields, non-nullable image, and refinement requiring >= 1 field |
+| **Service** | `src/app/modules/user/user.service.ts` | Universal `getProfile` and `updateProfile` dynamically updating `customer` or `admin` records based on role, with latest timestamp resolution per `DEC-028` |
+| **Controller** | `src/app/modules/user/user.controller.ts` | Universal `getProfile` and `updateProfile` handlers extracting session `user.id` |
+| **Routes** | `src/app/modules/user/user.routes.ts` | Mounted `GET /profile` and `PATCH /profile` under `/users` with `authGuard` and validation |
+| **Routes** | `src/app/routes/index.ts` | Registered `UserRoutes` under `/users` in application `RootRouter` |
+| **Customer Service** | `src/app/modules/customer/customer.service.ts` | Cleaned service to focus strictly on customer domain (`registerCustomer`, `getCustomerProfile`) |
+| **Customer Controller** | `src/app/modules/customer/customer.controller.ts` | Cleaned controller to focus strictly on customer domain (`registerCustomer`, `getCustomerProfile`) |
+| **Customer Routes** | `src/app/modules/customer/customer.routes.ts` | Cleaned routes to `/register` and `/:id` |
+| **Unit Tests** | `tests/unit/modules/user/user.validation.test.ts` | 16 tests covering all field constraints, BD numbers, image URLs, and refinement |
+| **Unit Tests** | `tests/unit/modules/user/user.service.test.ts` | 7 tests covering Customer updates, Admin updates, null defaults, and 404 handling |
+| **Unit Tests** | `tests/unit/modules/user/user.controller.test.ts` | 4 tests covering 200 OK responses and `catchAsync` error forwarding |
+| **Unit Tests** | `tests/unit/modules/user/user.routes.test.ts` | 2 tests verifying route stacks, middleware, and method exclusivity |
+| **Unit Tests** | `tests/unit/modules/customer/customer.service.test.ts` | 10 tests covering registration and retrieval |
+| **Unit Tests** | `tests/unit/modules/customer/customer.controller.test.ts` | 4 tests covering registration and retrieval |
+| **Unit Tests** | `tests/unit/modules/customer/customer.routes.test.ts` | 2 tests verifying `/register` and `/:id` |
+| **Unit Tests** | `tests/unit/modules/customer/customer.validation.test.ts` | 15 tests covering registration and getCustomer params |
+| **Unit Tests** | `tests/unit/routes/index.test.ts` | 5 tests verifying all 4 mounted routes (`/auth`, `/users`, `/admins`, `/customers`) |
+| **Unit Tests** | `tests/unit/validations/common.validation.test.ts` | 44 tests covering `nameSchema`, `emailSchema`, `passwordSchema`, `contactNumberSchema`, etc. |
 
 ---
 
-## 5. Affected Files & Directives
+## 4. Verification Evidence & Quality Gates
 
-| Action | File Path | Responsibility |
-| :----- | :-------- | :------------- |
-| Modify | `src/app/modules/customer/customer.interface.ts` | Define `UpdateCustomerProfileInput` and `UpdateCustomerProfileServiceInput` |
-| Modify | `src/app/modules/customer/customer.validation.ts` | Define `updateCustomerProfileSchema` and export inferred types |
-| Modify | `src/app/modules/customer/customer.service.ts` | Implement `updateCustomerProfile` with ownership check, validation, transaction, OTP, audit log, and flattened DTO |
-| Modify | `src/app/modules/customer/customer.controller.ts` | Implement `updateCustomerProfile` handler with `sendResponse` |
-| Modify | `src/app/modules/customer/customer.routes.ts` | Bind `PATCH /:id` route with `authGuard` and `validateRequest` |
-| Modify | `tests/unit/modules/customer/customer.validation.test.ts` | Add unit tests for `updateCustomerProfileSchema` |
-| Modify | `tests/unit/modules/customer/customer.service.test.ts` | Add unit tests for `updateCustomerProfile` (self-update, admin-update, ownership rejection, duplicate email, verification reset, audit logging) |
-| Modify | `tests/unit/modules/customer/customer.controller.test.ts` | Add unit tests for `updateCustomerProfile` controller method |
-| Modify | `tests/unit/modules/customer/customer.routes.test.ts` | Add unit tests verifying `PATCH /:id` route mapping |
+```bash
+$ pnpm tsc --noEmit
+# Exit code 0 (Zero TypeScript errors)
 
----
+$ pnpm lint
+# Exit code 0 (Zero ESLint warnings/errors)
 
-## 6. Step-by-Step Implementation Plan
-
-- **Step 1: Read-Only Inspection** (Completed)
-- **Step 2: Draft JIT Plan** (Active)
-- **Step 3: Human Approval & Phase Status Update (`🔄 In progress`)**
-- **Step 4: Update Interfaces (`customer.interface.ts`)**
-- **Step 5: Implement Validation Schema (`customer.validation.ts`)**
-- **Step 6: Implement Service Layer Logic (`customer.service.ts`)**
-- **Step 7: Implement Controller and Routes (`customer.controller.ts`, `customer.routes.ts`)**
-- **Step 8: Implement Unit Tests & Run Test Suites**
-- **Step 9: Run Quality Gates (`tsc`, `lint`, `test`)**
-- **Step 10: Record Evidence & Submit for Review (`🕵️ Awaiting human review`)**
-- **Step 11: Final Human Approval, Governance Sync & Closure (`✅ Done`)**
+$ pnpm test
+# Test Files  40 passed (40)
+# Tests       566 passed (566)
+# Duration    3.34s
+```
 
 ---
 
-## 7. Verification Plan
+## 5. Review Readiness
 
-- **Automated Unit Testing:**
-  - Run `pnpm test tests/unit/modules/customer/` ensuring 100% test pass rate across validation, service, controller, and routes.
-- **Repository-wide Quality Gates:**
-  - `pnpm tsc --noEmit` (zero type errors)
-  - `pnpm lint` (zero ESLint issues)
-  - `pnpm test` (all unit and integration tests passing)
+The implementation is complete, zero lint or type errors exist, 100% of tests are passing, and all customer profile update requirements have been verified according to Human instructions and KISS/YAGNI/DRY principles.

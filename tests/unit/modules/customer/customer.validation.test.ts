@@ -156,9 +156,9 @@ describe("CustomerValidation Unit Tests", () => {
     });
   });
 
-  describe("getCustomerProfileSchema Validation", () => {
-    const paramsSchema = CustomerValidation.getCustomerProfileSchema.params;
-    const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+  describe("getCustomerSchema Validation", () => {
+  const paramsSchema = CustomerValidation.getCustomerSchema.params;
+  const validUuid = "550e8400-e29b-41d4-a716-446655440000";
 
     it("should successfully parse valid UUID parameter", () => {
       const result = paramsSchema.safeParse({ id: validUuid });

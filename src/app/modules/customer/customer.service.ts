@@ -1,18 +1,17 @@
 import status from "http-status";
-import { AuditEntityType, UserRole } from "../../../generated/prisma/enums.js";
+import { UserRole } from "../../../generated/prisma/enums.js";
 import { auth } from "../../config/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
-import { AuthorizationService } from "../../shared/authorization/authorization.service.js";
-import type { GetCustomerProfileServiceInput } from "./customer.interface.js";
-import type { RegisterCustomerInput } from "./customer.validation.js";
+import type {
+  GetCustomerProfileInput,
+  RegisterCustomerData,
+} from "./customer.interface.js";
 
 // Register customer account
-const registerCustomer = async (
-  payload: RegisterCustomerInput,
-  headers: Headers,
-) => {
+const registerCustomer = async (input: RegisterCustomerData) => {
+  const { payload, headers } = input;
   const { name, email, password } = payload;
 
   const existingUser = await prisma.user.findUnique({
@@ -66,7 +65,7 @@ const registerCustomer = async (
 };
 
 // Retrieve customer profile by ID
-const getCustomerProfile = async (input: GetCustomerProfileServiceInput) => {
+const getCustomerProfile = async (input: GetCustomerProfileInput) => {
   const { actorId, actorRole, targetId } = input;
 
   const targetUser = await prisma.user.findFirst({
@@ -103,19 +102,14 @@ const getCustomerProfile = async (input: GetCustomerProfileServiceInput) => {
     );
   }
 
-  // Authorize resource ownership and administrative access
-  await AuthorizationService.authorizeOwnership({
-    actorId,
-    actorRole,
-    resourceOwnerId: targetUser.id,
-    resourceType: AuditEntityType.CUSTOMER,
-    resourceId: targetUser.id,
-    action: "GET_CUSTOMER_PROFILE",
-    policy: {
-      allowAdmin: true,
-      allowSuperAdmin: true,
-    },
-  });
+  // Customers can only view their own profile; admins can view any
+  if (actorRole === UserRole.CUSTOMER && actorId !== targetUser.id) {
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.FORBIDDEN_ACCESS,
+      "You do not have permission to access this resource",
+    );
+  }
 
   // Accurately reflect the latest modification timestamp across user identity and customer profile
   const updatedAt =

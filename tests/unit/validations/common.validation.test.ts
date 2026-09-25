@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  contactNumberSchema,
   emailSchema,
+  nameSchema,
   paginationQuerySchema,
   passwordSchema,
   redirectUrlSchema,
@@ -19,6 +21,38 @@ const getFirstErrorMessage = (result: SafeParseLike): string | undefined => {
 };
 
 describe("common.validation Unit Tests", () => {
+  describe("nameSchema", () => {
+    it("should successfully parse and trim a valid full name", () => {
+      const result = nameSchema.safeParse("  Zahidul Islam  ");
+
+      expect(result).toEqual({ success: true, data: "Zahidul Islam" });
+    });
+
+    it("should fail when name is shorter than 2 characters", () => {
+      expect(getFirstErrorMessage(nameSchema.safeParse("A"))).toBe(
+        "Name must be at least 2 characters",
+      );
+    });
+
+    it("should fail when name exceeds 100 characters", () => {
+      expect(getFirstErrorMessage(nameSchema.safeParse("A".repeat(101)))).toBe(
+        "Name cannot exceed 100 characters",
+      );
+    });
+
+    it("should fail when name is undefined with required message", () => {
+      expect(getFirstErrorMessage(nameSchema.safeParse(undefined))).toBe(
+        "Full name is required",
+      );
+    });
+
+    it("should fail when name is not a string", () => {
+      expect(getFirstErrorMessage(nameSchema.safeParse(12345))).toBe(
+        "Name must be a valid text string",
+      );
+    });
+  });
+
   describe("emailSchema", () => {
     it("should successfully parse and normalize valid email address", () => {
       const result = emailSchema.safeParse("  User@Example.COM  ");
@@ -173,6 +207,53 @@ describe("common.validation Unit Tests", () => {
 
       expect(getFirstErrorMessage(redirectUrlSchema.safeParse(longUrl))).toBe(
         "Redirect URL cannot exceed 2048 characters",
+      );
+    });
+  });
+
+  describe("contactNumberSchema", () => {
+    it("should successfully validate and trim valid 11-digit local mobile number", () => {
+      const result = contactNumberSchema.safeParse("  01969658962  ");
+
+      expect(result).toEqual({ success: true, data: "01969658962" });
+    });
+
+    it("should successfully validate valid E.164 mobile number with +880 country code", () => {
+      const result = contactNumberSchema.safeParse("+8801712345678");
+
+      expect(result).toEqual({ success: true, data: "+8801712345678" });
+    });
+
+    it("should fail when contact number is undefined with custom required message", () => {
+      expect(getFirstErrorMessage(contactNumberSchema.safeParse(undefined))).toBe(
+        "Phone number is required",
+      );
+    });
+
+    it("should fail when contact number is not a string with custom type message", () => {
+      expect(getFirstErrorMessage(contactNumberSchema.safeParse(1969658962))).toBe(
+        "Phone number must be a valid text string",
+      );
+    });
+
+    it("should fail when mobile operator digit is invalid (010, 011, 012)", () => {
+      expect(getFirstErrorMessage(contactNumberSchema.safeParse("01234567890"))).toBe(
+        "Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)",
+      );
+    });
+
+    it("should fail when number length is invalid", () => {
+      expect(getFirstErrorMessage(contactNumberSchema.safeParse("0196965896"))).toBe(
+        "Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)",
+      );
+      expect(getFirstErrorMessage(contactNumberSchema.safeParse("019696589623"))).toBe(
+        "Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)",
+      );
+    });
+
+    it("should fail when missing plus prefix in country code (e.g. 8801...)", () => {
+      expect(getFirstErrorMessage(contactNumberSchema.safeParse("8801969658962"))).toBe(
+        "Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)",
       );
     });
   });

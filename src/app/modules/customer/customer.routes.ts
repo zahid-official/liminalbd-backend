@@ -17,7 +17,7 @@ router.post(
 router.get(
   "/:id",
   authGuard,
-  validateRequest(CustomerValidation.getCustomerProfileSchema),
+  validateRequest(CustomerValidation.getCustomerSchema),
   CustomerController.getCustomerProfile,
 );
 
