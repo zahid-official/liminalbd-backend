@@ -1,0 +1,208 @@
+# Task: P2-T006 - Implement Email/Password Customer Registration
+
+> **Canonical Status:** `✅` (tracked authoritatively in parent phase file)
+> **Closure Date:** 2026-09-08
+>
+> **Post-Closure Reconciliation Note (2026-09-13):**
+>
+> 1. *Frictionless Registration vs. Profile Fields (`contactNumber`, `address`):* Section 2 historically listed optional `contactNumber` and `address` fields in scope, while Section 8 recorded the approved design assumption deferring optional profile attributes to `P2-T024`. On 2026-09-13, human product governance reaffirmed this via [DEC-017](../../DECISIONS.md#dec-017-defer-customer-profile-fields-contactnumber-address-to-p2-t024-for-frictionless-registration): public customer registration strictly collects `name`, `email`, and `password`. Collection, validation, and persistence of `contactNumber` and `address` are handled exclusively under `P2-T024` (Customer Profile Update).
+> 2. *Registration Payload Boundaries:* `registerCustomerSchema` in `src/app/modules/customer/customer.validation.ts` enforces RFC-compliant `email` capped at 255 characters and `password` capped at 100 characters, leveraging centralized primitive rules from `src/app/validations/common.validation.ts` under [DEC-021](../../DECISIONS.md#dec-021-domain-extraction-of-customer-registration-centralization-of-common-validations-and-global-utility-promotion).
+> 3. *Registration Response Contract:* Aligned with [PRD.md](../../../product/PRD.md#fr-auth-001-customer-registration) (FR-AUTH-001) and [DEC-017](../../DECISIONS.md#dec-017-defer-customer-profile-fields-contactnumber-address-to-p2-t024-for-frictionless-registration): since customer registration is credentials-only, the response returns pure identity attributes (`id`, `name`, `email`, `role`, `status`, `emailVerified`, `createdAt`) mapped from the canonical `User` entity, omitting redundant unpopulated profile objects.
+> 4. *Domain Module Extraction (`DEC-021` - 2026-09-15):* To preserve domain isolation and prepare for distinct administrative provisioning (`createAdmin`), public customer registration was formally extracted from `src/app/modules/auth/` and established within the dedicated `src/app/modules/customer/` domain module, exposed at `POST /api/v1/customer/register`. Reusable primitives (`emailSchema`, `passwordSchema`) were centralized in `src/app/validations/common.validation.ts`.
+> 5. *Centralization of Profile Creation & Retirement of Manual Rollback (`DEC-022` - 2026-09-17):* Under [DEC-022](../../DECISIONS.md#dec-022-centralize-customer-profile-creation-in-better-auth-database-hook-and-standardize-identity-context-on-response-locals), 1-to-1 `Customer` profile creation was centralized exclusively within Better Auth's `databaseHooks.user.create.after` hook in `src/app/config/auth.ts` via `prisma.customer.upsert`. Manual profile creation and the compensating rollback utility (`rollbackOrphanUser`) were retired and permanently removed from the codebase.
+> 6. *Automated Unit Testing Coverage (2026-09-19):* Following the adoption of Vitest (`DEC-025`), automated unit test suites were established across the customer registration domain and shared validation primitives: `tests/unit/validations/common.validation.test.ts` (21 tests), `tests/unit/modules/customer/customer.validation.test.ts` (10 tests), `tests/unit/modules/customer/customer.service.test.ts` (3 tests), `tests/unit/modules/customer/customer.controller.test.ts` (2 tests), and `tests/unit/modules/customer/customer.routes.test.ts` (1 test), achieving 100% statement, branch, function, and line coverage across `src/app/validations/common.validation.ts` and all files in `src/app/modules/customer/`.
+
+---
+
+## 1. Context & Traceability
+
+- **Parent Phase:** `docs/governance/phases/phase-2-auth-rbac.md`
+- **Task ID:** `P2-T006`
+- **PRD / Requirement Reference:** `FR-AUTH-001` (Customer Registration: `FR-AUTH-001.1` through `FR-AUTH-001.6`), `FR-RBAC-001.1` through `FR-RBAC-001.3` (Default Customer Role Assignment & Protection against Privilege Escalation)
+- **ERD Reference:** `User`, `Account`, `Customer`
+- **Dependencies:** `P2-T005` (`✅ Done`)
+- **Active Blockers:** None (Cleared: `P2-B001` approved `POST /api/v1/auth/register` on 2026-09-08)
+
+---
+
+## 2. Approved Scope & Acceptance Criteria
+
+### In Scope
+
+- Expose public endpoint `POST /api/v1/customer/register` (originally `POST /api/v1/auth/register`, refactored under `DEC-021`) with strict MVC architecture (`Route → Controller → Service → Better Auth API / Prisma`).
+- Validate incoming request payload via dedicated Zod schema with `validateRequest`:
+  - `name`: string, trimmed, min 2 characters, max 100 characters.
+  - `email`: valid email format, converted to lowercase, trimmed, max 255 characters.
+  - `password`: string, min 8 characters, max 100 characters, requiring at least one letter and one number for secure baseline.
+  *(Note: Under DEC-017, public customer registration strictly collects credentials; optional profile attributes `contactNumber` and `address` are deferred to P2-T024).*
+- Strict payload sanitization: Reject or strip any client-supplied `role`, `status`, `needPasswordChange`, or `deletedAt`.
+- Enforce default role and status: Always assign `role: "CUSTOMER"` and `status: "ACTIVE"`. Never create an `ADMIN` or `SUPER_ADMIN` via this public endpoint.
+- Duplicate email prevention: Check email existence case-insensitively and return `HTTP 409 Conflict` if the email is already registered.
+- Atomic / consistent database persistence:
+  - Better Auth `auth.api.signUpEmail` creates `User` and `Account` (with securely hashed password).
+  - Associate and create `Customer` record (`userId`) in PostgreSQL (optional profile attributes deferred to `P2-T024` under `DEC-017`).
+- Response contract:
+  - Respond with `HTTP 201 Created` using shared `sendResponse`.
+  - Return sanitized canonical User identity data (`id`, `name`, `email`, `role`, `status`, `emailVerified`, `createdAt`) matching `PRD.md` line 140 and `DEC-017`.
+  - Never expose or return passwords, hashes, internal tokens, or secrets.
+
+### Out of Scope
+
+- Optional customer profile fields collection and persistence (`contactNumber`, `address`) deferred to `P2-T024` under `DEC-017`.
+- Email verification sending / token dispatch (`P2-T007`).
+- Login, session cookie creation, or rate-limiting for sign-in (`P2-T008`).
+- Google OAuth registration (`P2-T009`).
+- Admin account creation (`P2-T018`).
+
+### Acceptance Criteria Mapping
+
+| Acceptance Criterion | Planned Step | Verification |
+| :------------------- | :----------- | :----------- |
+| Validate approved name, email, password credentials rules (DEC-017) | Step 2 & 3 | Zod schema unit & executable contract test |
+| Reject duplicate email case-insensitively with HTTP 409 | Step 3 & 4 | Duplicate registration test returning 409 Conflict |
+| Always assign `CUSTOMER`, reject client privileged-role input | Step 2 & 3 | Payload injection test asserting role remains `CUSTOMER` |
+| Create User, Account and Customer profile consistently returning HTTP 201 | Step 3 & 4 | End-to-end registration check verifying database rows |
+| Never store or log plain-text passwords | Step 3 | Database inspection of `Account.password` hash |
+
+---
+
+## 3. Verified Current Codebase State
+
+- `src/app/config/auth.ts`: Better Auth instance is configured with PostgreSQL Prisma adapter and `user.additionalFields` (`input: false` for `role`, `status`, etc.).
+- `src/app/modules/auth/auth.routes.ts`: Exists and is mounted at `/api/v1/auth` in `src/app/routes/index.ts`, currently has no registered routes.
+- `src/app/modules/auth/auth.controller.ts`: Empty file.
+- `src/app/modules/auth/auth.service.ts`: Empty file.
+- `src/app/utils/`: Shared utilities `sendResponse` and `catchAsync` are available and tested.
+- `src/app/middleware/validateRequest.ts`: Shared Zod validation middleware is available and operational.
+- `prisma/schema/profiles.prisma`: `Customer` model has `userId` (@id, relation to User), `contactNumber`, `address`, `createdAt`, `updatedAt`.
+
+---
+
+## 4. Implementation Approach
+
+- **Applicable Architecture Flow:**
+  - **Route (`src/app/modules/auth/auth.routes.ts`):** Mount `POST /register` with `validateRequest(registerValidationSchema)` and route to `AuthController.registerCustomer`.
+  - **Validation (`src/app/modules/auth/auth.validation.ts`):** Define `registerValidationSchema` using Zod.
+  - **Controller (`src/app/modules/auth/auth.controller.ts`):** `registerCustomer` wrapped with `catchAsync`, delegates to `AuthService.registerCustomer`, calls `sendResponse` with `HTTP 201`.
+  - **Service (`src/app/modules/auth/auth.service.ts`):**
+    - Check case-insensitive duplicate email existence via `prisma.user.findUnique({ where: { email } })`. If found, throw `AppError(status.CONFLICT, "User with this email already exists")`.
+    - Call Better Auth `auth.api.signUpEmail` passing sanitized fields (`name`, `email`, `password`) ensuring `role: UserRole.CUSTOMER` and `status: UserStatus.ACTIVE`.
+    - Create `Customer` profile record linked to the newly created user ID (profile fields deferred to `P2-T024`).
+    - Format and return sanitized public data.
+- **Data / Schema Impact:**
+  - No database schema migrations needed; existing `User`, `Account`, and `Customer` tables are fully established.
+- **Public API / Contract Impact:**
+  - `POST /api/v1/auth/register` becomes the official public customer registration endpoint.
+- **Security & Authorization Considerations:**
+  - No client-supplied role assignment (strictly `CUSTOMER`).
+  - Passwords hashed securely by Better Auth using scrypt.
+  - Never return password hash in JSON response.
+
+---
+
+## 5. Affected Files & Directives
+
+| Action | File Path | Responsibility |
+| :----- | :-------- | :------------- |
+| `[NEW]` | `src/app/modules/auth/auth.validation.ts` | Zod schema for registration payload |
+| `[MODIFY]` | `src/app/modules/auth/auth.routes.ts` | Register `POST /register` endpoint with validation middleware |
+| `[MODIFY]` | `src/app/modules/auth/auth.controller.ts` | Controller handler for customer registration with `catchAsync` and `sendResponse` |
+| `[MODIFY]` | `src/app/modules/auth/auth.service.ts` | Service business logic orchestrating Better Auth user creation & Customer profile record |
+| `[MODIFY]` | `docs/governance/phases/phase-2-auth-rbac.md` | Update `P2-T006` status and resolve `P2-B001` for registration |
+| `[MODIFY]` | `docs/governance/tasks/phase-2/P2-T006-implement-email-password-customer-registration.md` | Persistent JIT task plan and implementation evidence |
+
+---
+
+## 6. Step-by-Step Execution Plan
+
+1. **Planning & Governance Gate (Step 1):**
+   - Review and approve this JIT plan.
+   - Resolve `P2-B001` (specifically for `POST /api/v1/auth/register`).
+   - Mark `P2-T006` as `🔄 In progress` in phase file and `MEMORY.md`.
+2. **Registration Zod Validation Schema (Step 2):**
+   - Create `src/app/modules/auth/auth.validation.ts` with strict rules for name, email, password, contactNumber, address.
+3. **Auth Service Implementation (Step 3):**
+   - Implement `AuthService.registerCustomer` in `src/app/modules/auth/auth.service.ts`.
+   - Handle case-insensitive duplicate email check (throwing 409).
+   - Create User via Better Auth API and Customer profile in Prisma.
+4. **Auth Controller & Route Mapping (Step 4):**
+   - Implement `AuthController.registerCustomer` in `src/app/modules/auth/auth.controller.ts`.
+   - Mount route in `src/app/modules/auth/auth.routes.ts`.
+5. **Contract Verification & Quality Gates (Step 5):**
+   - Verify validation errors on invalid email/short password.
+   - Verify duplicate registration returns HTTP 409.
+   - Verify role injection attempt is ignored/assigned `CUSTOMER`.
+   - Verify successful registration creates User & Customer in database and returns HTTP 201.
+   - Run `pnpm build` and `pnpm lint`.
+6. **Self-Review & Gate Closure (Step 6):**
+   - Record verification evidence in Section 10.
+   - Mark task `🕵️ Awaiting human review`.
+
+---
+
+## 7. Verification & Quality Gates
+
+| Check | Required | Command or Method | Result |
+| :---- | :------- | :---------------- | :----- |
+| Acceptance criteria | `Yes` | Section 2 mapping and diff inspection | `PASS` |
+| Type check / build | `Yes` | `pnpm build` | `PASS` |
+| Lint | `Yes` | `pnpm lint` | `PASS` |
+| Input validation check | `Yes` | Reject invalid email & short password | `PASS` |
+| Duplicate email check | `Yes` | Reject duplicate email with HTTP 409 | `PASS` |
+| Privilege escalation check | `Yes` | Confirm injected `role: "ADMIN"` is ignored/rejected | `PASS` |
+| End-to-end registration | `Yes` | Verify User & Customer database creation and HTTP 201 response | `PASS` |
+| Automated Unit Tests | `Yes` | `pnpm test` (37 tests across `common.validation.test.ts`, `customer.validation.test.ts`, `customer.service.test.ts`, `customer.controller.test.ts`, `customer.routes.test.ts`) | `PASS` (100% coverage) |
+
+---
+
+## 8. Assumptions & Blockers
+ 
+- **Active Blockers:** None (Cleared: `P2-B001` approved `POST /api/v1/auth/register` on 2026-09-08).
+- **Design Assumptions:**
+  - Password minimum length is 8 characters with at least one lowercase, one uppercase, one number, and one special character.
+  - Name minimum length is 2 characters, maximum 100 characters.
+  - Response status is HTTP 201 with public user/customer profile data.
+  - Optional profile fields (`contactNumber`, `address`) deferred to profile management task `P2-T024`.
+
+---
+
+## 9. Plan Review
+
+| Field | Value |
+| :---- | :---- |
+| Outcome | `Approved` |
+| Reviewed by | Zahidul Islam |
+| Reviewed on | 2026-09-08 |
+| Notes | Explicitly approved POST /api/v1/auth/register, strict Zod validation, and MVC service-driven Better Auth architecture. Step 1 Governance Gate complete. |
+
+---
+
+## 10. Implementation Evidence
+
+- **Changed Files:**
+  - `src/app/interfaces/error.interface.ts` (added optional `source` field for validation errors)
+  - `src/app/middleware/validateRequest.ts` (split validation paths into `source` and `field` with `"root"` fallback)
+  - `src/app/modules/auth/auth.validation.ts` (created strict customer registration schema and exported `RegisterCustomerInput`)
+  - `src/app/modules/auth/auth.service.ts` (orchestrated duplicate check, Better Auth `signUpEmail`, and `Customer` record creation with rollback)
+  - `src/app/modules/auth/auth.controller.ts` (handler with `catchAsync`, HTTP 201 response)
+  - `src/app/modules/auth/auth.routes.ts` (mounted `POST /register` with `validateRequest`)
+  - `tests/unit/validations/common.validation.test.ts`: 21 unit tests verifying primitive validation rules (`emailSchema`, `passwordSchema`, `redirectUrlSchema`).
+  - `tests/unit/modules/customer/customer.validation.test.ts`: 10 unit tests verifying registration payload schema, name rules, and client role injection stripping.
+  - `tests/unit/modules/customer/customer.service.test.ts`: 3 unit tests verifying duplicate checks, Better Auth registration, OTP dispatch, minimal `select: { id: true }` projection, and output sanitization.
+  - `tests/unit/modules/customer/customer.controller.test.ts`: 2 unit tests verifying controller payload handling, header extraction, and error forwarding.
+  - `tests/unit/modules/customer/customer.routes.test.ts`: 1 unit test verifying route configuration and middleware chaining.
+- **Migration Created:** None (uses existing Prisma schema baseline from Phase 2 P2-T001).
+- **Test / Verification Output:**
+  - Automated Vitest unit test suite: 37 tests across validation, customer domain service, controller, and routes passed (`PASS`).
+  - Unit test coverage: 100% Statements, 100% Branches, 100% Functions, 100% Lines on `src/app/validations/common.validation.ts` and all files under `src/app/modules/customer/`.
+  - `pnpm lint`: Passed (0 errors, 0 warnings).
+  - `pnpm build`: Passed (clean `tsc` output).
+  - Contract check output:
+    - Check 1 - Validation Gate: PASS (400 Bad Request with `{ source: "body", field: "...", message: "..." }`)
+    - Check 2 - Happy Path (201 Created): PASS (User created with `role: "CUSTOMER"`, `status: "ACTIVE"`, `Customer` profile linked)
+    - Check 3 - Duplicate Email Gate (409 Conflict): PASS (`USER_ALREADY_EXISTS` with clear conflict message)
+    - Check 4 - Privilege Escalation Guard: PASS (Payload `{ role: "ADMIN" }` discarded, user registered strictly as `CUSTOMER`)
+- **Deviations from Original Plan:**
+  - Standardized error format in `validateRequest` to `{ source, field, message }` instead of dot-notated string.
+- **Remaining Concerns / Follow-ups:** None. Ready for human review.
+

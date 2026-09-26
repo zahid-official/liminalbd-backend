@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // rootDir must be extended to cover both src and tests for type checking
+    "rootDir": ".",
+    // No output — this config is for type checking only, not compilation
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"]
+}

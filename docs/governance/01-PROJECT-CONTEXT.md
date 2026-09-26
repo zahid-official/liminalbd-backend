@@ -26,7 +26,8 @@ The backend should be:
 - scalable;
 - consistent across modules;
 - auditable where business operations require traceability;
-- suitable for cloud and container-based deployment.
+- suitable for cloud and container-based deployment;
+- built to high-craft engineering standards upholding KISS, YAGNI, DRY, and Clean Code principles for developer clarity and junior accessibility.
 
 ## 3. Users and Access Model
 
@@ -54,12 +55,12 @@ The backend technology direction includes:
 - Stripe
 - Cloudinary
 - Nodemailer / SMTP
-- Winston
+- Pino
 - Zod
-- Jest
+- Vitest
 - pnpm
 
-Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions. Docker, Winston and Jest remain part of the intended technology direction, but their implementation is deferred to project-completion tooling work under `DEC-013`.
+Exact versions and implementation decisions are defined by the repository, architecture documentation and approved technical decisions. Pino structured logging was integrated during Phase 2 under `DEC-024` and Vitest testing framework was integrated under `DEC-025` (superseding the logging and testing portions of `DEC-013`). Docker remains deferred to project-completion tooling work under `DEC-013`.
 
 ## 5. Architecture Direction
 

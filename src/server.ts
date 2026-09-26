@@ -1,7 +1,7 @@
-/* eslint-disable no-console */
 import type { Server } from "node:http";
 import app from "./app.js";
 import { env } from "./app/config/env.js";
+import { logger } from "./app/config/logger.js";
 
 let server: Server | undefined;
 const port = env.PORT;
@@ -11,26 +11,17 @@ const bootstrap = async () => {
   try {
     // Start the Express server
     server = app.listen(port, () => {
-      console.log(`🚀 Server is running on http://localhost:${port}`);
-      console.log(`⚙️  Environment: ${env.NODE_ENV}`);
+      logger.info({ port, env: env.NODE_ENV }, "Server started successfully");
     });
 
     // Handle HTTP server errors
     server.on("error", (error) => {
-      console.error({
-        success: false,
-        message: "[Server Error] Failed to start the server",
-        error,
-      });
+      logger.fatal({ err: error }, "[Server Error] Failed to start the server");
       process.exit(1);
     });
   } catch (error) {
     // Handle application startup errors
-    console.error({
-      success: false,
-      message: "[Startup Error] Failed to initialize the application",
-      error,
-    });
+    logger.fatal({ err: error }, "[Startup Error] Failed to initialize the application");
     process.exit(1);
   }
 };
@@ -38,27 +29,24 @@ const bootstrap = async () => {
 // Graceful shutdown handler
 const handleShutdown = (signal: string, error?: unknown) => {
   if (error) {
-    console.error({
-      success: false,
-      message: `[${signal}] Server encountered an error and is shutting down...`,
-      error,
-    });
-  } else {
-    console.log(
-      `\n🛑 [${signal}] Signal received. Closing server gracefully...`,
+    logger.fatal(
+      { err: error, signal },
+      `[${signal}] Server encountered an error and is shutting down...`,
     );
+  } else {
+    logger.info({ signal }, `[${signal}] Signal received. Closing server gracefully...`);
   }
 
   if (server) {
     // Force shutdown if connections do not close in 10 seconds
     const forceExitTimeout = setTimeout(() => {
-      console.error("⚠️ Forcefully terminating server: close timed out.");
+      logger.error("Forcefully terminating server: close timed out.");
       process.exit(1);
     }, 10000);
     forceExitTimeout.unref();
 
     server.close(() => {
-      console.log("✅ Server closed successfully.");
+      logger.info("Server closed successfully.");
       process.exit(error ? 1 : 0);
     });
   } else {

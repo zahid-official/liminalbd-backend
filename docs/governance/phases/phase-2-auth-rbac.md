@@ -10,7 +10,7 @@
 | Phase        | `Phase 2`    |
 | Status       | `ACTIVE`     |
 | Readiness    | `READY`      |
-| Last updated | `2026-09-06` |
+| Last updated | `2026-09-24` |
 
 These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
@@ -54,7 +54,7 @@ These values mirror [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 - A custom password, token, OAuth or session implementation that duplicates Better Auth.
 - Granular permission administration beyond an extensible role-based design.
 - New roles, unapproved account states or business behavior not defined by the PRD/ERD.
-- Docker, Jest and Winston setup. These are deferred to dedicated project-completion tooling work under `DEC-013`.
+- Docker setup. This is deferred to dedicated project-completion tooling work under `DEC-013` (structured logging was integrated in Phase 2 via Pino under `DEC-024` / `P2-T028` with Winston dropped; testing framework was integrated in Phase 2 via Vitest under `DEC-025` / `P2-T029` with Jest dropped).
 
 ---
 
@@ -83,7 +83,7 @@ Every listed top-level FR includes all of its approved sub-requirements unless a
 | `FR-AUTH-001`     | `P2-T006`                                             |
 | `FR-AUTH-002`     | `P2-T009`                                             |
 | `FR-AUTH-003`     | `P2-T011`                                             |
-| `FR-AUTH-004`     | `P2-T007`                                             |
+| `FR-AUTH-004`     | `P2-T007` (FR-AUTH-004.1–4), `P2-T009` (FR-AUTH-004.5) |
 | `FR-AUTH-005`     | `P2-T008`                                             |
 | `FR-AUTH-006`     | `P2-T012`                                             |
 | `FR-AUTH-007`     | `P2-T013`                                             |
@@ -141,31 +141,33 @@ Implementation must not begin until every readiness item is satisfied and the se
 
 | Order | Workstream | Task ID   | Task                                                                     | Status | Depends On                      | Blocked By                                   |
 | ----- | ---------- | --------- | ------------------------------------------------------------------------ | ------ | ------------------------------- | -------------------------------------------- |
-| 1     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
-| 2     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `🔄`   | `P2-T001`                       | None                                         |
-| 3     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `🔲`   | `P2-T001`, `P2-T002`            | `P2-B002`, `P2-B009`                         |
-| 4     | B          | `P2-T006` | Implement email/password Customer registration                           | `🔲`   | `P2-T005`                       | `P2-B001`                                    |
-| 5     | B          | `P2-T007` | Implement email verification and resend flow                             | `🔲`   | `P2-T006`                       | `P2-B001`                                    |
-| 6     | B          | `P2-T008` | Implement login with account-status and rate-limit enforcement           | `🔲`   | `P2-T005`, `P2-T006`            | `P2-B001`                                    |
-| 7     | B          | `P2-T009` | Implement Google sign-in and sign-up                                     | `🔲`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
-| 8     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `🔲`   | `P2-T005`, `P2-T008`            | None                                         |
-| 9     | B          | `P2-T011` | Implement Google account linking and unlinking                           | `🔲`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
-| 10    | B          | `P2-T012` | Implement password reset                                                 | `🔲`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
-| 11    | B          | `P2-T013` | Implement change or set password                                         | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
-| 12    | B          | `P2-T014` | Implement logout and session revocation                                  | `🔲`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
-| 13    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `🔲`   | `P2-T010`                       | None                                         |
-| 14    | C          | `P2-T016` | Implement the audit-log application boundary                             | `🔲`   | `P2-T001`, `P2-T010`            | None                                         |
-| 15    | C          | `P2-T017` | Enforce restricted account status across protected access                | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
-| 16    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `🔲`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
-| 17    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `🔲`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
-| 18    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `🔲`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
-| 19    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `🔲`   | `P2-T019`                       | `P2-B001`                                    |
-| 20    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `🔲`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
-| 21    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `🔲`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
-| 22    | D          | `P2-T024` | Implement Customer profile and email updates                             | `🔲`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
-| 23    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔲`   | `P2-T022`                       | `P2-B001`                                    |
-| 24    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
-| 25    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
+| 0     | A          | `P2-T029` | Integrate Vitest testing framework                                       | `✅`   | None                            | None                                         |
+| 1     | A          | `P2-T028` | Integrate Pino structured logging                                        | `✅`   | None                            | None                                         |
+| 2     | A          | `P2-T001` | Establish the Phase 2 Prisma schema and initial migration baseline       | `✅`   | None                            | None                                         |
+| 3     | A          | `P2-T002` | Establish shared response, typed-error and Zod validation infrastructure | `✅`   | `P2-T001`                       | None                                         |
+| 4     | A          | `P2-T005` | Configure Better Auth, secure sessions and provider boundaries           | `✅`   | `P2-T001`, `P2-T002`            | None                                         |
+| 5     | B          | `P2-T006` | Implement email/password Customer registration                           | `✅`   | `P2-T005`                       | None                                         |
+| 6     | B          | `P2-T007` | Implement email verification and resend flow                             | `✅`   | `P2-T006`                       | None                                         |
+| 7     | B          | `P2-T008` | Implement customer login with account-status and rate-limit enforcement  | `✅`   | `P2-T005`, `P2-T006`            | None                                         |
+| 8     | B          | `P2-T009` | Implement customer Google sign-in and sign-up (`/login/google`)          | `✅`   | `P2-T005`, `P2-T008`            | `P2-B001`, `P2-B003`                         |
+| 9     | B          | `P2-T010` | Implement session and authentication middleware guard                    | `✅`   | `P2-T005`, `P2-T008`            | None                                         |
+| 10    | B          | `P2-T011` | Implement Google account linking and unlinking                           | `✅`   | `P2-T009`, `P2-T010`            | `P2-B001`, `P2-B003`, `P2-B005`              |
+| 11    | B          | `P2-T012` | Implement password reset                                                 | `✅`   | `P2-T005`, `P2-T007`            | `P2-B001`, `P2-B005`                         |
+| 12    | B          | `P2-T013` | Implement change or set password                                         | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`, `P2-B005`                         |
+| 13    | B          | `P2-T014` | Implement logout and session revocation                                  | `✅`   | `P2-T008`, `P2-T010`            | `P2-B001`                                    |
+| 14    | C          | `P2-T015` | Implement role-based access control (RBAC) middleware guard              | `✅`   | `P2-T010`                       | None                                         |
+| 15    | C          | `P2-T016` | Implement the audit-log application boundary                             | `✅`   | `P2-T001`, `P2-T010`            | None                                         |
+| 16    | C          | `P2-T017` | Enforce restricted account status across protected access                | `✅`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 17    | C          | `P2-T018` | Implement Super Admin creation of Admin accounts                         | `✅`   | `P2-T015`, `P2-T016`, `P2-T017` | `P2-B001`, `P2-B004`                         |
+| 18    | C          | `P2-T019` | Implement privileged profile, role and status management                 | `✅`   | `P2-T018`                       | `P2-B001`, `P2-B004`                         |
+| 19    | C          | `P2-T020` | Enforce and audit Admin restrictions on privileged accounts              | `✅`   | `P2-T016`, `P2-T019`            | `P2-B001`                                    |
+| 20    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `✅`   | `P2-T019`                       | `P2-B001`                                    |
+| 21    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `✅`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
+| 22    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `✅`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
+| 23    | D          | `P2-T024` | Implement Customer profile and email updates                             | `🔄`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
+| 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔲`   | `P2-T022`                       | `P2-B001`                                    |
+| 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
+| 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
 
 Workstreams organize one phase; they are not sub-phases and do not permit parallel implementation. Execute tasks in order unless the plan is explicitly re-approved. Update status only in this index.
 
@@ -178,6 +180,48 @@ For every task, `build`, `lint`, task-specific executable or manual verification
 Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-provider evidence is required by `P2-T027` before phase completion.
 
 ### Workstream A: Phase Prerequisites
+
+#### P2-T029: Integrate Vitest Testing Framework
+
+**Requirements:** `DEC-025`  
+**Objective:** Establish the canonical Vitest test infrastructure with unit and integration test directories before RBAC work begins.
+
+**Acceptance Criteria:**
+
+- Install `vitest`, `@vitest/coverage-v8`, `supertest` and `@types/supertest`.
+- Configure Vitest with `environment: 'node'`, `globals: false`, V8 coverage provider and `tests/setup.ts` setup file.
+- Create `tests/unit/` and `tests/integration/` directories at the repository root.
+- Mock the shared Pino logger globally in `tests/setup.ts` to prevent test output pollution.
+- Update `package.json` scripts: `test` → `vitest run`, add `test:watch` and `test:coverage`.
+- Update `tsconfig.json` to include `tests/**/*.ts`.
+- Update `eslint.config.mjs` to handle Vitest globals cleanly.
+- Include at least one passing smoke test (`sendResponse` utility unit test).
+- `pnpm test`, `pnpm build` and `pnpm lint` all pass.
+
+**Additional verification:** `pnpm test`, `pnpm build`, `pnpm lint`, and manual `pnpm test:watch` inspection.
+
+**Human review:** `Approved` (2026-09-19)
+
+#### P2-T028: Integrate Pino Structured Logging
+
+**Requirements:** `DEC-024`  
+**Objective:** Establish the canonical Pino structured logger and HTTP request logging infrastructure before RBAC work begins.
+
+**Acceptance Criteria:**
+
+- Install `pino`, `pino-http` and `pino-pretty` (`pino-pretty` as a dev dependency).
+- Export a single shared logger instance from `src/app/config/logger.ts`.
+- Support `LOG_LEVEL` env variable (optional); default to `debug` in development and `info` in production.
+- Enable pino-pretty transport in development; emit raw JSON in production.
+- Redact `req.headers.authorization`, `req.headers.cookie` and `req.body.password` in all environments.
+- Mount `pino-http` globally in `app.ts` before all route handlers.
+- Replace all `console.*` calls in `server.ts` and `globalErrorHandler.ts` with structured `logger.*` calls.
+- Remove all `/* eslint-disable no-console */` directives from migrated files.
+- Build and lint pass without errors.
+
+**Additional verification:** `pnpm build`, `pnpm lint`, manual HTTP request log output inspection, and automated Vitest unit test suite (`logger.test.ts`) with 100% statement and function coverage.
+
+**Human review:** `Approved` (2026-09-19)
 
 #### P2-T001: Establish the Phase 2 Prisma Schema and Initial Migration Baseline
 
@@ -215,15 +259,16 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve correct HTTP status and stable error-code behavior.
 - Verify success, validation failure and safe error serialization through focused executable and manual contract checks.
 
-**Additional verification:** Build, lint and focused runtime contract verification.
+**Additional verification:** Build, lint and focused runtime contract verification. Automated Vitest unit test suites (`AppError.test.ts`, `ConfigurationError.test.ts`, `errorCodes.test.ts`, `handleBetterAuthError.test.ts`, `handlePrismaError.test.ts`, `globalErrorHandler.test.ts`, `notFoundErrorHandler.test.ts`, `validateRequest.test.ts`, `sendResponse.test.ts`, `catchAsync.test.ts`, `resolveCallbackURL.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved`
 
 #### Deferred Tooling IDs
 
-- `P2-T003` (Winston logging) and `P2-T004` (Jest foundation) are retired from the executable Phase 2 plan under `DEC-013`.
+- `P2-T003` (originally Winston logging) and `P2-T004` (Jest foundation) are retired from the executable Phase 2 plan under `DEC-013`.
 - Their IDs must not be reused or treated as incomplete Phase 2 work.
-- Docker, Winston and Jest will receive new task IDs in a dedicated project-completion tooling plan after feature implementation is complete.
+- Note: Logging and testing are no longer deferred. Pino was adopted under `DEC-024` (`P2-T028`) with Winston permanently dropped; Vitest was adopted under `DEC-025` (`P2-T029`) with Jest permanently dropped.
+- Docker will receive a new task ID in a dedicated project-completion tooling plan after feature implementation is complete.
 
 #### P2-T005: Configure Better Auth, Secure Sessions and Provider Boundaries
 
@@ -238,9 +283,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Keep ordinary JSON responses free of application-managed access or refresh tokens.
 - Expose reusable session operations needed by later tasks and verify them through focused contract checks using approved mocks where required.
 
-**Additional verification:** Configuration, cookie and CSRF contract checks; provider flows may use approved mocks.
+**Additional verification:** Configuration, cookie and CSRF contract checks; provider flows may use approved mocks. Automated Vitest unit test suites (`auth.test.ts`, `handleBetterAuthError.test.ts`, `handlePrismaError.test.ts` — 51 tests) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-08)
 
 ### Workstream B: Authentication and Sessions
 
@@ -251,19 +296,20 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Acceptance Criteria:**
 
-- Validate the approved name, email, password, contact-number and address rules.
+- Validate approved name, email, and password credentials rules (`DEC-017`; optional profile attributes `contactNumber` and `address` deferred to `P2-T024`).
 - Reject duplicate email case-insensitively with HTTP 409.
 - Always assign `CUSTOMER`; ignore or reject client role/status/ownership input and never create a privileged account.
-- Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract.
+- Create the User, authentication data and Customer profile consistently and return HTTP 201 using the shared response contract (pure User identity attributes under `DEC-017` and `PRD.md` line 140).
 - Never store or log a plain-text password; cover success and meaningful failure paths.
+- *(Architectural Note under DEC-021, DEC-022 & DEC-027: Public customer registration is established in the dedicated `customer` module at `POST /api/v1/customers/register` [pluralized per `DEC-027`, superseding `/api/v1/customer/register`], using primitive schemas from `src/app/validations/common.validation.ts`, with 1-to-1 `Customer` profile creation centralized via Better Auth's `databaseHooks.user.create.after`).*
 
-**Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts.
+**Additional verification:** Registration behavior checks, including duplicate and privileged-role attempts. Automated Vitest unit test suites (`common.validation.test.ts`, `customer.validation.test.ts`, `customer.service.test.ts`, `customer.controller.test.ts`, `customer.routes.test.ts` — 37 tests) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-08)
 
 #### P2-T007: Implement Email Verification and Resend Flow
 
-**Requirements:** `FR-AUTH-004`  
+**Requirements:** `FR-AUTH-004` (FR-AUTH-004.1–FR-AUTH-004.4; `FR-AUTH-004.5` verified under `P2-T009`)  
 **Objective:** Support initial verification, secure verification completion and rate-limited resend through Better Auth and SMTP boundaries.
 
 **Acceptance Criteria:**
@@ -274,43 +320,45 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Rate-limit resend requests and map invalid, expired or reused links to the required errors.
 - Cover verification and resend success and failure paths using approved mocks without exposing tokens.
 
-**Additional verification:** Provider-mocked flow and token/error mapping checks.
+**Additional verification:** Provider-mocked flow and token/error mapping checks. Automated Vitest unit test suites (`email.service.test.ts`, `auth.mailer.test.ts`, `auth.validation.test.ts`, `auth.service.test.ts`, `auth.controller.test.ts`, `auth.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-11)
 
 #### P2-T008: Implement Login with Account-Status and Rate-Limit Enforcement
 
 **Requirements:** `FR-AUTH-005`, `FR-RBAC-006.1`  
-**Objective:** Authenticate eligible users by email/password and establish a secure Better Auth session.
+**Objective:** Authenticate eligible customer users by email/password and establish a secure Better Auth session (dedicated to `CUSTOMER` role per `DEC-020`).
 
 **Acceptance Criteria:**
 
 - Reject invalid credentials with HTTP 401 without leaking credential details.
+- Enforce customer-exclusive portal access (`DEC-020`): reject non-`CUSTOMER` roles with HTTP 403 Forbidden (`FORBIDDEN_ROLE_ACCESS`).
 - Reject suspended, deactivated and soft-deleted accounts before protected access is granted.
-- Rate-limit repeated failed attempts using the approved authentication policy.
+- Rate-limit repeated failed attempts using the approved authentication policy (delegated to Reverse Proxy / API Gateway boundary per DEC-019).
 - Return the approved user data in the shared envelope while maintaining the session only through secure cookies.
 - Cover active, invalid-credential and restricted-account paths.
 
-**Additional verification:** Login, rate-limit, cookie and status behavior checks.
+**Additional verification:** Login, cookie and status behavior checks (Rate limiting verified at Reverse Proxy infrastructure boundary per DEC-019). Automated Vitest unit test suites (`auth.test.ts`, `auth.validation.test.ts`, `auth.service.test.ts`, `auth.controller.test.ts`, `auth.routes.test.ts`) covering all compound-state precedence rules and status guards with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-12)
 
 #### P2-T009: Implement Google Sign-In and Sign-Up
 
-**Requirements:** `FR-AUTH-002`, `FR-RBAC-001.2`, `FR-RBAC-001.3`  
-**Objective:** Support Google authentication through Better Auth without duplicate accounts or privileged-role mutation.
+**Requirements:** `FR-AUTH-002`, `FR-AUTH-004.5`, `FR-RBAC-001.2`, `FR-RBAC-001.3`  
+**Objective:** Support customer Google authentication through Better Auth at `POST /api/v1/auth/login/google` without duplicate accounts, privileged-role mutation, or unauthorized administrative access (`DEC-020`).
 
 **Acceptance Criteria:**
 
-- Complete Google sign-in/sign-up through the approved provider boundary.
-- Create first-time public Google users as `CUSTOMER` and populate only approved trusted profile fields.
+- Complete Google sign-in/sign-up through the approved customer provider route (`/login/google` and `/callback/google`).
+- Enforce customer-exclusive portal access (`DEC-020`): reject any existing `ADMIN` or `SUPER_ADMIN` user attempting Google authentication with `FORBIDDEN_ROLE_ACCESS` (surfaced on browser callback via safe 302 redirect to `${env.FRONTEND_URL}/login?error=FORBIDDEN_ROLE_ACCESS`).
+- Create first-time public Google users as `CUSTOMER` and populate only approved trusted profile fields, automatically creating a `Customer` profile record.
 - Treat a verified Google email as verified where the approved policy permits.
-- Apply the approved matching/linking policy without unintended duplicate accounts.
+- Apply the approved matching/linking policy for customers without unintended duplicate accounts.
 - Preserve every existing privileged role and map denial, provider failure and conflicts safely.
 
-**Additional verification:** Provider-mocked first-time, returning, conflict and privileged-account checks.
+**Additional verification:** Provider-mocked first-time, returning customer, conflict and privileged-account rejection checks. Automated Vitest unit test suites (`auth.test.ts`, `auth.validation.test.ts`, `auth.service.test.ts`, `auth.controller.test.ts`, `auth.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-14)
 
 #### P2-T010: Implement Session and Authentication Middleware Guard
 
@@ -325,9 +373,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Never trust client-supplied headers or body for authentication identity.
 - Verify missing, invalid, expired and valid session paths through focused runtime checks.
 
-**Additional verification:** Middleware and protected-route checks with mocked Better Auth sessions.
+**Additional verification:** Middleware and protected-route checks with mocked Better Auth sessions. Automated Vitest unit test suite (`authGuard.test.ts` — 10 tests) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-15)
 
 #### P2-T011: Implement Google Account Linking and Unlinking
 
@@ -342,9 +390,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return HTTP 422 when unlinking would remove the only authentication method.
 - Preserve the application role and cover unauthorized, conflict and sole-method paths.
 
-**Additional verification:** Account-linking behavior checks with approved provider mocks.
+**Additional verification:** Account-linking behavior checks with approved provider mocks, complete Vitest unit test coverage across validation, service, controller, and route layers with 100% statement and branch coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-15; unit test suite verified 2026-09-20)
 
 #### P2-T012: Implement Password Reset
 
@@ -361,7 +409,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Enumeration, token reuse/expiry, password policy and session-revocation checks using approved mocks.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-16; unit test suite verified 2026-09-20)
 
 #### P2-T013: Implement Change or Set Password
 
@@ -377,9 +425,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve linked Google authentication and never expose credential data.
 - Cover existing-password, Google-only and invalid-state paths.
 
-**Additional verification:** Credential-method and session-policy behavior checks.
+**Additional verification:** Credential-method and session-policy behavior checks. Automated Vitest unit test suite across validation, service, controller, and route layers with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-18; unit test suite verified 2026-09-20)
 
 #### P2-T014: Implement Logout and Session Revocation
 
@@ -395,9 +443,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - A user cannot revoke another user's sessions through the public flow.
 - Cover current-session, all-session and replay-after-revocation paths.
 
-**Additional verification:** Session persistence and revocation behavior checks.
+**Additional verification:** Session persistence and revocation behavior checks. Automated Vitest unit test suite across service, controller, and route layers with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-18; unit test suite verified 2026-09-20)
 
 ### Workstream C: RBAC and Admin Management
 
@@ -414,9 +462,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Attach trusted server-derived role context; never trust client role or ownership claims.
 - Keep privileged and resource-specific authorization in the service layer and verify bypass attempts.
 
-**Additional verification:** Middleware and protected-route authorization checks.
+**Additional verification:** Automated Vitest unit test suite (`tests/unit/middleware/rbacGuard.test.ts`) covering single-role, multi-role, 403 forbidden rejection, 401 unauthenticated defense-in-depth, compile-time non-empty role enforcement, and client role spoofing attack resistance with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-21)
 
 #### P2-T016: Implement the Audit-Log Application Boundary
 
@@ -448,9 +496,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Preserve business records and avoid physical deletion.
 - Produce required audit events and cover every restricted status.
 
-**Additional verification:** Status, soft-delete filtering, revocation and audit checks.
+**Additional verification:** Automated Vitest unit test suites (`tests/unit/middleware/authGuard.test.ts` and `tests/unit/shared/account/account.service.test.ts`) covering 403 Forbidden on suspended/deactivated accounts, atomic session revocation, audit logging across all status transitions, soft-delete with timestamp assignment, redundant transition guards, and query filters with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-22)
 
 #### P2-T018: Implement Super Admin Creation of Admin Accounts
 
@@ -467,7 +515,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Role, duplicate, forbidden-role, creation-flow and audit checks.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-23)
 
 #### P2-T019: Implement Privileged Profile, Role and Status Management
 
@@ -482,9 +530,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Reject missing targets and invalid status transitions with the required HTTP behavior.
 - Apply changes atomically with complete audit before/after values.
 
-**Additional verification:** Role-transition, self-mutation, status, authorization and audit checks.
+**Additional verification:** Automated Vitest unit test suites (`tests/unit/modules/admin/` — 50 tests covering validation, service, controller, and routes; plus `tests/integration/protectedRoutes.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-23)
 
 #### P2-T020: Enforce and Audit Admin Restrictions on Privileged Accounts
 
@@ -501,7 +549,7 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Additional verification:** Direct-service and HTTP bypass checks plus rejected-attempt audit verification.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-23)
 
 #### P2-T021: Implement the Super Admin Admin-List Operation
 
@@ -516,9 +564,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Exclude soft-deleted accounts from normal results and return approved pagination metadata.
 - Prevent unsafe sort/filter fields and unnecessary data exposure.
 
-**Additional verification:** Authorization, filtering, sorting, pagination and exposure checks.
+**Additional verification:** Authorization, filtering, sorting, pagination and exposure checks; automated Vitest unit test suites (`admin.validation.test.ts`, `queryBuilder.test.ts`, `admin.service.test.ts`, `admin.controller.test.ts`, `admin.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-24)
 
 ### Workstream D: Customer Profile and Account Management
 
@@ -535,9 +583,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Support required sensitive-access audit events.
 - Provide focused verification proving middleware bypass cannot bypass service ownership checks.
 
-**Additional verification:** Service and route checks for owner, non-owner and administrative access.
+**Additional verification:** Service and route checks for owner, non-owner and administrative access; automated Vitest unit test suite (`authorization.service.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-24)
 
 #### P2-T023: Implement Authorized Customer Profile Retrieval
 
@@ -552,9 +600,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Return only permitted profile fields through the shared response contract.
 - Handle order and inquiry summaries only according to the approved resolution of `P2-B008`.
 
-**Additional verification:** Owner, cross-owner, administrator, not-found and field-exposure checks.
+**Additional verification:** Owner, cross-owner, administrator, not-found and field-exposure checks; automated Vitest unit test suites (`customer.validation.test.ts`, `customer.service.test.ts`, `customer.controller.test.ts`, `customer.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-24)
 
 #### P2-T024: Implement Customer Profile and Email Updates
 
@@ -633,20 +681,20 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 | ID        | Scope      | Type              | Affects                     | Required Decision or Evidence                                                                                                                            | Status     |
 | --------- | ---------- | ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths, methods and operation names                                                                                                 | `OPEN`     |
-| `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Approve session lifetime, renewal, `SameSite`, CSRF and production-cookie policy                                                                         | `OPEN`     |
-| `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy                                                                                      | `OPEN`     |
+| `P2-B001` | `TASK`     | Public API        | Endpoint tasks              | Approve exact Phase 2 paths and methods (`POST /api/v1/customers/register` per `DEC-021`/`DEC-027`, `POST /api/v1/admins` and `PATCH /api/v1/admins/:id` per `DEC-027`, and `POST /api/v1/auth/login` approved under `P2-T006`/`P2-T008`; `POST /api/v1/auth/login/google` and `GET /api/v1/auth/callback/google` approved under `P2-T009`/`DEC-020`) | `RESOLVED` |
+| `P2-B002` | `TASK`     | Security          | `P2-T005`                   | Session lifetime (7d), renewal (1d), `SameSite: "lax"`, CSRF and cookie policy approved under `P2-T005` on 2026-09-08                                    | `RESOLVED` |
+| `P2-B003` | `TASK`     | Authentication    | `P2-T009`, `P2-T011`        | Approve trusted Google identity matching and account-linking policy (customer-only linking enabled; admin linking rejected per `DEC-020`; verified in `P2-T009` and `P2-T011`) | `RESOLVED` |
 | `P2-B004` | `TASK`     | Product/Security  | `P2-T018`, `P2-T019`        | Approve initial `SUPER_ADMIN` provisioning and Admin credential/invitation flow                                                                          | `OPEN`     |
-| `P2-B005` | `TASK`     | Security          | `P2-T011` through `P2-T013` | Approve recent-authentication and post-password-change session policy                                                                                    | `OPEN`     |
+| `P2-B005` | `TASK`     | Security          | `P2-T011` through `P2-T013` | Approve sensitive operation session assurance and post-password-change session policy (`P2-T011` linking/unlinking approved under live DB-assured session via `authGuard` cache bypass; `P2-T012` verified `revokeSessionsOnPasswordReset: true`; `P2-T013` verified `revokeOtherSessions: true` and credential re-verification) | `RESOLVED` |
 | `P2-B006` | `PHASE`    | Data              | `P2-T001`, phase readiness  | Legacy schema and migrations confirmed as disposable test artifacts; database reset and clean-baseline strategy approved under `DEC-011`                 | `RESOLVED` |
 | `P2-B007` | `TASK`     | External Provider | `P2-T024`                   | Approve avatar input, storage ownership and media-boundary contract                                                                                      | `OPEN`     |
-| `P2-B008` | `TASK`     | Scope             | `P2-T023`                   | Resolve order/inquiry summaries without implementing unapproved future modules                                                                           | `OPEN`     |
-| `P2-B009` | `TASK`     | Dependency        | `P2-T005`                   | Explicitly approve exact runtime packages before installation (`zod@^4.5.4` approved for `P2-T002`; Better Auth packages pending `P2-T005`)              | `OPEN`     |
+| `P2-B008` | `TASK`     | Scope             | `P2-T023`                   | Resolve order/inquiry summaries without implementing unapproved future modules (resolved: order/inquiry summaries deferred per `DEC-008`; profile returns customer data without premature future models) | `RESOLVED` |
+| `P2-B009` | `TASK`     | Dependency        | `P2-T005`                   | Approved `better-auth@^1.7.3` for `P2-T005` on 2026-09-08 (`zod@^4.5.4` approved under `P2-T002`)                                                        | `RESOLVED` |
 | `P2-B010` | `EXTERNAL` | Provider Evidence | `P2-T027`                   | Provide an approved test environment or evidence for Google OAuth and SMTP flows before final phase closure (individual tasks close with approved mocks) | `OPEN`     |
 
 Approved mocks allow affected feature tasks to reach review before `P2-B010` is resolved. Live-provider evidence remains mandatory for `P2-T027` and phase completion.
 
-`P2-B006` was resolved on 2026-09-06. The disposable test database was reset successfully, its migration history is empty, and `P2-T001` will create the first approved Phase 2 schema and migration baseline.
+`P2-B006` was resolved on 2026-09-06. The disposable test database was reset successfully, and `P2-T001` established the first approved Phase 2 schema and migration baseline (subsequently squashed to canonical baseline `20260912090148_init` under `DEC-015`).
 
 Do not invent a resolution. Record each approved outcome in the affected task contract and in [DECISIONS.md](../DECISIONS.md) when it creates a durable rule.
 
@@ -661,12 +709,12 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 - [ ] This file, [MEMORY.md](../MEMORY.md), [DECISIONS.md](../DECISIONS.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md) are consistent.
 - [ ] Explicit human approval for phase completion is recorded.
 
-| Approval Field | Value                                                  |
-| -------------- | ------------------------------------------------------ |
-| Outcome        | `Pending`                                              |
-| Approved by    | `Pending`                                              |
-| Approved on    | `Pending`                                              |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T002` is `🔄 In progress` |
+| Approval Field | Value                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Outcome        | `Pending`                                                                                                            |
+| Approved by    | `Pending`                                                                                                            |
+| Approved on    | `Pending`                                                                                                            |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, `P2-T017`, `P2-T018`, `P2-T019`, `P2-T020`, and `P2-T021` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 

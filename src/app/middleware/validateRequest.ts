@@ -11,16 +11,16 @@ import type {
 
 type RequestSource = "body" | "params" | "query";
 
-// Format Zod issues into standardized error details with source-qualified field paths
+// Format Zod issues into standardized error details with separated source and clean field names
 const formatZodIssues = (
   source: RequestSource,
   zodError: ZodError,
 ): ErrorDetail[] => {
   return zodError.issues.map((issue) => {
-    const subPath = issue.path.join(".");
-    const field = subPath ? `${source}.${subPath}` : source;
+    const field = issue.path.join(".") || "root";
 
     return {
+      source,
       field,
       message: issue.message,
     };
@@ -28,7 +28,7 @@ const formatZodIssues = (
 };
 
 // Express middleware for validating request body, params, and query using Zod schemas
-export const validateRequest = <TSchema extends RequestValidationSchema>(
+const validateRequest = <TSchema extends RequestValidationSchema>(
   schema: TSchema,
 ): RequestHandler => {
   return async (
@@ -78,8 +78,10 @@ export const validateRequest = <TSchema extends RequestValidationSchema>(
       return;
     }
 
-    // Attach trusted, parsed data to Express response locals
+    // Attach validated data to response locals
     res.locals.validated = validatedData as ValidatedRequest<TSchema>;
     next();
   };
 };
+
+export { validateRequest };

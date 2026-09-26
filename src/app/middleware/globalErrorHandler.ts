@@ -1,56 +1,80 @@
+import { isAPIError } from "better-auth/api";
 import type { ErrorRequestHandler } from "express";
 import status from "http-status";
-import { env } from "../config/env.js";
+import { logger } from "../config/logger.js";
 import { AppError } from "../errors/AppError.js";
+import {
+  PUBLIC_ERROR_CODES,
+  type PublicErrorCode,
+} from "../errors/errorCodes.js";
+import { handleBetterAuthError } from "../errors/handleBetterAuthError.js";
+import {
+  handlePrismaError,
+  isPrismaError,
+} from "../errors/handlePrismaError.js";
 import type {
+  ErrorDetail,
   ErrorResponse,
-  ErrorSource,
 } from "../interfaces/error.interface.js";
 
-// globalErrorHandler Function
-const globalErrorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-  const devMode = env.NODE_ENV === "development";
+// Central global error handling middleware for safe error serialization
+const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
+  // Delegate to default Express error handler if response headers were already sent
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
 
-  // Default error response values
   let statusCode: number = status.INTERNAL_SERVER_ERROR;
-  let message = "Something went wrong!";
-  let errorSources: ErrorSource[] = [];
+  let code: PublicErrorCode = PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR;
+  let message = "An unexpected internal error occurred.";
+  let errors: ErrorDetail[] | undefined = undefined;
 
-  // Custom application error
-  if (error instanceof AppError) {
+  // Application-defined operational errors
+  if (
+    error instanceof AppError &&
+    error.code !== PUBLIC_ERROR_CODES.INTERNAL_SERVER_ERROR
+  ) {
     statusCode = error.statusCode;
+    code = error.code;
     message = error.message;
-    errorSources = [{ path: "", message: error.message }];
+    errors = error.errors;
   }
 
-  // Standard native JavaScript error
-  else if (error instanceof Error) {
-    message = error.message;
-    errorSources = [{ path: "", message: error.message }];
+  // Better Auth API errors
+  else if (isAPIError(error)) {
+    const authError = handleBetterAuthError(error);
+    statusCode = authError.statusCode;
+    code = authError.code;
+    message = authError.message;
   }
 
-  // Format stack trace in development mode
-  const stack: string[] | undefined =
-    devMode && error instanceof Error && error.stack
-      ? error.stack
-          .split("\n")
-          .map((line: string) => line.trim())
-          .filter((line: string) => line.startsWith("at"))
-      : undefined;
+  // Prisma database errors
+  else if (isPrismaError(error)) {
+    const dbError = handlePrismaError(error);
+    statusCode = dbError.statusCode;
+    code = dbError.code;
+    message = dbError.message;
+    errors = dbError.errors;
+  }
 
-  // Build the error response
-  const errorResponse: ErrorResponse = {
+  // Log internal errors server-side for diagnostics with request correlation
+  if (statusCode >= status.INTERNAL_SERVER_ERROR) {
+    logger.error({ err: error, requestId: req.id }, "Internal server error");
+  }
+
+  // Final unified response format
+  const responseBody: ErrorResponse = {
     success: false,
     message,
-    errorSources,
-    ...(devMode && {
-      error,
-      stack,
-    }),
+    code,
   };
 
-  // Send the error response
-  res.status(statusCode).json(errorResponse);
+  if (errors && errors.length > 0) {
+    responseBody.errors = errors;
+  }
+
+  res.status(statusCode).json(responseBody);
 };
 
 export { globalErrorHandler };
