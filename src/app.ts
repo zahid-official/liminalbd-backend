@@ -6,17 +6,20 @@ import express, {
   type Response,
 } from "express";
 import { status } from "http-status";
+import { pinoHttp } from "pino-http";
 import { env } from "./app/config/env.js";
+import { logger } from "./app/config/logger.js";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler.js";
 import { notFoundErrorHandler } from "./app/middleware/notFoundErrorHandler.js";
 import { RootRouter } from "./app/routes/index.js";
+import { sendResponse } from "./app/utils/sendResponse.js";
 
 // Initialize Express app
 const app: Application = express();
 
 // CORS configuration
 const allowedOrigins =
-  env.NODE_ENV === "development"
+  env.NODE_ENV === "development" || env.NODE_ENV === "test"
     ? [env.FRONTEND_URL, "http://localhost:3000"]
     : [env.FRONTEND_URL];
 
@@ -31,13 +34,52 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// HTTP request logger options
+export const httpLoggerOptions = {
+  serializers: {
+    req(req: { id?: unknown; method?: string; url?: string }) {
+      return {
+        id: req.id,
+        method: req.method,
+        url: req.url ? req.url.split("?")[0] : "",
+      };
+    },
+    res(res: { statusCode?: number }) {
+      return {
+        statusCode: res.statusCode,
+      };
+    },
+  },
+  redact: {
+    paths: [
+      "req.headers.authorization",
+      "res.headers['set-cookie']",
+      "req.headers.cookie",
+      "req.body.token",
+      "req.body.password",
+      "req.body.currentPassword",
+      "req.body.newPassword",
+    ],
+    censor: "[REDACTED]",
+  },
+};
+
+// HTTP request logger (mounted before route handlers)
+app.use(
+  pinoHttp({
+    logger,
+    ...httpLoggerOptions,
+  }),
+);
+
 // Health Check
 app.get("/", (_req: Request, res: Response) => {
-  res.status(status.OK).json({
-    success: true,
+  sendResponse(res, {
+    statusCode: status.OK,
     message: "Liminal Backend API is running successfully",
-    environment: env.NODE_ENV,
-    timestamp: new Date().toISOString(),
+    data: {
+      timestamp: new Date().toISOString(),
+    },
   });
 });
 

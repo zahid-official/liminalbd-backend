@@ -2,7 +2,7 @@ import type { ErrorDetail } from "../interfaces/error.interface.js";
 import type { PublicErrorCode } from "./errorCodes.js";
 
 // Application operational error representing client-safe HTTP failures
-export class AppError extends Error {
+class AppError extends Error {
   public readonly isOperational = true as const;
 
   constructor(
@@ -19,3 +19,5 @@ export class AppError extends Error {
     }
   }
 }
+
+export { AppError };

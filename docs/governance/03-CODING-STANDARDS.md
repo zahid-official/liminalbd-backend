@@ -4,14 +4,16 @@
 > These standards apply across modules and AI/IDE environments unless an approved
 > requirement or decision explicitly requires otherwise.
 
-## 1. Core Principles
+## 1. Core Principles: KISS, YAGNI, DRY & Clean Code
 
-- Prefer clear, predictable, maintainable code over clever abstractions.
-- Follow established repository patterns before introducing new ones.
-- Respect the boundaries defined in `02-ARCHITECTURE.md`.
-- Implement only approved requirements. Do not invent behavior.
-- Keep changes focused on the active task.
-- Avoid premature abstraction, duplication, speculative code and unrelated refactors.
+All code in this repository must embody professional engineering standards designed for long-term production reliability, junior-friendly readability, and architectural elegance:
+
+- **KISS (Keep It Simple, Stupid):** Prioritize clear, self-explanatory, and maintainable logic over clever or intricate abstractions. Code should read like plain English and be readily understandable by junior developers without cognitive overhead.
+- **YAGNI (You Aren't Gonna Need It):** Implement only what is explicitly required for the current approved task. Strictly avoid speculative features, premature abstractions, redundant type wrappers, or future-proofing mechanisms that add immediate complexity.
+- **DRY (Don't Repeat Yourself):** Consolidate genuine domain logic, shared validation schemas, and common utilities without creating rigid or awkward coupling. Do not duplicate contracts across layers when TypeScript inference and established patterns already provide type safety.
+- **Clean Code & Professionalism:** Write robust, defensive, production-grade code adhering to clean architecture. Ensure zero database schema leakage, explicit nullish handling (`?? null`), deterministic return contracts, and zero lint or type errors.
+- **Respect Boundaries:** Follow established repository patterns before introducing new ones. Strictly respect the layer boundaries defined in `02-ARCHITECTURE.md`.
+- **Focused Scope:** Implement only approved requirements. Keep changes focused strictly on the active task without unrelated refactors.
 
 ## 2. TypeScript and Types
 
@@ -21,9 +23,10 @@
 - Prefer `unknown` for untrusted values, then narrow safely.
 - Use `type` or `interface` according to actual responsibility.
 - Do not add an `I` prefix to interface names.
-- Reuse Prisma-generated types, inputs and enums when they already provide the required contract.
+- Reuse Prisma-generated types, inputs and enums when they already provide the required contract. Across all application modules and domain entities (e.g., status, role, audit actions, order statuses, product states), always import and use Prisma enum objects/constants (e.g., `UserStatus.SUSPENDED`, `UserRole.CUSTOMER`) rather than raw magic string literals whenever comparing, filtering, or assigning enum field values.
 - Create module-specific interfaces or types only when they add a real application-level contract.
 - Avoid duplicating Prisma model types without a clear reason.
+- Keep optional properties clean and idiomatic: Declare optional properties using standard optional syntax (`field?: T;`). Never pollute interfaces or type definitions with redundant `| undefined` unions (such as `field?: string | undefined;` or `field?: number | undefined;`). With `exactOptionalPropertyTypes: true` enabled in `tsconfig.json`, call sites must omit the key or conditionally inject it (e.g., `...(val ? { field: val } : {})`) rather than passing explicit `{ field: undefined }`.
 
 ## 3. Naming
 
@@ -93,7 +96,10 @@ Separate groups with one blank line.
 
 Also:
 
-- Prefer named exports for controllers, services and repositories.
+- Prefer named exports across all files. Follow the approved 3-tier export conventions:
+  1. **Modular files (`.service.ts`, `.controller.ts`, `.routes.ts`, `.repository.ts`):** Export directly inline at declaration time (e.g., `export const AuthService = { ... };`, `export const AuthRoutes = router;`).
+  2. **Helper / Utility / Mailer files (`sendResponse.ts`, `catchAsync.ts`, `auth.mailer.ts`):** Declare first and export via bottom named export block (e.g., `const sendResponse = ...; export { sendResponse };`, `const AuthMailer = ...; export { AuthMailer };`).
+  3. **Constants, Types & Interfaces:** Export directly inline at declaration time (e.g., `export const PUBLIC_ERROR_CODES = ... as const;`, `export type PublicErrorCode = ...;`, `export interface SendVerificationOtpParams { ... }`).
 - Remove unused imports and dead dependencies.
 - Use explicit `.js` extensions for relative TypeScript/ESM imports (e.g., `import { env } from "./config/env.js";`, `import { AuthService } from "./auth.service.js";`) in compliance with Node.js native ESM (`"type": "module"`).
 - Respect the dependency direction in `02-ARCHITECTURE.md`.
@@ -106,8 +112,9 @@ Also:
 
 - Validate all externally supplied body, params, query and relevant external payloads at the application boundary.
 - Use Zod and the shared validation mechanism.
-- Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers must read from `res.locals.validated` rather than unvalidated raw input.
-- Format validation issue fields with source-qualified paths (e.g., `body.email`, `params.id`, `query.page`).
+- Store parsed and normalized values in `res.locals.validated` (`ValidatedLocals<T>`); controllers read validated input using typed assertions (e.g., `res.locals.validated?.body as InputType`) rather than unvalidated raw input.
+- Store authenticated identity context exclusively in `res.locals.user` and `res.locals.session`; controllers read authenticated identity using typed assertions (e.g., `const user = res.locals.user as AuthUser`). Never mutate Express `req` (`req.user`, `req.session`) to maintain strict incoming HTTP request immutability (`DEC-014`, `DEC-022`).
+- Structure validation issue details with separated source and clean field names (e.g., `source: "body"`, `field: "email"`), adhering to `DEC-016`.
 - Keep schemas aligned with approved requirements.
 - Do not duplicate the same validation rule across layers without a boundary-specific reason.
 - Never trust client-supplied role, ownership, account status or privileged flags.
@@ -205,7 +212,8 @@ Use the shared response helper (`sendResponse` from `src/app/utils/`). Do not re
   "code": "VALIDATION_ERROR",
   "errors": [
     {
-      "field": "body.email",
+      "source": "body",
+      "field": "email",
       "message": "Invalid email format"
     }
   ]
@@ -213,7 +221,7 @@ Use the shared response helper (`sendResponse` from `src/app/utils/`). Do not re
 ```
 
 - `code` is required and represents a stable application error code (adhering to `DEC-014`).
-- `errors` is optional and is included when field-level or multiple validation details are useful.
+- `errors` is optional and is included when field-level or multiple validation details are useful (containing `field`, `message`, and optional `source`, adhering to `DEC-016`).
 - Unexpected errors must serialize as HTTP 500 with `code: "INTERNAL_SERVER_ERROR"` and a generic message.
 - Do not expose stack traces, internal implementation details, or debug info through the response contract in any environment.
 
@@ -269,14 +277,15 @@ export const sendResponse = <T>(res: Response, options: SendResponseOptions<T>) 
 
 ## 16. Logging
 
-- Winston and the shared project logger are deferred to project-completion tooling work under `DEC-013`.
-- Until that work is approved, preserve only the documented server-lifecycle `console.*` baseline and do not add ad hoc `console.*` debugging.
-- Temporary console usage during local development must be removed before review.
-- The ESLint configuration treats `console.*` as a warning outside production and an error in production.
-- Log meaningful operational events at appropriate levels.
-- Include useful context such as module, operation and correlation/request context when available.
+- Pino is the canonical structured logger (`DEC-024`). The shared logger instance is exported from `src/app/config/logger.ts` and must be the sole logger instantiation point across the application.
+- Do not import `pino` directly in feature modules or instantiate a secondary logger anywhere.
+- HTTP request logging is handled globally by `pino-http` middleware mounted in `app.ts`.
+- Use appropriate log levels: `fatal` for application-stopping conditions, `error` for unexpected runtime failures, `warn` for recoverable anomalies, `info` for significant lifecycle events, `debug` for development diagnostics.
+- Include useful context in log objects (e.g., `{ module, operation, userId }`) where available. Avoid overly verbose or repetitive log entries.
 - Never log passwords, session secrets, tokens, API keys, payment secrets or unnecessary sensitive personal data.
+- `req.headers.authorization`, `req.headers.cookie`, `res.headers['set-cookie']`, credential/token request body fields, and query parameters (`req.query.token`, `req.query.code`) are automatically redacted by `pino-http` configuration.
 - Avoid duplicate logs for the same failure unless each adds useful context.
+- Temporary `console.*` calls introduced during local development must be removed before task review. The `no-console` ESLint rule enforces this.
 
 ## 17. Security
 
@@ -300,18 +309,21 @@ Never hard-code secrets. Read them through approved configuration boundaries.
 
 ## 18. Testing
 
-Jest setup and automated suites are deferred to project-completion tooling work under `DEC-013`.
-
-Until that work is complete, each feature task must define and execute the strongest available focused verification for its behavior, including:
-
-- at least one expected path;
-- at least one meaningful failure path;
-- authorization, ownership, state-transition or edge-case checks when relevant;
-- build, lint and task-specific executable or manual acceptance checks.
-
-Record automated tests as `NOT RUN: deferred under DEC-013`; this approved deferral does not by itself block task review.
-
-When Jest is introduced, tests must verify behavior rather than implementation details alone. Do not weaken or remove tests merely to make a change pass.
+- Vitest is the canonical test framework (`DEC-025`). Jest is permanently dropped.
+- All test files live under `tests/unit/` (pure unit tests) or `tests/integration/` (HTTP-level endpoint tests) at the repository root. Placing test files inside `src/` is not permitted without an approved deviation.
+- **Mirrored Directory Structure & 1:1 Basename Alignment:** `tests/unit/` strictly mirrors the `src/app/` hierarchy (e.g. `tests/unit/errors/AppError.test.ts` mirrors `src/app/errors/AppError.ts`; `tests/unit/middleware/validateRequest.test.ts` mirrors `src/app/middleware/validateRequest.ts`; `tests/unit/modules/<module>/<file>.test.ts` mirrors `src/app/modules/<module>/<file>.ts`). Test files strictly match the exact source file basename (`<filename>.test.ts`).
+- **Semantic Test Grouping:** Group unit tests logically using nested `describe()` blocks (e.g., standard envelopes vs. pagination, success scenarios vs. validation failure scenarios) rather than flat test lists, avoiding noisy redundant comments.
+- Test files use the `.test.ts` extension and import all Vitest APIs explicitly: `import { describe, it, expect, vi } from 'vitest'`. The `globals: false` configuration enforces this convention.
+- The shared Pino logger (`src/app/config/logger.ts`) must be mocked in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`) for all test suites to prevent output pollution while satisfying `pino-http` object contracts.
+- Each feature task must define and execute the strongest available verification, including:
+  - at least one expected (happy) path;
+  - at least one meaningful failure path;
+  - authorization, ownership, state-transition or edge-case checks when relevant.
+- Tests must verify behavior rather than implementation details alone. Do not write tests that merely assert internal function calls without covering observable output.
+- Do not weaken or remove tests merely to make a change pass.
+- When tests cannot run (e.g., a dependency is unavailable in CI), record `NOT RUN: <reason>` in the task verification evidence rather than deleting the test.
+- Use `supertest` for HTTP-level integration tests against the Express app factory.
+- Run `pnpm test` and confirm pass before marking a task `🕵️ Awaiting human review`.
 
 ## 19. Database and Migration Changes
 
@@ -321,6 +333,11 @@ When Jest is introduced, tests must verify behavior rather than implementation d
 - Review generated migration SQL when database behavior changes materially.
 - Do not rewrite already-applied migration history unless the approved workflow requires it.
 - Test important data-integrity and migration behavior before review.
+- **Mandatory Minimal Field Projection (`select`):** Every Prisma read and update query must explicitly specify a `select` projection tailored strictly to the minimal fields required for that operation.
+  - For existence checks, always use `select: { id: true }`.
+  - For validation and guard queries (e.g., status or verification checks), select only the specific fields being inspected (e.g., `select: { id: true, emailVerified: true }`).
+  - Unbounded full-entity fetches (`SELECT *`) without explicit `select` (or `omit` where applicable) are strictly prohibited across all services and repositories to eliminate over-fetching, conserve Node.js heap memory, protect against sensitive data leakage, and maintain optimal database I/O.
+- **Unified Resource DTOs & Zero Schema Leakage (`DEC-028`):** When projecting extended domain entities (such as `Customer` or `Admin` profiles linked to `User`), services must return a flattened, unified Data Transfer Object rather than leaking internal database relation structures. Extended profile attributes (`contactNumber`, `address`) must be flattened onto the root response object directly from the database record via optional chaining, and compound timestamps must dynamically resolve to the latest modification timestamp (`updatedAt = profile && profile.updatedAt > user.updatedAt ? profile.updatedAt : user.updatedAt`).
 
 ## 20. External Providers
 

@@ -124,6 +124,15 @@ Before implementing or modifying code, follow:
 
 These documents define the required conventions, boundaries and prohibited behavior.
 
+### Engineering Craftsmanship: KISS, YAGNI, DRY & Clean Code
+
+All implementations must maintain enterprise-grade professionalism, readability, and junior accessibility:
+
+- **KISS (Keep It Simple, Stupid):** Prioritize simple, plain-English, self-documenting code over clever or intricate abstractions. Code must be straightforward for any junior developer to grasp immediately without cognitive friction.
+- **YAGNI (You Aren't Gonna Need It):** Build only what is explicitly approved for the current task. Strictly avoid speculative features, premature abstractions, redundant type wrappers, or ceremonial future-proofing.
+- **DRY (Don't Repeat Yourself):** Consolidate shared logic and schemas cleanly without creating awkward, tight coupling or artificial indirection.
+- **Clean Code & Professionalism:** Deliver robust, defensive, and production-grade code adhering to clean architecture and self-documenting clarity.
+
 When AI preference conflicts with an established repository rule or approved decision, follow the repository source of truth.
 
 AI agents must never install new npm/pnpm packages or introduce unapproved third-party architectural libraries without explicit human approval.
@@ -158,8 +167,9 @@ Never invent requirements, business rules, API behavior, database structure or s
 | `03-CODING-STANDARDS.md`  | Code style and implementation conventions            |
 | `04-RULES.md`             | Hard rules and prohibited behavior                   |
 | `05-TASK-WORKFLOW.md`     | Task execution, review, approval, and update process |
-| `06-PHASE-ROADMAP.md`     | Phase status and active phase                        |
-| `MEMORY.md`               | Condensed current state of the codebase              |
+| `06-PHASE-ROADMAP.md`                  | Phase status and active phase                        |
+| `07-TECHNOLOGY-INTEGRATIONS-GUIDE.md` | Core tech & provider integration standards (Better Auth, Prisma, etc.) |
+| `MEMORY.md`                            | Condensed current state of the codebase              |
 | `DECISIONS.md`            | Durable decisions and rationale                      |
 | `docs/governance/phases/` | Phase-level execution plans, scope, and status       |
 | `docs/governance/tasks/`  | Persistent JIT task implementation plans & evidence  |

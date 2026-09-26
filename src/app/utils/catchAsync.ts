@@ -8,8 +8,12 @@ export type AsyncRequestHandler = (
 ) => Promise<unknown> | unknown;
 
 // Async controller wrapper to catch and forward errors to the global error handler
-export const catchAsync = (fn: AsyncRequestHandler): RequestHandler => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+const catchAsync = (fn: AsyncRequestHandler): RequestHandler => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       await fn(req, res, next);
     } catch (err) {
@@ -17,3 +21,5 @@ export const catchAsync = (fn: AsyncRequestHandler): RequestHandler => {
     }
   };
 };
+
+export { catchAsync };

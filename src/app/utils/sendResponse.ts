@@ -5,10 +5,10 @@ import type {
 } from "../interfaces/response.interface.js";
 
 // Standardized HTTP success response helper
-export const sendResponse = <T>(
-  res: Response,
+const sendResponse = <T>(
+  res: Response<SuccessResponse<T>>,
   options: SendResponseOptions<T>,
-): Response<SuccessResponse<T>> => {
+) => {
   const { statusCode, message, data, meta } = options;
 
   const responseBody: SuccessResponse<T> = {
@@ -21,7 +21,7 @@ export const sendResponse = <T>(
     responseBody.meta = meta;
   }
 
-  return res.status(statusCode).json(responseBody) as Response<
-    SuccessResponse<T>
-  >;
+  return res.status(statusCode).json(responseBody);
 };
+
+export { sendResponse };

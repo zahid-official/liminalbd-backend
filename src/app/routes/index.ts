@@ -1,5 +1,8 @@
 import { Router } from "express";
+import { AdminRoutes } from "../modules/admin/admin.routes.js";
 import { AuthRoutes } from "../modules/auth/auth.routes.js";
+import { CustomerRoutes } from "../modules/customer/customer.routes.js";
+import { UserRoutes } from "../modules/user/user.routes.js";
 
 // Module route interface
 interface ModuleRoute {
@@ -16,6 +19,18 @@ const moduleRoutes: ModuleRoute[] = [
     path: "/auth",
     route: AuthRoutes,
   },
+  {
+    path: "/users",
+    route: UserRoutes,
+  },
+  {
+    path: "/admins",
+    route: AdminRoutes,
+  },
+  {
+    path: "/customers",
+    route: CustomerRoutes,
+  },
 ];
 
 // Mount module routes onto root router
@@ -23,4 +38,5 @@ moduleRoutes.forEach((moduleRoute: ModuleRoute) => {
   router.use(moduleRoute.path, moduleRoute.route);
 });
 
-export { router as RootRouter };
+// Export root router
+export const RootRouter = router;

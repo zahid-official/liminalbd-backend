@@ -20,12 +20,289 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-028: Standardize Flattened Resource DTOs and Dynamic Latest-Timestamp Resolution for Extended User Profiles
+
+**Recorded:** 2026-09-24  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Flattened Resource DTOs:** Public and administrative API responses for extended user entities (e.g. `Customer`, `Admin`) must return a unified, flattened Data Transfer Object (DTO) at the service/API boundary. Relational database profile tables must not be exposed as nested child objects (e.g. avoid `{ id, ..., customer: { contactNumber, address } }` or `{ id, ..., admin: { contactNumber, address } }`). All permitted profile attributes (`contactNumber`, `address`) must be projected directly on the root resource representation.
+2. **Native Database NULL via Optional Chaining:** Optional or unpopulated profile attributes resolve directly via idiomatic optional chaining (`profileExtension?.field`). Because the relational database schema natively initializes unpopulated attributes as `NULL` and application lifecycle hooks guarantee 1-to-1 profile existence, redundant `?? null` wrapping is strictly omitted in adherence to KISS & YAGNI.
+3. **Dynamic Latest-Timestamp Resolution:** When an entity is composed of multiple normalized tables (e.g. `User` and `Customer` or `User` and `Admin`), the response `updatedAt` timestamp must dynamically evaluate and reflect the most recent modification across both records (`const updatedAt = profile && profile.updatedAt > user.updatedAt ? profile.updatedAt : user.updatedAt;`), reusing existing Date references without superfluous heap allocations or mathematical conversions.
+4. **Symmetrical Cross-Module Consistency:** This convention applies symmetrically across all user extensions, including customer profile retrieval (`P2-T023`), admin provisioning (`P2-T018`), admin update (`P2-T019`), and admin listing (`P2-T021`).
+
+**Why:**
+1. **Zero Database Schema Leakage:** Clients consuming the API must not be coupled to the internal normalization details of the relational database. A customer or admin is conceptually a single unified business resource.
+2. **Developer Ergonomics & Elimination of Stuttering:** Eliminates awkward repetitive nesting in frontend applications (e.g. `response.data.customer.contactNumber` or `response.data.admin.contactNumber`), providing direct access via `response.data.contactNumber`.
+3. **Cache Invalidation & Timestamp Accuracy:** If a user updates only their contact number or address, only the profile table's `updatedAt` is updated in PostgreSQL. Reflecting the latest timestamp between `user.updatedAt` and `profile.updatedAt` ensures HTTP caching mechanisms (ETag, Last-Modified) and frontend state synchronizers always observe the true latest modification.
+4. **KISS, YAGNI & Performance:** Idiomatic direct comparison (`>`) leverages JavaScript's native date value comparison without creating new `Date` instances on the heap, ensuring high throughput and optimal memory usage.
+
+**Consequences:**
+- `CustomerService.getCustomerById` returns a flattened object with latest `updatedAt`.
+- `AdminService.createAdmin`, `AdminService.updateAdmin`, and `AdminService.getAdmins` return flattened admin profile objects with latest `updatedAt`.
+- Future user extension modules (e.g. vendor, designer, staff profiles in later phases) must follow this identical flattened DTO and latest-timestamp pattern.
+- Unit and integration tests assert against flattened resource structures.
+
+---
+
+### DEC-027: Standardize Pluralized RESTful Resource Routes for Entity Collections
+
+**Recorded:** 2026-09-23
+**Status:** `ACCEPTED`
+
+**Decision:**
+Standardize entity collection endpoints under clean, pluralized RESTful resource paths (`/api/v1/admins` for administrative accounts and `/api/v1/customers` for customer accounts) at the application routing registry (`src/app/routes/index.ts`), superseding legacy paths (`/api/v1/admin/admins` and `/api/v1/customer`). Internal code organization remains strictly singular (`src/app/modules/admin/`, `src/app/modules/customer/`, `AdminService`, `CustomerService`) per standard Domain-Driven Design and object-oriented naming conventions.
+
+**Why:**
+1. **Elimination of Word Stuttering & Asymmetry:** Supersedes the legacy stuttering path `/api/v1/admin/admins` and aligns `/admins` and `/customers` into a consistent, symmetrical plural scheme.
+2. **Global RESTful Convention Alignment:** Industry-standard RESTful API guidelines (Stripe, GitHub, Shopify, Google Cloud) mandate plural nouns for entity collections in HTTP paths while retaining singular names for classes and modules.
+3. **Decoupled Identity Architecture:** User identity endpoints (`/me`, `/profile`) reside exclusively in identity/user portals, cleanly separating self-service identity from administrative resource management and eliminating route shadowing risks.
+
+**Consequences:**
+- `src/app/routes/index.ts` mounts `AdminRoutes` under `/admins` and `CustomerRoutes` under `/customers`.
+- `src/app/modules/admin/admin.routes.ts` mounts endpoints on `/` (`POST /api/v1/admins`) and `/:id` (`PATCH /api/v1/admins/:id`).
+- Module folders and file basenames remain singular (`modules/admin/`, `modules/customer/`).
+- All integration and route tests assert against `/api/v1/admins` and `/api/v1/admins/:id`.
+- Task plan `P2-T019` is synchronized with this canonical path.
+
+---
+
+### DEC-026: Separation of Privileged Admin Governance from Personal Profile Management
+
+**Recorded:** 2026-09-23  
+**Status:** `ACCEPTED`
+
+**Decision:**
+Restrict the privileged administrative update endpoint (`PATCH /api/v1/admin/admins/:id`) strictly to governance, access control, and account lifecycle mutations (`role`: `ADMIN ↔ SUPER_ADMIN`, `status`: `ACTIVE | SUSPENDED | DEACTIVATED`). Remove personal identity and profile fields (`name`, `contactNumber`, `address`) from this privileged Super Admin endpoint. Personal profile fields are strictly reserved for self-service profile management (e.g. `PATCH /api/v1/users/me` or `/profile`), allowing staff and users to manage their own personal data.
+
+**Why:**
+1. **Separation of Concerns & Privilege Minimization:** Privileged administrative boundaries exist to govern system access, roles, and account lifecycle states, not to tamper with or unilaterally modify the personally identifiable information (PII) of other staff members.
+2. **Data Privacy & Accountability:** Preventing Super Admins from arbitrarily altering other employees' personal names, contact numbers, or physical addresses upholds identity integrity and aligns with modern enterprise data privacy and HR governance standards.
+3. **Clean Architecture & Focused Contracts:** Simplifies the request contract, service transaction boundaries, and audit logging of administrative management, keeping privileged administrative updates tightly focused on RBAC and account security.
+
+**Consequences:**
+- `updateAdminSchema` in `src/app/modules/admin/admin.validation.ts` validates only `role` and `status` in the request body, rejecting empty payloads.
+- `UpdateAdminInput` in `src/app/modules/admin/admin.interface.ts` defines `{ role?: UserRole; status?: UserStatus; }`.
+- `AdminService.updateAdmin` mutates only `User.role` and `User.status`, atomically invalidates active sessions when restricting an account (`SUSPENDED` / `DEACTIVATED`), and records audit trails for governance transitions.
+- Personal profile modifications (`name`, `contactNumber`, `address`) will be handled under self-service profile management endpoints.
+- Task plan `P2-T019` is updated to reflect this refined governance boundary.
+
+---
+
+### DEC-025: Adopt Vitest as the Immediate Test Framework, Superseding DEC-013 Jest Deferral
+
+**Recorded:** 2026-09-19  
+**Status:** `ACCEPTED`  
+**Supersedes:** `DEC-013` (Jest/testing portion only; Docker deferral remains in force)
+
+**Decision:**
+1. **Immediate Testing Integration:** Integrate Vitest as the canonical test framework during Phase 2, before RBAC work begins, rather than deferring to project-completion tooling.
+2. **Vitest Over Jest:** Adopt Vitest instead of Jest. Jest is permanently dropped from future tooling consideration.
+3. **Separate Test Directory & Mirrored Hierarchy:** Tests live under `tests/unit/` and `tests/integration/` at the repository root, keeping source files clean. Unit tests strictly mirror the `src/app/` hierarchy (e.g. `tests/unit/middleware/`, `tests/unit/utils/`, `tests/unit/errors/`, `tests/unit/modules/<module>/`) with exact 1:1 basename alignment (`<filename>.test.ts`).
+4. **Explicit Imports:** Vitest is configured with `globals: false`; test files must explicitly import `describe`, `it`, `expect`, `vi`, etc. from `'vitest'`. This aligns with the project's explicit import conventions.
+5. **V8 Coverage:** `@vitest/coverage-v8` is the coverage provider (uses Node's built-in V8; no binary overhead).
+6. **HTTP Integration Testing:** `supertest` is the HTTP-level test helper for integration tests against the Express app.
+7. **Logger Mocked in Tests:** The shared Pino logger (`src/app/config/logger.ts`) is mocked globally in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`) to prevent test output pollution while satisfying `pino-http` object contracts.
+8. **`pnpm test` is now active:** The placeholder `echo "Error: no test specified"` test script is replaced with `vitest run`.
+
+**Why:**
+- The team identified that a working test foundation is operationally necessary before RBAC and audit work begins, to allow incremental verification of access-control rules.
+- Vitest's native ESM support and zero-config TypeScript integration eliminate the complex `ts-jest` / Babel transform setup that Jest requires under `"type": "module"` + `"module": "NodeNext"` + `"verbatimModuleSyntax": true`.
+- Vitest is API-compatible with Jest, enabling future migration of any Jest patterns without relearning the assertion API.
+
+**Consequences:**
+- `P2-T029` is added to the Phase 2 task index as a completed prerequisite task in Workstream A.
+- `03-CODING-STANDARDS.md` Section 18 is updated to reflect Vitest as the active test framework, mirrored directory hierarchy, and 1:1 basename alignment.
+- `MEMORY.md` is updated to reflect the active testing infrastructure and verified test suite.
+- Docker remains deferred under `DEC-013`.
+- `pnpm test` now executes `vitest run`; `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates a V8 coverage report.
+- The `tests/` root directory is the canonical location for all test files. Placing test files inside `src/` is not permitted without an approved deviation.
+- Unit tests must mirror the source path and basename precisely (e.g. `src/app/modules/auth/auth.service.ts` -> `tests/unit/modules/auth/auth.service.test.ts`).
+- Importing `vitest` directly in source files (outside `tests/`) is prohibited.
+
+---
+
+### DEC-024: Adopt Pino as the Immediate Project Logger, Superseding DEC-013 Logging Deferral
+
+
+**Recorded:** 2026-09-19  
+**Status:** `ACCEPTED`  
+**Supersedes:** `DEC-013` (logging portion only; Docker and Jest deferral remain in force)
+
+**Decision:**
+1. **Immediate Logging Integration:** Integrate `pino`, `pino-http` and `pino-pretty` as the canonical structured logging solution during Phase 2, before RBAC work begins, rather than deferring to project-completion tooling.
+2. **Pino Over Winston:** Adopt Pino instead of Winston. Winston is permanently dropped from future tooling consideration.
+3. **Single Logger Boundary:** A single shared logger instance is exported from `src/app/config/logger.ts`. All application layers consume this instance; no module may instantiate its own logger.
+4. **LOG_LEVEL via Environment:** An optional `LOG_LEVEL` environment variable (`fatal | error | warn | info | debug | trace`) controls verbosity. When absent, the default is `debug` in development and `info` in production.
+5. **pino-http for HTTP Logging:** `pino-http` middleware is mounted globally in `app.ts` before all route handlers, using the shared logger instance. Request serializers isolate route paths (`url: req.url.split('?')[0]`) and omit raw `req.query` objects to prevent query token leaks across mixed-case parameter names and nested URLs. Response serializers extract only `statusCode`, omitting response headers and payloads.
+6. **Sensitive Field Redaction:** `pino-http` is configured to redact `req.headers.authorization`, `req.headers.cookie`, `res.headers['set-cookie']`, and credential/token request body fields (`password`, `currentPassword`, `newPassword`, `token`, etc.) with `[REDACTED]` in all environments.
+7. **server.ts and globalErrorHandler.ts Migration:** All `console.*` lifecycle and error log calls in `server.ts` and `globalErrorHandler.ts` are replaced with structured `logger.*` calls. The `/* eslint-disable no-console */` directives are removed.
+8. **Development vs. Production Transport:** In development (`NODE_ENV !== "production"`), pino-pretty is enabled as a transport for human-readable colored output. In production, raw JSON is emitted for structured log aggregation.
+
+**Why:**
+- The team identified that structured logging is now operationally necessary before RBAC and audit work begins, rather than at project completion.
+- Pino's zero-overhead JSON serialization, native `pino-http` integration, and minimal API make it a superior fit for the production-grade Express/Node.js architecture in use.
+- Replacing `console.*` with a proper logger eliminates ESLint disable directives, enforces the `no-console` lint rule, and produces consistent log levels and structured context.
+
+**Consequences:**
+- `P2-T028` is added to the Phase 2 task index as a completed prerequisite task in Workstream A.
+- `03-CODING-STANDARDS.md` Section 16 is updated to reflect Pino as the active logger.
+- `MEMORY.md` is updated to reflect the active logging infrastructure.
+- Docker and Jest remain deferred under `DEC-013`.
+- The term "Winston" is removed from all future tooling references; Pino is the canonical choice.
+- `src/app/config/logger.ts` is the sole logger instantiation point; importing `pino` directly in feature modules is prohibited.
+
+---
+
+### DEC-023: Enforce Database-Level Composite Unique Constraints on Authentication Accounts
+
+**Recorded:** 2026-09-18  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Global Provider Identity Uniqueness:** Enforce `@@unique([providerId, accountId])` on the `Account` model in `prisma/schema/auth.prisma`. This guarantees at the database engine level that an external identity (e.g. Google subject ID) cannot be simultaneously bound to more than one user account during concurrent OAuth callback race conditions.
+2. **User-Provider Uniqueness:** Enforce `@@unique([userId, providerId])` on the `Account` model in `prisma/schema/auth.prisma`. This guarantees at the database engine level that a user can never possess duplicate accounts under the same authentication provider (e.g. preventing concurrent linking requests from creating duplicate Google accounts under a single user profile).
+3. **Migration & Client Generation:** Applied via migration `20260918165500_add_account_provider_unique_constraints` with zero data conflicts across existing accounts.
+
+**Why:**
+- **Better Auth Core Specification Alignment:** Better Auth's internal database adapter explicitly relies on `findAccountOwnerByKey({ providerId, accountId })` returning a unique record. Without this constraint, concurrent callback race conditions could inject duplicate external account identities, throwing runtime errors.
+- **Data Integrity & Deterministic Unlinking:** Application-level uniqueness checks alone are vulnerable to time-of-check to time-of-use (TOCTOU) race conditions. Enforcing `@@unique([userId, providerId])` at the database level ensures that `unlinkGoogleAccount` always operates on a strictly deterministic 1-to-1 account mapping per provider.
+
+**Consequences:**
+- The PostgreSQL `account` table enforces composite unique indexes: `account_providerId_accountId_key` and `account_userId_providerId_key`.
+- Any simultaneous attempt to bind the same external identity to multiple users, or bind multiple identities of the same provider to a single user, will be rejected by PostgreSQL with code `P2002` (Unique constraint violation).
+- `MEMORY.md`, `phase-2-auth-rbac.md`, and `P2-T011` are synchronized with this decision.
+
+### DEC-022: Centralize Customer Profile Creation in Better Auth Database Hook and Standardize Identity Context on Response Locals
+
+**Recorded:** 2026-09-17  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Centralize 1-to-1 Profile Creation:** Centralize Customer profile creation exclusively within Better Auth's `databaseHooks.user.create.after` in `src/app/config/auth.ts` using `prisma.customer.upsert`. Remove manual profile creation and compensating user rollbacks from `customer.service.ts`.
+2. **Retire Compensating Rollback Utility:** Delete `src/app/utils/rollbackOrphanUser.ts`. Because foreign-key constraints on profiles enforce `onDelete: Restrict`, centralizing profile creation in Better Auth's `user.create.after` lifecycle hook eliminates manual rollbacks across authentication channels (public email signup and Google OAuth signup); edge-case profile resilience is complemented by Just-In-Time (JIT) lazy self-healing in upcoming customer domain service operations (`P2-T023`, `P2-T024`).
+3. **Preserve HTTP Request Immutability (DEC-014 Enforcement):** Standardize server-derived authentication identity and session context exclusively onto `res.locals.user` and `res.locals.session` (`AuthUser`, `AuthSession` exported from `src/app/modules/auth/auth.interface.ts`). Remove `req.user` and `req.session` mutations from `authGuard.ts` and ambient Express augmentation in `src/app/interfaces/express.d.ts` to uphold strict immutability of incoming HTTP requests.
+
+**Why:**
+- **Universal Multi-Channel Consistency:** Google OAuth signup and public email/password signup both create user entities with `role: CUSTOMER`. Attaching profile creation to `databaseHooks.user.create.after` guarantees that a `Customer` profile record is created regardless of which entry point initialized user provisioning.
+- **Eliminate Unique Constraint Conflicts:** Manual `prisma.customer.create` in `customer.service.ts` collided with the hook-created record, throwing P2002 unique constraint conflicts and triggering erroneous 500 error responses.
+- **Architectural Immutability:** Mutating the incoming `Request` object (`req.user`) violates `DEC-014`. Placing identity state on `res.locals` maintains a clean, uniform mental model where all server-scoped, validated, or authenticated data resides on `res.locals`.
+- **Post-Commit Lifecycle & Resilience Awareness:** Note that Better Auth executes `user.create.after` via `queueAfterTransactionHook` post-commit. While this does not provide database-level transaction atomicity with user insertion, it eliminates fragile manual rollback scripts; profile resilience will be completed through approved JIT lazy self-healing during `P2-T023` and `P2-T024`.
+
+**Consequences:**
+- `customer.service.ts` only invokes `auth.api.signUpEmail` and dispatches email OTP; manual customer profile creation is removed.
+- `src/app/utils/rollbackOrphanUser.ts` is deleted and removed from global utility registries.
+- `authGuard.ts` attaches identity context strictly to `res.locals.user` and `res.locals.session`.
+- Downstream controllers access user identity via typed assertion: `const user = res.locals.user as AuthUser`.
+- `MEMORY.md`, `phase-2-auth-rbac.md`, and task files (`P2-T006`, `P2-T010`, `P2-T013`) are synchronized with this decision.
+
+### DEC-021: Domain Extraction of Customer Registration, Centralization of Common Validations, and Global Utility Promotion
+
+**Recorded:** 2026-09-15  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Domain Extraction of Customer Registration:** Public customer self-registration (`registerCustomer`) is transferred out of the generic `auth` module and established within the dedicated `customer` domain module (`src/app/modules/customer/`), exposed at `POST /api/v1/customer/register`. The `auth` module remains strictly focused on IAM/credential verification, session management, OAuth handshakes, password lifecycle, and verification flows.
+2. **Centralization of Reusable Primitive Validations:** Shared credential and primitive Zod validation rules (`emailSchema`, `passwordSchema`) are centralized in `src/app/validations/common.validation.ts` as the single source of truth, eliminating cross-module schema duplication across `auth`, `customer`, and future administrative modules.
+3. **Promotion of Cross-Cutting System Utilities:** Compensating user rollback (`rollbackOrphanUser` — *subsequently retired under DEC-022*) and trusted origin redirect resolution (`resolveCallbackURL`) are promoted from `src/app/modules/auth/` to global application utilities under `src/app/utils/`, decoupling domain services from internal module dependencies.
+
+**Why:**
+- **Single Responsibility & Domain Boundaries:** Mixing customer entity creation (profile persistence, customer lifecycle) with authentication primitives bloats the `auth` module and establishes bad precedents for forthcoming administrative provisioning (`createAdmin`).
+- **DRY & Security Consistency:** Centralized schema rules prevent divergent validation criteria (e.g., password complexity, email normalization) across different entry points.
+- **Decoupled Architecture:** `CustomerService` must not depend on internal helper files within `src/app/modules/auth/`; system-level compensating rollbacks and redirect validation belong in global application utilities.
+
+**Consequences:**
+- Public customer registration route is now mounted at `POST /api/v1/customer/register`.
+- `auth.service.ts`, `auth.controller.ts`, and `auth.routes.ts` no longer define or expose customer registration.
+- `customer.validation.ts` and `auth.validation.ts` import primitive schemas from `src/app/validations/common.validation.ts`.
+- `resolveCallbackURL` is consumed globally from `src/app/utils/` (`rollbackOrphanUser` was subsequently retired and deleted under `DEC-022`).
+- `MEMORY.md`, parent phase file `phase-2-auth-rbac.md`, and task file `P2-T006` are updated to synchronize with this architectural structure.
+
+### DEC-020: Dedicated Customer Authentication Boundary and Separation of Administrative Login Portals
+
+**Recorded:** 2026-09-14
+**Status:** `ACCEPTED`
+
+**Decision:** The public authentication endpoints `POST /api/v1/auth/login` (credential login) and `POST /api/v1/auth/login/google` (Google OAuth) are strictly reserved for the `CUSTOMER` role. Privileged accounts (`ADMIN`, `SUPER_ADMIN`) are strictly forbidden from authenticating, creating sessions, or linking accounts via these customer endpoints. Administrative authentication will be handled via dedicated administrative endpoints (to be established under Workstream C). Any attempt by an administrative user to authenticate via the public customer login routes must be rejected with `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`).
+
+**Why:**
+1. **Attack Surface Minimization & Privilege Separation:** Mixing customer and administrative authentication on the same public endpoints exposes high-privilege accounts to public credential stuffing, consumer-facing social login misconfigurations, and unauthorized identity linking.
+2. **Dedicated Administrative Workflows:** Administrative users operate in a distinct back-office environment with different security requirements (no third-party social logins like Google, mandatory security audits, and specialized credential policies).
+3. **Defense-in-Depth:** Enforcing role checks at the authentication handler ensures that even if an administrative user's credentials are valid, they cannot establish a session through the public customer portal.
+
+**Consequences:**
+- `POST /api/v1/auth/login` verifies that the authenticated user possesses the `CUSTOMER` role. Any attempt to log in with an `ADMIN` or `SUPER_ADMIN` account returns `HTTP 403 Forbidden` (`FORBIDDEN_ROLE_ACCESS`), and any newly created session is immediately revoked.
+- `POST /api/v1/auth/login/google` and Google OAuth callback reject any account with an administrative role (`ADMIN`, `SUPER_ADMIN`) with `FORBIDDEN_ROLE_ACCESS` (browser callbacks surface the denial via safe 302 redirect to `${env.FRONTEND_URL}/login?error=FORBIDDEN_ROLE_ACCESS`, while API calls return HTTP 403). Public Google sign-up will only ever create accounts with `role: CUSTOMER`.
+- Task plan `P2-T009`, parent phase file `phase-2-auth-rbac.md`, and `MEMORY.md` are synchronized with this policy.
+
+### DEC-019: Delegation of Authentication Rate Limiting to Reverse Proxy / API Gateway Tier
+
+**Recorded:** 2026-09-14
+**Status:** `ACCEPTED`
+
+**Decision:** Formally delegate IP-based and network-level rate limiting for authentication endpoints (including `POST /api/v1/auth/login` and repeated failed attempts) to the infrastructure tier—specifically the Reverse Proxy (Nginx) or Cloudflare / API Gateway boundary. Do not implement single-process in-memory rate-limiting middleware in the Node.js Express application.
+
+**Why:**
+1. **Stateless Multi-Instance Architecture:** In production, the backend runs in a clustered or containerized environment (multiple Node.js instances behind a load balancer). In-memory rate limiting within a single Node.js process does not share state across instances, allowing distributed brute-force attempts to leak through.
+2. **Resource & DoS Protection:** Network-level rate limiting at the Nginx or Cloudflare edge drops malicious or excessive requests at the socket/kernel layer in microseconds without consuming Node.js CPU cycles, event loop time, or parsing overhead.
+3. **Better Auth SDK Isolation:** In our architecture (`Route → Controller → Service → Repository`), authentication services invoke Better Auth's programmatic SDK (`auth.api.signInEmail`), which operates as a direct server-side dispatcher and intentionally bypasses Better Auth's HTTP-level `onRequestRateLimit` pipeline. Adding custom application-level rate limiting would introduce redundant state management without solving distributed coordination.
+
+**Consequences:**
+- Node application code remains stateless and lean; no unnecessary in-memory rate limiting middleware or unapproved packages are introduced into Express.
+- Deployment specifications require configuring an Nginx / Cloudflare rate-limiting policy (e.g. `limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=5r/m; limit_req zone=auth_limit burst=5 nodelay;` returning HTTP 429) for `POST /api/v1/auth/login`.
+- `docs/product/PRD.md` (`FR-AUTH-005.4`), `docs/governance/phases/phase-2-auth-rbac.md` (`P2-T008`), `docs/governance/02-ARCHITECTURE.md` (Section 5), and task file `P2-T008` are synchronized with this decision.
+
+### DEC-018: Anti-Enumeration Rejection for Soft-Deleted Accounts on Authentication
+
+**Recorded:** 2026-09-14
+**Status:** `ACCEPTED`
+
+**Decision:** Authenticating against soft-deleted accounts (`deletedAt !== null`) via `POST /api/v1/auth/login` must return generic `HTTP 401 Unauthorized` with public error code `INVALID_CREDENTIALS` ("Invalid email or password"), exactly matching non-existent accounts and invalid passwords, rather than returning `HTTP 403 Forbidden` ("Account deleted").
+
+**Why:** Returning a specialized `HTTP 403 Forbidden` specifically for deleted accounts discloses the prior existence and lifecycle history of an account to unauthenticated callers. This enables user enumeration and identity reconnaissance attacks against former customers. Treating soft-deleted accounts as non-existent credentials during authentication aligns with standard OWASP anti-enumeration principles and prevents account-state leakage.
+
+**Consequences:** `databaseHooks.session.create.before` in `src/app/config/auth.ts` throws `APIError("UNAUTHORIZED", { code: "INVALID_CREDENTIALS", message: "Invalid email or password" })` when `deletedAt !== null`. `docs/product/PRD.md` Section 2.2 (`FR-AUTH-005`) error scenario is synchronized to reflect that deleted accounts return generic HTTP 401 Unauthorized for anti-enumeration protection.
+
+### DEC-017: Defer Customer Profile Fields (contactNumber, address) to P2-T024 for Frictionless Registration
+
+**Recorded:** 2026-09-13
+**Status:** `ACCEPTED`
+
+**Decision:** Maintain a minimal, frictionless public customer registration contract (`POST /api/v1/customer/register` per `DEC-021`, originally `POST /api/v1/auth/register`) consisting exclusively of identity and credential fields: `name` (min 2, max 100), `email` (RFC-compliant, max 255), and `password` (min 8, max 100 with complexity). Do not accept or persist `contactNumber` or `address` during public customer registration. Defer collection, validation, and persistence of customer contact numbers and addresses exclusively to the Customer Profile Update flow (`P2-T024`).
+
+**Why:** Requiring or prompting for phone numbers and physical addresses during initial account creation introduces unnecessary onboarding friction and drops conversion rates. In an e-commerce and interior studio customer journey, contact and shipping address details are contextual and properly collected during profile completion or checkout, not during authentication signup. This aligns with human product governance (`AGENTS.md` Section 1) and honors the original design assumption recorded during `P2-T006` planning (`docs/governance/tasks/phase-2/P2-T006-implement-email-password-customer-registration.md` Section 8).
+
+**Consequences:** `registerCustomerSchema` strictly validates `name`, `email`, and `password`. Any client-supplied profile fields outside these credentials continue to be safely stripped by Zod. `email` is bounded to 255 characters (RFC 5321 / DB constraint guard) and `password` to 100 characters (cryptographic hashing CPU DoS guard). Customer records are initialized with null contact and address attributes upon signup. Full customer profile management, validation, and updates will be implemented and tested under `P2-T024`.
+
+### DEC-016: Structured Validation Error Detail Contract with Explicit Source and Field Separation
+
+**Recorded:** 2026-09-12
+**Status:** `ACCEPTED`
+**Supersedes:** `DEC-014` (partially: supersedes the dot-notated validation issue path string convention)
+
+**Decision:** Structure validation error details within the public error envelope's `errors` array as discrete objects containing `source` (`"body" | "params" | "query"`), `field` (string identifying the specific target property, e.g. `"email"`, or `"root"` for schema-level issues), and `message` (string). For non-validation error details (such as database unique constraint conflicts), `source` remains optional (`source?: string`).
+
+**Why:** The previous dot-concatenated convention (`"body.<path>"`, `"params.<path>"`) forced frontend consumers to parse or strip transport source prefixes before binding errors to UI form inputs. Separating `source` and `field` cleanly provides structured metadata for API clients while maintaining consistency with database error representations where no transport source exists.
+
+**Consequences:** `ErrorDetail` provides `source?: string`, `field: string`, and `message: string`. Zod validation middleware emits structured objects with explicit `source` and `field`. `03-CODING-STANDARDS.md` is updated to reflect this structured format. The core error envelope (`success`, `message`, `code`, `errors`) and `res.locals.validated` contract established by `DEC-014` remain fully in force.
+
+### DEC-015: Squash Phase 2 Pre-Production Migrations into Unified Canonical Baseline
+
+**Recorded:** 2026-09-12
+**Status:** `ACCEPTED`
+
+**Decision:** Squash the legacy pre-production Phase 2 migrations into a single canonical baseline migration (`20260912090148_init`). The resulting migration directly defines all mapped lowercase tables (`user`, `account`, `session`, `verification`, `admin`, `customer`, `audit_log`), canonical constraints, and indexes without destructive `DROP TABLE` operations.
+
+**Why:** The secondary migration generated destructive `DROP TABLE` statements when table mappings (`@@map`) were introduced during `P2-T005`. In a pre-production repository without live production data, maintaining destructive table drops introduces technical debt and deployment risks for CI/CD, staging, and future production deployment. Pre-production squashing establishes an immutable, clean, and safe schema baseline.
+
+**Consequences:** The Phase 2 migration history consists of a single canonical baseline migration. The development database is reset against this canonical baseline with zero schema drift. All future schema modifications must proceed through sequential, non-destructive migrations.
+
 ### DEC-014: Standardize Public Error Envelope, Stable Application Error Codes, and Typed Validated-Input Locals Contract
 
 **Recorded:** 2026-09-06
-**Status:** `ACCEPTED`
+**Status:** `ACCEPTED` (partially superseded by `DEC-016` regarding validation issue path formatting)
 
-**Decision:** Standardize the public error JSON envelope across the backend to require `success` (false), `message` (string), and `code` (string), with an optional `errors` array of field-level details (`field`, `message`). Establish an initial public error-code registry containing `VALIDATION_ERROR`, `ROUTE_NOT_FOUND`, and `INTERNAL_SERVER_ERROR`. Keep startup configuration errors typed internally (`CONFIGURATION_ERROR`) without public HTTP exposure. Validate request inputs at the middleware layer using Zod, and pass parsed/normalized data to controllers exclusively via a typed Express response locals contract (`res.locals.validated` / `ValidatedLocals<T>`) rather than mutating `req.body`, `req.params`, or `req.query`. Deterministically qualify validation issue paths by their request source (`body.<path>`, `params.<path>`, `query.<path>`).
+**Decision:** Standardize the public error JSON envelope across the backend to require `success` (false), `message` (string), and `code` (string), with an optional `errors` array of field-level details (`field`, `message`). Establish an initial public error-code registry containing `VALIDATION_ERROR`, `ROUTE_NOT_FOUND`, and `INTERNAL_SERVER_ERROR`. Keep startup configuration errors typed internally (`CONFIGURATION_ERROR`) without public HTTP exposure. Validate request inputs at the middleware layer using Zod, and pass parsed/normalized data to controllers exclusively via a typed Express response locals contract (`res.locals.validated` / `ValidatedLocals<T>`) rather than mutating `req.body`, `req.params`, or `req.query`. Deterministically qualify validation issue paths by their request source (`body.<path>`, `params.<path>`, `query.<path>`). Note: Validation issue path formatting is superseded by `DEC-016` to provide discrete `source` and `field` attributes.
 
 **Why:** The previous error response structure allowed inconsistent field names and dev-mode stack trace leakage, violating security and contract stability standards. Passing validated input through `res.locals.validated` guarantees that controllers operate on sanitized and schema-coerced data while leaving Express request objects untouched.
 
@@ -34,13 +311,15 @@ Statuses:
 ### DEC-013: Defer Docker, Jest and Winston Until Project Completion
 
 **Recorded:** 2026-09-06
-**Status:** `ACCEPTED`
+**Status:** `ACCEPTED`  
+*(Partially superseded by `DEC-024` and `DEC-025`: logging and testing deferrals superseded; Winston permanently dropped and Pino integrated in Phase 2 under `P2-T028`; Jest permanently dropped and Vitest integrated in Phase 2 under `P2-T029`. Only Docker deferral remains in force.)*
 
 **Decision:** Exclude Docker configuration, Jest setup and Winston integration from Phase 2 and all remaining feature implementation phases. Introduce them later through dedicated, human-approved project-completion tooling tasks after product feature implementation is complete. Retire Phase 2 task IDs `P2-T003` and `P2-T004` without reusing them.
 
 **Why:** The team has chosen to keep current feature delivery focused on application behavior and postpone containerization, automated-test infrastructure and structured logging until the complete product implementation can define their final requirements coherently.
 
-**Consequences:** Phase tasks may close without Jest suites when their approved build, lint, executable/manual acceptance and security checks pass. The placeholder test script remains accepted temporary state. Existing lifecycle `console.*` logging is tolerated only as the documented temporary baseline; new ad hoc debug logging and sensitive-data logging remain prohibited. Docker files remain absent. The later project-completion tooling plan must implement and verify Docker, Jest and Winston across the completed application before production readiness is claimed.
+**Consequences:** Phase tasks may close without Jest suites when their approved build, lint, executable/manual acceptance and security checks pass. The placeholder test script remains accepted temporary state. Existing lifecycle `console.*` logging is tolerated only as the documented temporary baseline; new ad hoc debug logging and sensitive-data logging remain prohibited. Docker files remain absent. The later project-completion tooling plan must implement and verify Docker, Jest and Winston across the completed application before production readiness is claimed.  
+*(Note: Under `DEC-024`, structured logging was accelerated into Phase 2 using Pino under `P2-T028`. Winston was permanently dropped and all `console.*` statements were fully eliminated. Under `DEC-025`, testing infrastructure was accelerated into Phase 2 using Vitest under `P2-T029`. Jest was permanently dropped, tests were established in `tests/`, and `pnpm test` now executes `vitest run`.)*
 
 ### DEC-012: Defer Docker Configuration
 

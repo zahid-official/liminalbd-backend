@@ -55,9 +55,9 @@ This project delivers a **production-grade RESTful API** that provides:
 | **Payment Gateway** | Stripe            | Current stable | Payment processing for furniture orders |
 | **Media Storage**   | Cloudinary        | Current stable | Project, product and blog media storage |
 | **Email Service**   | Nodemailer (SMTP) | Current stable | Transactional and notification emails   |
-| **Logging**         | Winston           | Current stable | Application logging                     |
+| **Logging**         | Pino              | Current stable | Application and HTTP request logging    |
 | **Validation**      | Zod               | Current stable | Request and data validation             |
-| **Testing**         | Jest              | Current stable | Unit and integration testing            |
+| **Testing**         | Vitest            | Current stable | Unit and integration testing            |
 
 > **Integration Assumption:** Stripe and Cloudinary are the current payment and media providers. Payment and media operations should remain behind dedicated service boundaries so these providers can be replaced later without requiring major changes to the core business logic.
 
@@ -118,17 +118,17 @@ This project delivers a **production-grade RESTful API** that provides:
   | FR-AUTH-001.5 | Public registration must never create a privileged account | - Registration cannot create or assign `ADMIN` or `SUPER_ADMIN` roles |
   | FR-AUTH-001.6 | User and required authentication data must be created consistently | - User and related authentication data are created atomically and remain consistent |
 
-**Input Validation Rules**:
+**Input Validation Rules** (governed by `DEC-017` - Frictionless Registration):
 
 ```tsx
 {
-  email: string (valid email format, max 255 chars),
-  password: string (min 8, max 100 chars),
   name: string (min 2, max 100 chars),
-  contactNumber: string (optional, valid phone format),
-  address: string (optional, max 500 chars)
+  email: string (valid email format, max 255 chars),
+  password: string (min 8, max 100 chars)
 }
 ```
+
+> **Note on Profile Attributes (`DEC-017`):** To eliminate onboarding friction and optimize conversion, public customer registration collects credentials only (`name`, `email`, `password`). Contact and address details are deferred to **FR-CUSTOMER-001** (`P2-T024`).
 
 **Success Response**: HTTP 201 Created
 
@@ -247,7 +247,7 @@ This project delivers a **production-grade RESTful API** that provides:
 | - Invalid credentials are rejected |
 | FR-AUTH-005.2                      | System must support Google login                               | - Users with a linked Google authentication method can authenticate through Google |
 | FR-AUTH-005.3                      | System must reject suspended or deleted accounts               | - Suspended or deleted accounts cannot establish an authenticated session          |
-| FR-AUTH-005.4                      | System must rate-limit repeated failed authentication attempts | - Excessive failed attempts are temporarily restricted                             |
+| FR-AUTH-005.4                      | System must rate-limit repeated failed authentication attempts | - Excessive failed attempts are temporarily restricted (enforced at Reverse Proxy / API Gateway boundary per DEC-019) |
 | FR-AUTH-005.5                      | Successful authentication must establish a secure session      | - Session is created and managed by Better Auth                                    |
 
 **Success Response:** HTTP 200 OK
@@ -257,12 +257,10 @@ This project delivers a **production-grade RESTful API** that provides:
   "success": true,
   "message": "Login successful",
   "data": {
-    "user": {
-      "id": "uuid",
-      "email": "customer@example.com",
-      "role": "CUSTOMER",
-      "emailVerified": true
-    }
+    "id": "uuid",
+    "email": "customer@example.com",
+    "role": "CUSTOMER",
+    "emailVerified": true
   }
 }
 ```
@@ -273,8 +271,8 @@ This project delivers a **production-grade RESTful API** that provides:
 
 - Invalid email or password → HTTP 401 Unauthorized
 - Suspended account → HTTP 403 Forbidden
-- Deleted account → HTTP 403 Forbidden
-- Authentication rate limit exceeded → HTTP 429 Too Many Requests
+- Deleted account → HTTP 401 Unauthorized (anti-enumeration: treated as non-existent credentials per DEC-018)
+- Authentication rate limit exceeded → HTTP 429 Too Many Requests (enforced at Reverse Proxy / API Gateway boundary per DEC-019)
 
 ---
 
