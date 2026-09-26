@@ -381,12 +381,9 @@ const getAdmins = async ({ actorId, actorRole, query }: GetAdminsInput) => {
     };
   });
 
-  // Generate standardized pagination metadata
-  const meta = buildPaginationMeta(page, limit, total);
-
   return {
     data: formattedAdmins,
-    meta,
+    meta: buildPaginationMeta(page, limit, total),
   };
 };
 

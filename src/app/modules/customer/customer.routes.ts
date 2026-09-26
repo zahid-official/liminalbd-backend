@@ -15,6 +15,15 @@ router.post(
   CustomerController.registerCustomer,
 );
 
+// Retrieve paginated Customer accounts (Admin only)
+router.get(
+  "/",
+  authGuard,
+  rbacGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateRequest(CustomerValidation.getCustomersQuerySchema),
+  CustomerController.getCustomers,
+);
+
 // Retrieve customer by ID (Admin only)
 router.get(
   "/:id",
@@ -26,3 +35,4 @@ router.get(
 
 // Export customer routes
 export const CustomerRoutes = router;
+
