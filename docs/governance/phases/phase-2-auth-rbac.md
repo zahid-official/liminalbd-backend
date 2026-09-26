@@ -165,7 +165,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 21    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `✅`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 22    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `✅`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
 | 23    | D          | `P2-T024` | Implement Customer profile and email updates                             | `✅`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
-| 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔲`   | `P2-T022`                       | `P2-B001`                                    |
+| 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🔄`   | `P2-T022`                       | `P2-B001`                                    |
 | 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
 | 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
 
