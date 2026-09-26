@@ -15,25 +15,34 @@ interface MockResponseOptions {
   user?: Partial<AuthUser>;
   validatedBody?: unknown;
   validatedParams?: unknown;
+  validatedQuery?: unknown;
 }
 
 const makeMockRes = ({
   user,
   validatedBody,
   validatedParams,
+  validatedQuery,
 }: MockResponseOptions = {}) => {
   return {
     locals: {
       user,
       validated:
-        validatedBody !== undefined || validatedParams !== undefined
-          ? { body: validatedBody, params: validatedParams }
+        validatedBody !== undefined ||
+        validatedParams !== undefined ||
+        validatedQuery !== undefined
+          ? {
+              body: validatedBody,
+              params: validatedParams,
+              query: validatedQuery,
+            }
           : undefined,
     },
     status: vi.fn().mockReturnThis(),
     json: vi.fn(),
   } as unknown as Response;
 };
+
 
 describe("CustomerController Unit Tests", () => {
   afterEach(() => {
@@ -194,4 +203,98 @@ describe("CustomerController Unit Tests", () => {
       expect(res.json).not.toHaveBeenCalled();
     });
   });
+
+  describe("getCustomers", () => {
+    const mockAuthUser = {
+      id: "admin-uuid-001",
+      role: UserRole.ADMIN,
+    } as AuthUser;
+
+    const mockQuery = {
+      page: 1,
+      limit: 10,
+      sortBy: "createdAt" as const,
+      sortOrder: "desc" as const,
+    };
+
+    const mockResult = {
+      data: [
+        {
+          id: "customer-uuid-1",
+          name: "Customer User",
+          email: "customer@liminalbd.com",
+          emailVerified: true,
+          image: null,
+          role: UserRole.CUSTOMER,
+          status: UserStatus.ACTIVE,
+          contactNumber: "01700000000",
+          address: "Dhaka, Bangladesh",
+          createdAt: new Date("2026-09-20T10:00:00.000Z"),
+          updatedAt: new Date("2026-09-23T12:00:00.000Z"),
+        },
+      ],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+
+    it("should extract validated query and actor context, invoke CustomerService.getCustomers, and return 200 response with data and meta", async () => {
+      const getCustomersSpy = vi
+        .spyOn(CustomerService, "getCustomers")
+        .mockResolvedValue(mockResult);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedQuery: mockQuery,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.getCustomers(req, res, next);
+
+      expect(getCustomersSpy).toHaveBeenCalledTimes(1);
+      expect(getCustomersSpy).toHaveBeenCalledWith({
+        actorId: mockAuthUser.id,
+        actorRole: UserRole.ADMIN,
+        query: mockQuery,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Customers retrieved successfully",
+        data: mockResult.data,
+        meta: mockResult.meta,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.FORBIDDEN,
+        PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        "Only administrators can list Customer accounts",
+      );
+
+      vi.spyOn(CustomerService, "getCustomers").mockRejectedValue(serviceError);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedQuery: mockQuery,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.getCustomers(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
 });
+

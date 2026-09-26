@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CUSTOMER_SORT_FIELDS } from "../../../../src/app/modules/customer/customer.constant.js";
 import { CustomerValidation } from "../../../../src/app/modules/customer/customer.validation.js";
 
 type SafeParseLike =
@@ -198,4 +199,191 @@ describe("CustomerValidation Unit Tests", () => {
       ).toBe("Invalid ID format");
     });
   });
+
+  describe("getCustomersQuerySchema Validation", () => {
+    const querySchema = CustomerValidation.getCustomersQuerySchema.query;
+
+    describe("Default Values & Normalization", () => {
+      it("should apply default values when query object is empty", () => {
+        const result = querySchema.safeParse({});
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          },
+        });
+      });
+
+      it("should coerce string numbers and sanitize query attributes correctly", () => {
+        const query = {
+          page: "2",
+          limit: "25",
+          sortBy: "email",
+          sortOrder: "asc",
+          searchTerm: "  Zahid Customer  ",
+          status: "ACTIVE",
+          startDate: "2026-01-01T00:00:00.000Z",
+          endDate: "2026-01-31T23:59:59.999Z",
+        };
+
+        const result = querySchema.safeParse(query);
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 2,
+            limit: 25,
+            sortBy: "email",
+            sortOrder: "asc",
+            searchTerm: "Zahid Customer",
+            status: "ACTIVE",
+            startDate: new Date("2026-01-01T00:00:00.000Z"),
+            endDate: new Date("2026-01-31T23:59:59.999Z"),
+          },
+        });
+      });
+
+      it("should permit all allowed CUSTOMER_SORT_FIELDS", () => {
+        for (const sortField of CUSTOMER_SORT_FIELDS) {
+          const result = querySchema.safeParse({ sortBy: sortField });
+          expect(result.success).toBe(true);
+          if (result.success) {
+            expect(result.data.sortBy).toBe(sortField);
+          }
+        }
+      });
+
+      it("should strip client-injected fields to prevent query pollution", () => {
+        const queryWithInjectedFields = {
+          role: "CUSTOMER",
+          deletedAt: null,
+          isSuperAdmin: true,
+          arbitraryInjection: "malicious",
+        };
+
+        const result = querySchema.safeParse(queryWithInjectedFields);
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          },
+        });
+      });
+
+      it("should pass when only startDate is provided", () => {
+        const result = querySchema.safeParse({
+          startDate: "2026-01-01T00:00:00.000Z",
+        });
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            startDate: new Date("2026-01-01T00:00:00.000Z"),
+          },
+        });
+      });
+
+      it("should pass when only endDate is provided", () => {
+        const result = querySchema.safeParse({
+          endDate: "2026-01-31T23:59:59.999Z",
+        });
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            endDate: new Date("2026-01-31T23:59:59.999Z"),
+          },
+        });
+      });
+
+      it("should pass when startDate equals endDate", () => {
+        const dateStr = "2026-01-15T12:00:00.000Z";
+        const result = querySchema.safeParse({
+          startDate: dateStr,
+          endDate: dateStr,
+        });
+
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe("Validation Failures", () => {
+      it("should fail when sortBy is not in CUSTOMER_SORT_FIELDS", () => {
+        const result = querySchema.safeParse({ sortBy: "password" });
+        expect(getFirstErrorMessage(result)).toBe("Invalid sort field");
+      });
+
+      it("should fail when sortOrder is neither asc nor desc", () => {
+        const result = querySchema.safeParse({ sortOrder: "ascending" });
+        expect(getFirstErrorMessage(result)).toBe(
+          "Sort order must be either 'asc' or 'desc'",
+        );
+      });
+
+      it("should fail when page is less than 1", () => {
+        const result = querySchema.safeParse({ page: 0 });
+        expect(getFirstErrorMessage(result)).toBe("Page must be at least 1");
+      });
+
+      it("should fail when page is a float", () => {
+        const result = querySchema.safeParse({ page: 1.5 });
+        expect(getFirstErrorMessage(result)).toBe("Page must be an integer");
+      });
+
+      it("should fail when limit is less than 1", () => {
+        const result = querySchema.safeParse({ limit: 0 });
+        expect(getFirstErrorMessage(result)).toBe("Limit must be at least 1");
+      });
+
+      it("should fail when limit exceeds 100", () => {
+        const result = querySchema.safeParse({ limit: 101 });
+        expect(getFirstErrorMessage(result)).toBe("Limit cannot exceed 100");
+      });
+
+      it("should fail when status is invalid", () => {
+        const result = querySchema.safeParse({ status: "PENDING" });
+        expect(getFirstErrorMessage(result)).toBe(
+          "Status must be a valid account status",
+        );
+      });
+
+      it("should fail when startDate is an invalid date string", () => {
+        const result = querySchema.safeParse({ startDate: "invalid-date" });
+        expect(getFirstErrorMessage(result)).toBe("Invalid start date format");
+      });
+
+      it("should fail when endDate is an invalid date string", () => {
+        const result = querySchema.safeParse({ endDate: "invalid-date" });
+        expect(getFirstErrorMessage(result)).toBe("Invalid end date format");
+      });
+
+      it("should fail when startDate is strictly after endDate", () => {
+        const result = querySchema.safeParse({
+          startDate: "2026-02-01T00:00:00.000Z",
+          endDate: "2026-01-01T00:00:00.000Z",
+        });
+
+        expect(getFirstErrorMessage(result)).toBe(
+          "Start date must be before or equal to end date",
+        );
+      });
+    });
+  });
 });
+

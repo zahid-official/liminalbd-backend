@@ -4,7 +4,10 @@ import { auth } from "../../../../src/app/config/auth.js";
 import { prisma } from "../../../../src/app/config/prisma.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
 import { CustomerService } from "../../../../src/app/modules/customer/customer.service.js";
+import { AuditService } from "../../../../src/app/shared/audit/audit.service.js";
 import {
+  AuditAction,
+  AuditEntityType,
   UserRole,
   UserStatus,
 } from "../../../../src/generated/prisma/enums.js";
@@ -277,4 +280,399 @@ describe("CustomerService Unit Tests", () => {
       expect(result.updatedAt).toEqual(userUpdatedAt);
     });
   });
+
+  describe("getCustomers", () => {
+    const actorId = "admin-user-001";
+    const userCreatedAt = new Date("2026-09-20T10:00:00.000Z");
+    const userUpdatedAt = new Date("2026-09-21T12:00:00.000Z");
+    const customerUpdatedAt = new Date("2026-09-23T15:00:00.000Z");
+
+    const mockCustomerDbRecord = {
+      id: "cust-001",
+      name: "Customer One",
+      email: "customer1@example.com",
+      emailVerified: true,
+      image: "https://avatar.example.com/c1.jpg",
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      deletedAt: null,
+      createdAt: userCreatedAt,
+      updatedAt: userUpdatedAt,
+      customer: {
+        contactNumber: "+8801711111111",
+        address: "Gulshan, Dhaka",
+        updatedAt: customerUpdatedAt,
+      },
+    };
+
+    const expectedCustomerItem = {
+      id: "cust-001",
+      name: "Customer One",
+      email: "customer1@example.com",
+      emailVerified: true,
+      image: "https://avatar.example.com/c1.jpg",
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      contactNumber: "+8801711111111",
+      address: "Gulshan, Dhaka",
+      createdAt: userCreatedAt,
+      updatedAt: customerUpdatedAt,
+    };
+
+    describe("Authorization & Defense-in-Depth Security", () => {
+      it("should reject CUSTOMER role with 403 FORBIDDEN_ROLE_ACCESS and record audit log", async () => {
+        const auditSpy = vi
+          .spyOn(AuditService, "record")
+          .mockResolvedValue({} as any);
+
+        await expect(
+          CustomerService.getCustomers({
+            actorId: "customer-actor-1",
+            actorRole: UserRole.CUSTOMER,
+            query: { page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message: "Only administrators can list Customer accounts",
+        });
+
+        expect(auditSpy).toHaveBeenCalledTimes(1);
+        expect(auditSpy).toHaveBeenCalledWith({
+          actorId: "customer-actor-1",
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.CUSTOMER,
+          metadata: {
+            attemptedAction: "GET_CUSTOMERS",
+            attemptedRole: UserRole.CUSTOMER,
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
+      });
+
+      it("should permit ADMIN role to list customers", async () => {
+        vi.spyOn(prisma.user, "findMany").mockResolvedValue([mockCustomerDbRecord as any]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        const result = await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: { page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" },
+        });
+
+        expect(result.data).toEqual([expectedCustomerItem]);
+        expect(result.meta).toEqual({
+          page: 1,
+          limit: 10,
+          total: 1,
+          totalPages: 1,
+        });
+      });
+
+      it("should permit SUPER_ADMIN role to list customers", async () => {
+        vi.spyOn(prisma.user, "findMany").mockResolvedValue([mockCustomerDbRecord as any]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        const result = await CustomerService.getCustomers({
+          actorId: "super-admin-001",
+          actorRole: UserRole.SUPER_ADMIN,
+          query: { page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" },
+        });
+
+        expect(result.data).toEqual([expectedCustomerItem]);
+      });
+    });
+
+    describe("Query Filtering, Search & Pagination", () => {
+      it("should build default query filtering role CUSTOMER and deletedAt null", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([mockCustomerDbRecord as any]);
+        const countSpy = vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        const result = await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: { page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith({
+          where: {
+            role: UserRole.CUSTOMER,
+            deletedAt: null,
+          },
+          skip: 0,
+          take: 10,
+          orderBy: { createdAt: "desc" },
+          include: { customer: true },
+        });
+
+        expect(countSpy).toHaveBeenCalledWith({
+          where: {
+            role: UserRole.CUSTOMER,
+            deletedAt: null,
+          },
+        });
+
+        expect(result.meta).toEqual({
+          page: 1,
+          limit: 10,
+          total: 1,
+          totalPages: 1,
+        });
+      });
+
+      it("should filter by status when status filter is provided", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([]);
+        const countSpy = vi.spyOn(prisma.user, "count").mockResolvedValue(0);
+
+        const result = await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            status: UserStatus.SUSPENDED,
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              role: UserRole.CUSTOMER,
+              deletedAt: null,
+              status: UserStatus.SUSPENDED,
+            },
+          }),
+        );
+        expect(countSpy).toHaveBeenCalledWith({
+          where: {
+            role: UserRole.CUSTOMER,
+            deletedAt: null,
+            status: UserStatus.SUSPENDED,
+          },
+        });
+        expect(result.data).toEqual([]);
+        expect(result.meta.total).toBe(0);
+      });
+
+      it("should apply multi-field text search when searchTerm is provided", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([mockCustomerDbRecord as any]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            searchTerm: "customer",
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              role: UserRole.CUSTOMER,
+              deletedAt: null,
+              OR: [
+                { name: { contains: "customer", mode: "insensitive" } },
+                { email: { contains: "customer", mode: "insensitive" } },
+              ],
+            },
+          }),
+        );
+      });
+
+      it("should filter by creation date range when startDate and endDate are provided", async () => {
+        const startDate = new Date("2026-01-01T00:00:00.000Z");
+        const endDate = new Date("2026-01-31T23:59:59.999Z");
+
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(0);
+
+        await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            startDate,
+            endDate,
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              role: UserRole.CUSTOMER,
+              deletedAt: null,
+              createdAt: {
+                gte: startDate,
+                lte: endDate,
+              },
+            },
+          }),
+        );
+      });
+
+      it("should filter by only startDate when endDate is not provided", async () => {
+        const startDate = new Date("2026-01-01T00:00:00.000Z");
+
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(0);
+
+        await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            startDate,
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              role: UserRole.CUSTOMER,
+              deletedAt: null,
+              createdAt: {
+                gte: startDate,
+              },
+            },
+          }),
+        );
+      });
+
+      it("should filter by only endDate when startDate is not provided", async () => {
+        const endDate = new Date("2026-01-31T23:59:59.999Z");
+
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(0);
+
+        await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: {
+            page: 1,
+            limit: 10,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            endDate,
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              role: UserRole.CUSTOMER,
+              deletedAt: null,
+              createdAt: {
+                lte: endDate,
+              },
+            },
+          }),
+        );
+      });
+
+      it("should apply custom pagination and sorting options correctly", async () => {
+        const findManySpy = vi
+          .spyOn(prisma.user, "findMany")
+          .mockResolvedValue([]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(25);
+
+        const result = await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: {
+            page: 3,
+            limit: 5,
+            sortBy: "name",
+            sortOrder: "asc",
+          },
+        });
+
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            skip: 10,
+            take: 5,
+            orderBy: { name: "asc" },
+          }),
+        );
+        expect(result.meta).toEqual({
+          page: 3,
+          limit: 5,
+          total: 25,
+          totalPages: 5,
+        });
+      });
+    });
+
+    describe("DTO Transformation & DEC-028 Timestamp Resolution", () => {
+      it("should resolve user.updatedAt when user is more recent than customer profile", async () => {
+        const olderCustomerDate = new Date("2026-09-15T10:00:00.000Z");
+        const newerUserDate = new Date("2026-09-25T18:00:00.000Z");
+
+        const record = {
+          ...mockCustomerDbRecord,
+          updatedAt: newerUserDate,
+          customer: {
+            ...mockCustomerDbRecord.customer,
+            updatedAt: olderCustomerDate,
+          },
+        };
+
+        vi.spyOn(prisma.user, "findMany").mockResolvedValue([record as any]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        const result = await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: { page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" },
+        });
+
+        expect(result.data[0]?.updatedAt).toEqual(newerUserDate);
+      });
+
+      it("should handle customer without profile extension gracefully", async () => {
+        const recordWithoutProfile = {
+          ...mockCustomerDbRecord,
+          customer: null,
+        };
+
+        vi.spyOn(prisma.user, "findMany").mockResolvedValue([recordWithoutProfile as any]);
+        vi.spyOn(prisma.user, "count").mockResolvedValue(1);
+
+        const result = await CustomerService.getCustomers({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          query: { page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" },
+        });
+
+        expect(result.data[0]?.contactNumber).toBeUndefined();
+        expect(result.data[0]?.address).toBeUndefined();
+        expect(result.data[0]?.updatedAt).toEqual(userUpdatedAt);
+      });
+    });
+  });
 });
+
