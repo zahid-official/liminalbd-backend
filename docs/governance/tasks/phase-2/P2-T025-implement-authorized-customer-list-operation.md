@@ -1,7 +1,7 @@
 # Task: P2-T025 - Implement the Authorized Customer-List Operation
 
-> **Canonical Status:** `🕵️ Awaiting human review` (tracked authoritatively in parent phase file)  
-> **Planning Gate:** Approved → `🔄 In Progress`
+> **Canonical Status:** `✅ Done` (tracked authoritatively in parent phase file)  
+> **Planning Gate:** Approved → Closed
 
 ---
 

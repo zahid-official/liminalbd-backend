@@ -165,8 +165,8 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 21    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `✅`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 22    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `✅`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
 | 23    | D          | `P2-T024` | Implement Customer profile and email updates                             | `✅`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
-| 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `🕵️`   | `P2-T022`                       | `P2-B001`                                    |
-| 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔲`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
+| 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `✅`   | `P2-T022`                       | `P2-B001`                                    |
+| 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `🔄`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
 | 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
 
 Workstreams organize one phase; they are not sub-phases and do not permit parallel implementation. Execute tasks in order unless the plan is explicitly re-approved. Update status only in this index.
@@ -634,9 +634,9 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 - Exclude soft-deleted accounts from normal results and return approved pagination metadata.
 - Prevent unsafe query fields and unnecessary personal-data exposure.
 
-**Additional verification:** Role, query, pagination, date-range and exposure checks.
+**Additional verification:** Role, query, pagination, date-range and exposure checks; automated Vitest unit test suites (`customer.validation.test.ts`, `customer.service.test.ts`, `customer.controller.test.ts`, `customer.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
-**Human review:** `Pending`
+**Human review:** `Approved` (2026-09-26)
 
 #### P2-T026: Implement Customer Account Lifecycle Management
 
