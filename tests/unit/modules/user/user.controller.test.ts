@@ -108,7 +108,10 @@ describe("UserController Unit Tests", () => {
 
       await UserController.updateProfile(req, res, next);
 
-      expect(updateProfileSpy).toHaveBeenCalledWith("user-123", updatePayload);
+      expect(updateProfileSpy).toHaveBeenCalledWith({
+        userId: "user-123",
+        payload: updatePayload,
+      });
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,

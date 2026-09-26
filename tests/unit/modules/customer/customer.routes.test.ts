@@ -44,7 +44,7 @@ describe("CustomerRoutes Unit Tests", () => {
     expect(route?.stack?.length).toBe(2);
   });
 
-  it("should configure GET /:id route with authGuard, validation, and controller handlers", () => {
+  it("should configure GET /:id route with authGuard, rbacGuard, validation, and controller handlers", () => {
     const route = findRoute("/:id", "get");
 
     expect(route).toBeDefined();
@@ -56,7 +56,7 @@ describe("CustomerRoutes Unit Tests", () => {
     expect(route?.methods?.delete).toBeUndefined();
 
     // Guard and middleware stack assertions
-    expect(route?.stack?.length).toBe(3);
+    expect(route?.stack?.length).toBe(4);
     expect(route?.stack?.[0]?.handle).toBe(authGuard);
   });
 });

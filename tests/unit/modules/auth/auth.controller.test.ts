@@ -100,14 +100,14 @@ describe("AuthController Unit Tests", () => {
       await AuthController.requestEmailVerification(req, res, next);
 
       expect(requestServiceSpy).toHaveBeenCalledTimes(1);
-      expect(requestServiceSpy).toHaveBeenCalledWith(
-        mockPayload,
-        expect.any(Headers),
-      );
+      expect(requestServiceSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        payload: mockPayload,
+      });
 
-      const passedHeaders = requestServiceSpy.mock.calls[0]?.[1] as Headers;
-      expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
-      expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
+      const passedInput = requestServiceSpy.mock.calls[0]?.[0];
+      expect(passedInput.headers.get("x-forwarded-for")).toBe("127.0.0.1");
+      expect(passedInput.headers.get("user-agent")).toBe("Vitest-Agent");
 
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
@@ -181,14 +181,14 @@ describe("AuthController Unit Tests", () => {
       await AuthController.confirmEmailVerification(req, res, next);
 
       expect(confirmServiceSpy).toHaveBeenCalledTimes(1);
-      expect(confirmServiceSpy).toHaveBeenCalledWith(
-        mockPayload,
-        expect.any(Headers),
-      );
+      expect(confirmServiceSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        payload: mockPayload,
+      });
 
-      const passedHeaders = confirmServiceSpy.mock.calls[0]?.[1] as Headers;
-      expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
-      expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
+      const passedInput = confirmServiceSpy.mock.calls[0]?.[0];
+      expect(passedInput.headers.get("x-forwarded-for")).toBe("127.0.0.1");
+      expect(passedInput.headers.get("user-agent")).toBe("Vitest-Agent");
 
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "better-auth.session_token=test-cookie; Path=/",
@@ -296,11 +296,14 @@ describe("AuthController Unit Tests", () => {
       await AuthController.loginWithCredentials(req, res, next);
 
       expect(loginSpy).toHaveBeenCalledTimes(1);
-      expect(loginSpy).toHaveBeenCalledWith(mockPayload, expect.any(Headers));
+      expect(loginSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        payload: mockPayload,
+      });
 
-      const passedHeaders = loginSpy.mock.calls[0]?.[1] as Headers;
-      expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
-      expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
+      const passedInput = loginSpy.mock.calls[0]?.[0];
+      expect(passedInput.headers.get("x-forwarded-for")).toBe("127.0.0.1");
+      expect(passedInput.headers.get("user-agent")).toBe("Vitest-Agent");
 
       expect(res.setHeader).toHaveBeenCalledWith(
         "set-cookie",
@@ -395,10 +398,13 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.loginWithGoogle(req, res, next);
 
-      expect(loginSpy).toHaveBeenCalledWith(expect.any(Headers), "/dashboard");
-      const passedHeaders = loginSpy.mock.calls[0]?.[0] as Headers;
-      expect(passedHeaders.get("user-agent")).toBe("Vitest-Agent");
-      expect(passedHeaders.get("x-forwarded-for")).toBe("127.0.0.1");
+      expect(loginSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        redirectTo: "/dashboard",
+      });
+      const passedInput = loginSpy.mock.calls[0]?.[0];
+      expect(passedInput?.headers.get("user-agent")).toBe("Vitest-Agent");
+      expect(passedInput?.headers.get("x-forwarded-for")).toBe("127.0.0.1");
 
       expect(res.setHeader).toHaveBeenCalledWith(
         "set-cookie",
@@ -460,7 +466,10 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.loginWithGoogle(req, res, next);
 
-      expect(loginSpy).toHaveBeenCalledWith(expect.any(Headers), undefined);
+      expect(loginSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        redirectTo: undefined,
+      });
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
@@ -555,11 +564,11 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.linkGoogle(req, res, next);
 
-      expect(linkSpy).toHaveBeenCalledWith(
-        mockCustomerUser,
-        expect.any(Headers),
-        "/profile",
-      );
+      expect(linkSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        user: mockCustomerUser,
+        redirectTo: "/profile",
+      });
       expect(res.setHeader).toHaveBeenCalledWith(
         "set-cookie",
         mockResult.setCookies,
@@ -623,11 +632,11 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.linkGoogle(req, res, next);
 
-      expect(linkSpy).toHaveBeenCalledWith(
-        mockCustomerUser,
-        expect.any(Headers),
-        undefined,
-      );
+      expect(linkSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        user: mockCustomerUser,
+        redirectTo: undefined,
+      });
     });
 
     it("should forward service errors to next() middleware via catchAsync", async () => {
@@ -722,10 +731,10 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.forgotPassword(req, res, next);
 
-      expect(forgotSpy).toHaveBeenCalledWith(
-        { email: "user@example.com", redirectTo: "/new-pass" },
-        expect.any(Headers),
-      );
+      expect(forgotSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        payload: { email: "user@example.com", redirectTo: "/new-pass" },
+      });
       expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
@@ -780,7 +789,10 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.resetPassword(req, res, next);
 
-      expect(resetSpy).toHaveBeenCalledWith(payload, expect.any(Headers));
+      expect(resetSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        payload,
+      });
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "token=resetted; Path=/",
       ]);
@@ -865,11 +877,11 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.changePassword(req, res, next);
 
-      expect(changeSpy).toHaveBeenCalledWith(
-        mockCustomerUser.id,
+      expect(changeSpy).toHaveBeenCalledWith({
+        userId: mockCustomerUser.id,
+        headers: expect.any(Headers),
         payload,
-        expect.any(Headers),
-      );
+      });
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "new_token=valid; Path=/",
       ]);
@@ -947,11 +959,11 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.setPassword(req, res, next);
 
-      expect(setSpy).toHaveBeenCalledWith(
-        mockCustomerUser.id,
+      expect(setSpy).toHaveBeenCalledWith({
+        userId: mockCustomerUser.id,
+        headers: expect.any(Headers),
         payload,
-        expect.any(Headers),
-      );
+      });
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "token=initialized; Path=/",
       ]);
@@ -1024,10 +1036,10 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.logout(req, res, next);
 
-      expect(logoutSpy).toHaveBeenCalledWith(
-        mockSession.token,
-        expect.any(Headers),
-      );
+      expect(logoutSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        sessionToken: mockSession.token,
+      });
       expect(res.setHeader).toHaveBeenCalledWith("set-cookie", [
         "session=; Path=/",
       ]);

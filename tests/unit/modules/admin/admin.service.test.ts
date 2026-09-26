@@ -178,6 +178,8 @@ describe("AdminService Unit Tests", () => {
         }));
 
         mockTx.admin.create.mockImplementation(async ({ data }: any) => ({
+          contactNumber: null,
+          address: null,
           ...data,
           createdAt: mockCreatedAt,
           updatedAt: mockUpdatedAt,
@@ -221,8 +223,6 @@ describe("AdminService Unit Tests", () => {
         expect(mockTx.admin.create).toHaveBeenCalledWith({
           data: {
             userId: createdUserId,
-            contactNumber: null,
-            address: null,
           },
         });
 
@@ -454,7 +454,6 @@ describe("AdminService Unit Tests", () => {
         expect(mockTx.user.update).toHaveBeenCalledWith({
           where: { id: targetId },
           data: { status: UserStatus.ACTIVE },
-          select: expect.any(Object),
         });
         expect(AuditService.record).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -544,7 +543,6 @@ describe("AdminService Unit Tests", () => {
         expect(mockTx.user.update).toHaveBeenCalledWith({
           where: { id: targetId },
           data: { role: UserRole.SUPER_ADMIN },
-          select: expect.any(Object),
         });
 
         expect(mockTx.session.deleteMany).not.toHaveBeenCalled();
@@ -586,7 +584,6 @@ describe("AdminService Unit Tests", () => {
         expect(mockTx.user.update).toHaveBeenCalledWith({
           where: { id: targetId },
           data: { role: UserRole.ADMIN },
-          select: expect.any(Object),
         });
 
         expect(AuditService.record).toHaveBeenCalledWith(
@@ -616,7 +613,6 @@ describe("AdminService Unit Tests", () => {
         expect(mockTx.user.update).toHaveBeenCalledWith({
           where: { id: targetId },
           data: { status: UserStatus.SUSPENDED },
-          select: expect.any(Object),
         });
 
         expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
@@ -684,7 +680,6 @@ describe("AdminService Unit Tests", () => {
             role: UserRole.SUPER_ADMIN,
             status: UserStatus.SUSPENDED,
           },
-          select: expect.any(Object),
         });
 
         expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
@@ -861,25 +856,7 @@ describe("AdminService Unit Tests", () => {
           skip: 0,
           take: 10,
           orderBy: { createdAt: "desc" },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            emailVerified: true,
-            role: true,
-            status: true,
-            needPasswordChange: true,
-            createdAt: true,
-            updatedAt: true,
-            admin: {
-              select: {
-                contactNumber: true,
-                address: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            },
-          },
+          include: { admin: true },
         });
 
         expect(countSpy).toHaveBeenCalledWith({

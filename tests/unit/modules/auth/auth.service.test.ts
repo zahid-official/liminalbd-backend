@@ -39,7 +39,7 @@ describe("AuthService Unit Tests", () => {
         const otpSpy = vi.spyOn(auth.api, "sendVerificationOTP");
 
         await expect(
-          AuthService.requestEmailVerification(payload, mockHeaders),
+          AuthService.requestEmailVerification({ headers: mockHeaders, payload }),
         ).rejects.toSatisfy((err: unknown) => {
           expect(err).toBeInstanceOf(AppError);
           expect(err).toMatchObject({
@@ -72,10 +72,10 @@ describe("AuthService Unit Tests", () => {
           .spyOn(auth.api, "sendVerificationOTP")
           .mockResolvedValue({} as any);
 
-        const result = await AuthService.requestEmailVerification(
+        const result = await AuthService.requestEmailVerification({
+          headers: mockHeaders,
           payload,
-          mockHeaders,
-        );
+        });
 
         expect(findUniqueSpy).toHaveBeenCalledTimes(1);
         expect(findUniqueSpy).toHaveBeenCalledWith({
@@ -106,10 +106,10 @@ describe("AuthService Unit Tests", () => {
           .spyOn(auth.api, "sendVerificationOTP")
           .mockResolvedValue({} as any);
 
-        const result = await AuthService.requestEmailVerification(
+        const result = await AuthService.requestEmailVerification({
+          headers: mockHeaders,
           payload,
-          mockHeaders,
-        );
+        });
 
         expect(findUniqueSpy).toHaveBeenCalledTimes(1);
         expect(findUniqueSpy).toHaveBeenCalledWith({
@@ -145,7 +145,7 @@ describe("AuthService Unit Tests", () => {
         );
 
         await expect(
-          AuthService.requestEmailVerification(payload, mockHeaders),
+          AuthService.requestEmailVerification({ headers: mockHeaders, payload }),
         ).rejects.toThrow(dispatchError);
       });
     });
@@ -184,10 +184,10 @@ describe("AuthService Unit Tests", () => {
             },
           } as any);
 
-        const result = await AuthService.confirmEmailVerification(
+        const result = await AuthService.confirmEmailVerification({
+          headers: mockHeaders,
           payload,
-          mockHeaders,
-        );
+        });
 
         expect(verifySpy).toHaveBeenCalledTimes(1);
         expect(verifySpy).toHaveBeenCalledWith({
@@ -228,10 +228,10 @@ describe("AuthService Unit Tests", () => {
           },
         } as any);
 
-        const result = await AuthService.confirmEmailVerification(
+        const result = await AuthService.confirmEmailVerification({
+          headers: mockHeaders,
           payload,
-          mockHeaders,
-        );
+        });
 
         expect(result.setCookies).toEqual([]);
       });
@@ -243,7 +243,7 @@ describe("AuthService Unit Tests", () => {
         vi.spyOn(auth.api, "verifyEmailOTP").mockRejectedValue(verifyError);
 
         await expect(
-          AuthService.confirmEmailVerification(payload, mockHeaders),
+          AuthService.confirmEmailVerification({ headers: mockHeaders, payload }),
         ).rejects.toThrow(verifyError);
       });
     });
@@ -277,10 +277,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithCredentials(
+      const result = await AuthService.loginWithCredentials({
+        headers: mockHeaders,
         payload,
-        mockHeaders,
-      );
+      });
 
       expect(result).toEqual({
         user: {
@@ -316,7 +316,7 @@ describe("AuthService Unit Tests", () => {
       } as any);
 
       await expect(
-        AuthService.loginWithCredentials(payload, mockHeaders),
+        AuthService.loginWithCredentials({ headers: mockHeaders, payload }),
       ).rejects.toSatisfy((err: unknown) => {
         expect(err).toBeInstanceOf(AppError);
         expect(err).toMatchObject({
@@ -354,7 +354,7 @@ describe("AuthService Unit Tests", () => {
       } as any);
 
       await expect(
-        AuthService.loginWithCredentials(payload, mockHeaders),
+        AuthService.loginWithCredentials({ headers: mockHeaders, payload }),
       ).rejects.toSatisfy((err: unknown) => {
         expect(err).toBeInstanceOf(AppError);
         expect(err).toMatchObject({
@@ -385,10 +385,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithCredentials(
+      const result = await AuthService.loginWithCredentials({
+        headers: mockHeaders,
         payload,
-        mockHeaders,
-      );
+      });
 
       expect(result.setCookies).toEqual([]);
       expect(result.user.id).toBe("customer-1");
@@ -410,10 +410,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithCredentials(
+      const result = await AuthService.loginWithCredentials({
+        headers: mockHeaders,
         payload,
-        mockHeaders,
-      );
+      });
 
       expect(result.setCookies).toEqual([]);
       expect(result.user.id).toBe("customer-1");
@@ -424,7 +424,7 @@ describe("AuthService Unit Tests", () => {
       vi.spyOn(auth.api, "signInEmail").mockRejectedValue(signInError);
 
       await expect(
-        AuthService.loginWithCredentials(payload, mockHeaders),
+        AuthService.loginWithCredentials({ headers: mockHeaders, payload }),
       ).rejects.toThrow(signInError);
     });
   });
@@ -447,10 +447,10 @@ describe("AuthService Unit Tests", () => {
           },
         } as any);
 
-      const result = await AuthService.loginWithGoogle(
-        mockHeaders,
-        "/custom-destination",
-      );
+      const result = await AuthService.loginWithGoogle({
+        headers: mockHeaders,
+        redirectTo: "/custom-destination",
+      });
 
       expect(signInSocialSpy).toHaveBeenCalledWith({
         body: {
@@ -479,7 +479,7 @@ describe("AuthService Unit Tests", () => {
           },
         } as any);
 
-      const result = await AuthService.loginWithGoogle(mockHeaders);
+      const result = await AuthService.loginWithGoogle({ headers: mockHeaders });
 
       expect(signInSocialSpy).toHaveBeenCalledWith({
         body: {
@@ -506,7 +506,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithGoogle(mockHeaders, "/cart");
+      const result = await AuthService.loginWithGoogle({
+        headers: mockHeaders,
+        redirectTo: "/cart",
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -530,7 +533,7 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.loginWithGoogle(mockHeaders);
+      const result = await AuthService.loginWithGoogle({ headers: mockHeaders });
 
       expect(result.setCookies).toEqual([
         "better-auth.state=state123; Path=/; HttpOnly",
@@ -543,9 +546,9 @@ describe("AuthService Unit Tests", () => {
         new Error("OAuth upstream service unavailable"),
       );
 
-      await expect(AuthService.loginWithGoogle(mockHeaders)).rejects.toThrow(
-        "OAuth upstream service unavailable",
-      );
+      await expect(
+        AuthService.loginWithGoogle({ headers: mockHeaders }),
+      ).rejects.toThrow("OAuth upstream service unavailable");
     });
   });
 
@@ -571,7 +574,7 @@ describe("AuthService Unit Tests", () => {
         } as AuthUser;
 
         await expect(
-          AuthService.linkGoogleAccount(staffUser, mockHeaders),
+          AuthService.linkGoogleAccount({ user: staffUser, headers: mockHeaders }),
         ).rejects.toSatisfy((err: unknown) => {
           expect(err).toBeInstanceOf(AppError);
           expect(err).toMatchObject({
@@ -586,14 +589,17 @@ describe("AuthService Unit Tests", () => {
     });
 
     it("should throw 409 CONFLICT if Google account is already linked to user profile", async () => {
-      const findFirstSpy = vi
-        .spyOn(prisma.account, "findFirst")
+      const findUniqueSpy = vi
+        .spyOn(prisma.account, "findUnique")
         .mockResolvedValue({
           id: "acc-google-1",
         } as any);
 
       await expect(
-        AuthService.linkGoogleAccount(customerUser, mockHeaders),
+        AuthService.linkGoogleAccount({
+          user: customerUser,
+          headers: mockHeaders,
+        }),
       ).rejects.toSatisfy((err: unknown) => {
         expect(err).toBeInstanceOf(AppError);
         expect(err).toMatchObject({
@@ -604,17 +610,19 @@ describe("AuthService Unit Tests", () => {
         return true;
       });
 
-      expect(findFirstSpy).toHaveBeenCalledWith({
+      expect(findUniqueSpy).toHaveBeenCalledWith({
         where: {
-          userId: customerUser.id,
-          providerId: "google",
+          userId_providerId: {
+            userId: customerUser.id,
+            providerId: "google",
+          },
         },
         select: { id: true },
       });
     });
 
     it("should link Google account with default callback URL (/profile) when redirectTo is omitted", async () => {
-      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
 
       const linkSpy = vi
         .spyOn(auth.api, "linkSocialAccount")
@@ -626,10 +634,10 @@ describe("AuthService Unit Tests", () => {
           },
         } as any);
 
-      const result = await AuthService.linkGoogleAccount(
-        customerUser,
-        mockHeaders,
-      );
+      const result = await AuthService.linkGoogleAccount({
+        user: customerUser,
+        headers: mockHeaders,
+      });
 
       expect(linkSpy).toHaveBeenCalledWith({
         body: {
@@ -648,7 +656,7 @@ describe("AuthService Unit Tests", () => {
     });
 
     it("should link Google account with custom callback URL when valid redirectTo is provided", async () => {
-      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
 
       const linkSpy = vi
         .spyOn(auth.api, "linkSocialAccount")
@@ -660,11 +668,11 @@ describe("AuthService Unit Tests", () => {
           },
         } as any);
 
-      const result = await AuthService.linkGoogleAccount(
-        customerUser,
-        mockHeaders,
-        "/settings/security",
-      );
+      const result = await AuthService.linkGoogleAccount({
+        user: customerUser,
+        headers: mockHeaders,
+        redirectTo: "/settings/security",
+      });
 
       expect(linkSpy).toHaveBeenCalledWith({
         body: {
@@ -683,7 +691,7 @@ describe("AuthService Unit Tests", () => {
     });
 
     it("should handle undefined or null auth headers safely and return empty setCookies", async () => {
-      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
 
       vi.spyOn(auth.api, "linkSocialAccount").mockResolvedValue({
         headers: undefined,
@@ -693,16 +701,16 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.linkGoogleAccount(
-        customerUser,
-        mockHeaders,
-      );
+      const result = await AuthService.linkGoogleAccount({
+        user: customerUser,
+        headers: mockHeaders,
+      });
 
       expect(result.setCookies).toEqual([]);
     });
 
     it("should forward multiple cookies returned by linkSocialAccount", async () => {
-      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
 
       const mockAuthHeaders = new Headers();
       mockAuthHeaders.append(
@@ -722,10 +730,10 @@ describe("AuthService Unit Tests", () => {
         },
       } as any);
 
-      const result = await AuthService.linkGoogleAccount(
-        customerUser,
-        mockHeaders,
-      );
+      const result = await AuthService.linkGoogleAccount({
+        user: customerUser,
+        headers: mockHeaders,
+      });
 
       expect(result.setCookies).toEqual([
         "better-auth.state=linkstate123; Path=/; HttpOnly",
@@ -734,14 +742,17 @@ describe("AuthService Unit Tests", () => {
     });
 
     it("should propagate errors thrown by auth.api.linkSocialAccount", async () => {
-      vi.spyOn(prisma.account, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.account, "findUnique").mockResolvedValue(null);
 
       vi.spyOn(auth.api, "linkSocialAccount").mockRejectedValue(
         new Error("OAuth upstream service unavailable"),
       );
 
       await expect(
-        AuthService.linkGoogleAccount(customerUser, mockHeaders),
+        AuthService.linkGoogleAccount({
+          user: customerUser,
+          headers: mockHeaders,
+        }),
       ).rejects.toThrow("OAuth upstream service unavailable");
     });
   });
@@ -920,10 +931,10 @@ describe("AuthService Unit Tests", () => {
         .spyOn(auth.api, "requestPasswordReset")
         .mockResolvedValue({} as any);
 
-      const result = await AuthService.forgotPassword(
-        { email: "user@example.com", redirectTo: "/new-password" },
-        mockHeaders,
-      );
+      const result = await AuthService.forgotPassword({
+        headers: mockHeaders,
+        payload: { email: "user@example.com", redirectTo: "/new-password" },
+      });
 
       expect(resetSpy).toHaveBeenCalledWith({
         body: {
@@ -944,10 +955,10 @@ describe("AuthService Unit Tests", () => {
         .spyOn(auth.api, "requestPasswordReset")
         .mockResolvedValue({} as any);
 
-      const result = await AuthService.forgotPassword(
-        { email: "user@example.com" },
-        mockHeaders,
-      );
+      const result = await AuthService.forgotPassword({
+        headers: mockHeaders,
+        payload: { email: "user@example.com" },
+      });
 
       expect(resetSpy).toHaveBeenCalledWith({
         body: {
@@ -969,7 +980,9 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.forgotPassword({ email: "user@example.com" }, mockHeaders),
+        AuthService.forgotPassword(
+          { headers: mockHeaders, payload: { email: "user@example.com" } },
+        ),
       ).rejects.toThrow("Auth provider unavailable");
     });
   });
@@ -984,10 +997,10 @@ describe("AuthService Unit Tests", () => {
         response: { status: true },
       } as any);
 
-      const result = await AuthService.resetPassword(
-        { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
-        mockHeaders,
-      );
+      const result = await AuthService.resetPassword({
+        headers: mockHeaders,
+        payload: { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
+      });
 
       expect(resetSpy).toHaveBeenCalledWith({
         body: {
@@ -1011,10 +1024,10 @@ describe("AuthService Unit Tests", () => {
         response: { status: true },
       } as any);
 
-      const result = await AuthService.resetPassword(
-        { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
-        mockHeaders,
-      );
+      const result = await AuthService.resetPassword({
+        headers: mockHeaders,
+        payload: { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1027,10 +1040,10 @@ describe("AuthService Unit Tests", () => {
         response: { status: true },
       } as any);
 
-      const result = await AuthService.resetPassword(
-        { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
-        mockHeaders,
-      );
+      const result = await AuthService.resetPassword({
+        headers: mockHeaders,
+        payload: { token: "reset-tok-123", newPassword: "NewSecurePass123!" },
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1041,10 +1054,10 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.resetPassword(
-          { token: "invalid-tok", newPassword: "NewSecurePass123!" },
-          mockHeaders,
-        ),
+        AuthService.resetPassword({
+          headers: mockHeaders,
+          payload: { token: "invalid-tok", newPassword: "NewSecurePass123!" },
+        }),
       ).rejects.toThrow("Invalid or expired reset token");
     });
   });
@@ -1069,11 +1082,11 @@ describe("AuthService Unit Tests", () => {
         .spyOn(prisma.user, "update")
         .mockResolvedValue({} as any);
 
-      const result = await AuthService.changePassword(
-        "user-id-123",
+      const result = await AuthService.changePassword({
+        userId: "user-id-123",
+        headers: mockHeaders,
         payload,
-        mockHeaders,
-      );
+      });
 
       expect(changeSpy).toHaveBeenCalledWith({
         body: {
@@ -1107,11 +1120,11 @@ describe("AuthService Unit Tests", () => {
 
       vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
 
-      const result = await AuthService.changePassword(
-        "user-id-123",
-        { ...payload, revokeOtherSessions: false },
-        mockHeaders,
-      );
+      const result = await AuthService.changePassword({
+        userId: "user-id-123",
+        headers: mockHeaders,
+        payload: { ...payload, revokeOtherSessions: false },
+      });
 
       expect(changeSpy).toHaveBeenCalledWith({
         body: {
@@ -1136,11 +1149,11 @@ describe("AuthService Unit Tests", () => {
 
       vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
 
-      const result = await AuthService.changePassword(
-        "user-id-123",
+      const result = await AuthService.changePassword({
+        userId: "user-id-123",
+        headers: mockHeaders,
         payload,
-        mockHeaders,
-      );
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1153,11 +1166,11 @@ describe("AuthService Unit Tests", () => {
 
       vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
 
-      const result = await AuthService.changePassword(
-        "user-id-123",
+      const result = await AuthService.changePassword({
+        userId: "user-id-123",
+        headers: mockHeaders,
         payload,
-        mockHeaders,
-      );
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1170,7 +1183,11 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.changePassword("user-id-123", payload, mockHeaders),
+        AuthService.changePassword({
+          userId: "user-id-123",
+          headers: mockHeaders,
+          payload,
+        }),
       ).rejects.toThrow("Invalid current password");
 
       expect(updateSpy).not.toHaveBeenCalled();
@@ -1187,7 +1204,11 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.changePassword("user-id-123", payload, mockHeaders),
+        AuthService.changePassword({
+          userId: "user-id-123",
+          headers: mockHeaders,
+          payload,
+        }),
       ).rejects.toThrow("Database write failure");
     });
   });
@@ -1201,11 +1222,11 @@ describe("AuthService Unit Tests", () => {
       const updateSpy = vi.spyOn(prisma.user, "update");
 
       await expect(
-        AuthService.setPassword(
-          "user-with-pass",
-          { newPassword: "NewPassword123!" },
-          mockHeaders,
-        ),
+        AuthService.setPassword({
+          userId: "user-with-pass",
+          headers: mockHeaders,
+          payload: { newPassword: "NewPassword123!" },
+        }),
       ).rejects.toSatisfy((err: unknown) => {
         expect(err).toBeInstanceOf(AppError);
         expect(err).toMatchObject({
@@ -1235,11 +1256,11 @@ describe("AuthService Unit Tests", () => {
         .spyOn(prisma.user, "update")
         .mockResolvedValue({} as any);
 
-      const result = await AuthService.setPassword(
-        "user-null-pass",
-        { newPassword: "InitialPassword123!" },
-        mockHeaders,
-      );
+      const result = await AuthService.setPassword({
+        userId: "user-null-pass",
+        headers: mockHeaders,
+        payload: { newPassword: "InitialPassword123!" },
+      });
 
       expect(setSpy).toHaveBeenCalledWith({
         body: { newPassword: "InitialPassword123!" },
@@ -1268,11 +1289,11 @@ describe("AuthService Unit Tests", () => {
         .spyOn(prisma.user, "update")
         .mockResolvedValue({} as any);
 
-      const result = await AuthService.setPassword(
-        "user-without-pass",
-        { newPassword: "InitialPassword123!" },
-        mockHeaders,
-      );
+      const result = await AuthService.setPassword({
+        userId: "user-without-pass",
+        headers: mockHeaders,
+        payload: { newPassword: "InitialPassword123!" },
+      });
 
       expect(setSpy).toHaveBeenCalledWith({
         body: { newPassword: "InitialPassword123!" },
@@ -1301,11 +1322,11 @@ describe("AuthService Unit Tests", () => {
 
       vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
 
-      const result = await AuthService.setPassword(
-        "user-without-pass",
-        { newPassword: "InitialPassword123!" },
-        mockHeaders,
-      );
+      const result = await AuthService.setPassword({
+        userId: "user-without-pass",
+        headers: mockHeaders,
+        payload: { newPassword: "InitialPassword123!" },
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1320,11 +1341,11 @@ describe("AuthService Unit Tests", () => {
 
       vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
 
-      const result = await AuthService.setPassword(
-        "user-without-pass",
-        { newPassword: "InitialPassword123!" },
-        mockHeaders,
-      );
+      const result = await AuthService.setPassword({
+        userId: "user-without-pass",
+        headers: mockHeaders,
+        payload: { newPassword: "InitialPassword123!" },
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1338,11 +1359,11 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.setPassword(
-          "user-without-pass",
-          { newPassword: "InitialPassword123!" },
-          mockHeaders,
-        ),
+        AuthService.setPassword({
+          userId: "user-without-pass",
+          headers: mockHeaders,
+          payload: { newPassword: "InitialPassword123!" },
+        }),
       ).rejects.toThrow("Upstream setPassword failure");
 
       expect(updateSpy).not.toHaveBeenCalled();
@@ -1361,11 +1382,11 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.setPassword(
-          "user-without-pass",
-          { newPassword: "InitialPassword123!" },
-          mockHeaders,
-        ),
+        AuthService.setPassword({
+          userId: "user-without-pass",
+          headers: mockHeaders,
+          payload: { newPassword: "InitialPassword123!" },
+        }),
       ).rejects.toThrow("Database write failure");
     });
   });
@@ -1387,7 +1408,10 @@ describe("AuthService Unit Tests", () => {
         response: { status: true },
       } as any);
 
-      const result = await AuthService.logout("active-token-123", mockHeaders);
+      const result = await AuthService.logout({
+        sessionToken: "active-token-123",
+        headers: mockHeaders,
+      });
 
       expect(revokeSpy).toHaveBeenCalledWith({
         body: { token: "active-token-123" },
@@ -1417,7 +1441,10 @@ describe("AuthService Unit Tests", () => {
         response: { status: true },
       } as any);
 
-      const result = await AuthService.logout("active-token-123", mockHeaders);
+      const result = await AuthService.logout({
+        sessionToken: "active-token-123",
+        headers: mockHeaders,
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1432,7 +1459,10 @@ describe("AuthService Unit Tests", () => {
         response: { status: true },
       } as any);
 
-      const result = await AuthService.logout("active-token-123", mockHeaders);
+      const result = await AuthService.logout({
+        sessionToken: "active-token-123",
+        headers: mockHeaders,
+      });
 
       expect(result.setCookies).toEqual([]);
     });
@@ -1444,7 +1474,10 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.logout("active-token-123", mockHeaders),
+        AuthService.logout({
+          sessionToken: "active-token-123",
+          headers: mockHeaders,
+        }),
       ).rejects.toThrow("Session revocation failed");
 
       expect(signOutSpy).not.toHaveBeenCalled();
@@ -1459,7 +1492,10 @@ describe("AuthService Unit Tests", () => {
       );
 
       await expect(
-        AuthService.logout("active-token-123", mockHeaders),
+        AuthService.logout({
+          sessionToken: "active-token-123",
+          headers: mockHeaders,
+        }),
       ).rejects.toThrow("Sign out failed");
     });
   });

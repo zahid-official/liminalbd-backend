@@ -27,10 +27,15 @@ export const nonDeletedUserFilter: Prisma.UserWhereInput = {
 };
 
 // Update user account status
-const updateStatus = async (input: UpdateUserStatusInput): Promise<User> => {
+const updateStatus = async ({
+  actorId,
+  targetUserId,
+  newStatus,
+  reason,
+}: UpdateUserStatusInput): Promise<User> => {
   const result = await prisma.$transaction(async (tx) => {
     const targetUser = await tx.user.findUnique({
-      where: { id: input.targetUserId },
+      where: { id: targetUserId },
       select: { id: true, status: true, deletedAt: true },
     });
 
@@ -42,33 +47,33 @@ const updateStatus = async (input: UpdateUserStatusInput): Promise<User> => {
       );
     }
 
-    if (targetUser.status === input.newStatus) {
+    if (targetUser.status === newStatus) {
       throw new AppError(
         status.BAD_REQUEST,
         PUBLIC_ERROR_CODES.VALIDATION_ERROR,
-        `User account is already ${input.newStatus.toLowerCase()}`,
+        `User account is already ${newStatus.toLowerCase()}`,
       );
     }
 
     const updatedUser = await tx.user.update({
-      where: { id: input.targetUserId },
-      data: { status: input.newStatus },
+      where: { id: targetUserId },
+      data: { status: newStatus },
     });
 
     // Invalidate all active sessions if restricting account access
     if (
-      input.newStatus === UserStatus.SUSPENDED ||
-      input.newStatus === UserStatus.DEACTIVATED
+      newStatus === UserStatus.SUSPENDED ||
+      newStatus === UserStatus.DEACTIVATED
     ) {
       await tx.session.deleteMany({
-        where: { userId: input.targetUserId },
+        where: { userId: targetUserId },
       });
     }
 
     let action: AuditAction = AuditAction.REACTIVATE;
-    if (input.newStatus === UserStatus.SUSPENDED) {
+    if (newStatus === UserStatus.SUSPENDED) {
       action = AuditAction.SUSPEND;
-    } else if (input.newStatus === UserStatus.DEACTIVATED) {
+    } else if (newStatus === UserStatus.DEACTIVATED) {
       action = AuditAction.DEACTIVATE;
     }
 
@@ -76,17 +81,17 @@ const updateStatus = async (input: UpdateUserStatusInput): Promise<User> => {
     const auditData: CreateAuditLogInput = {
       action,
       entityType: AuditEntityType.USER,
-      entityId: input.targetUserId,
+      entityId: targetUserId,
       previousValue: { status: targetUser.status },
-      newValue: { status: input.newStatus },
+      newValue: { status: newStatus },
       tx,
     };
 
-    if (input.actorId) {
-      auditData.actorId = input.actorId;
+    if (actorId) {
+      auditData.actorId = actorId;
     }
-    if (input.reason) {
-      auditData.metadata = { reason: input.reason };
+    if (reason) {
+      auditData.metadata = { reason };
     }
 
     await AuditService.record(auditData);
@@ -97,10 +102,14 @@ const updateStatus = async (input: UpdateUserStatusInput): Promise<User> => {
 };
 
 // Soft-delete user account
-const softDelete = async (input: SoftDeleteUserInput): Promise<User> => {
+const softDelete = async ({
+  actorId,
+  targetUserId,
+  reason,
+}: SoftDeleteUserInput): Promise<User> => {
   const result = await prisma.$transaction(async (tx) => {
     const targetUser = await tx.user.findUnique({
-      where: { id: input.targetUserId },
+      where: { id: targetUserId },
       select: { id: true, status: true, deletedAt: true },
     });
 
@@ -113,30 +122,30 @@ const softDelete = async (input: SoftDeleteUserInput): Promise<User> => {
     }
 
     const updatedUser = await tx.user.update({
-      where: { id: input.targetUserId },
+      where: { id: targetUserId },
       data: { deletedAt: new Date() },
     });
 
     // Invalidate all active sessions for the soft-deleted account
     await tx.session.deleteMany({
-      where: { userId: input.targetUserId },
+      where: { userId: targetUserId },
     });
 
     // Persist audit record atomically within the same transaction
     const auditData: CreateAuditLogInput = {
       action: AuditAction.SOFT_DELETE,
       entityType: AuditEntityType.USER,
-      entityId: input.targetUserId,
+      entityId: targetUserId,
       previousValue: { deletedAt: targetUser.deletedAt },
       newValue: { deletedAt: updatedUser.deletedAt },
       tx,
     };
 
-    if (input.actorId) {
-      auditData.actorId = input.actorId;
+    if (actorId) {
+      auditData.actorId = actorId;
     }
-    if (input.reason) {
-      auditData.metadata = { reason: input.reason };
+    if (reason) {
+      auditData.metadata = { reason };
     }
 
     await AuditService.record(auditData);

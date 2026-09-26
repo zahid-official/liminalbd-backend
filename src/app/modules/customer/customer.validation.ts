@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   emailSchema,
+  idSchema,
   nameSchema,
   passwordSchema,
 } from "../../validations/common.validation.js";
@@ -17,20 +18,12 @@ const registerCustomerSchema = {
 // Get Customer Params Schema
 const getCustomerSchema = {
   params: z.object({
-    id: z
-      .string({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Customer ID is required"
-            : "Customer ID must be a valid text string",
-      })
-      .trim()
-      .pipe(z.uuid({ error: "Invalid Customer ID format" })),
+    id: idSchema,
   }),
 };
 
 // Inferred input types
-export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema.body>;
+export type RegisterCustomerBody = z.infer<typeof registerCustomerSchema.body>;
 export type GetCustomerParams = z.infer<typeof getCustomerSchema.params>;
 
 // Export customer validation schemas

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  addressSchema,
   contactNumberSchema,
   nameSchema,
 } from "../../validations/common.validation.js";
@@ -9,17 +10,8 @@ const updateProfileSchema = {
   body: z
     .object({
       name: nameSchema.optional(),
-
       contactNumber: contactNumberSchema.optional(),
-
-      address: z
-        .string({
-          error: "Address must be a valid text string",
-        })
-        .trim()
-        .min(3, { error: "Address must be at least 3 characters" })
-        .max(500, { error: "Address cannot exceed 500 characters" })
-        .optional(),
+      address: addressSchema.optional(),
 
       image: z
         .string({
@@ -39,7 +31,7 @@ const updateProfileSchema = {
 };
 
 // Inferred input types
-export type UpdateProfileInput = z.infer<typeof updateProfileSchema.body>;
+export type UpdateProfileBody = z.infer<typeof updateProfileSchema.body>;
 
 // Export user validation schemas
 export const UserValidation = {

@@ -124,21 +124,21 @@ const setPasswordSchema = {
 };
 
 // Inferred input types from validation schemas
-export type RequestEmailVerificationInput = z.infer<
+export type RequestEmailVerificationBody = z.infer<
   typeof requestEmailVerificationSchema.body
 >;
-export type ConfirmEmailVerificationInput = z.infer<
+export type ConfirmEmailVerificationBody = z.infer<
   typeof confirmEmailVerificationSchema.body
 >;
-export type LoginWithCredentialsInput = z.infer<
+export type LoginWithCredentialsBody = z.infer<
   typeof loginWithCredentialsSchema.body
 >;
 export type LoginWithGoogleQuery = z.infer<typeof loginWithGoogleSchema.query>;
 export type LinkGoogleQuery = z.infer<typeof linkGoogleSchema.query>;
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema.body>;
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema.body>;
-export type ChangePasswordInput = z.infer<typeof changePasswordSchema.body>;
-export type SetPasswordInput = z.infer<typeof setPasswordSchema.body>;
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordSchema.body>;
+export type ResetPasswordBody = z.infer<typeof resetPasswordSchema.body>;
+export type ChangePasswordBody = z.infer<typeof changePasswordSchema.body>;
+export type SetPasswordBody = z.infer<typeof setPasswordSchema.body>;
 
 // Export validation schemas
 export const AuthValidation = {

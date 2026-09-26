@@ -19,11 +19,11 @@ import {
 } from "../../utils/queryBuilder.js";
 import { ADMIN_SEARCHABLE_FIELDS } from "./admin.constant.js";
 import type {
-  CreateAdminServiceInput,
-  GetAdminsServiceInput,
-  UpdateAdminServiceInput,
+  CreateAdminInput,
+  GetAdminsInput,
+  UpdateAdminInput,
 } from "./admin.interface.js";
-import type { UpdateAdminInput } from "./admin.validation.js";
+import type { UpdateAdminBody } from "./admin.validation.js";
 
 // Map user status transitions to semantic audit actions
 const STATUS_AUDIT_ACTION_MAP: Record<UserStatus, AuditAction> = {
@@ -33,7 +33,7 @@ const STATUS_AUDIT_ACTION_MAP: Record<UserStatus, AuditAction> = {
 };
 
 // Resolve granular audit action based on mutated attributes
-const resolveAuditAction = (payload: UpdateAdminInput): AuditAction => {
+const resolveAuditAction = (payload: UpdateAdminBody): AuditAction => {
   if (payload.role && !payload.status) {
     return AuditAction.ROLE_CHANGE;
   }
@@ -46,9 +46,7 @@ const resolveAuditAction = (payload: UpdateAdminInput): AuditAction => {
 };
 
 // Create Admin account
-const createAdmin = async (input: CreateAdminServiceInput) => {
-  const { actorId, actorRole, payload } = input;
-
+const createAdmin = async ({ actorId, actorRole, payload }: CreateAdminInput) => {
   if (actorRole !== UserRole.SUPER_ADMIN) {
     await AuditService.record({
       actorId,
@@ -113,11 +111,7 @@ const createAdmin = async (input: CreateAdminServiceInput) => {
 
     // Initialize linked Admin profile record
     const adminProfile = await tx.admin.create({
-      data: {
-        userId,
-        contactNumber: null,
-        address: null,
-      },
+      data: { userId },
     });
 
     // Record privileged account creation in audit log
@@ -145,8 +139,8 @@ const createAdmin = async (input: CreateAdminServiceInput) => {
       role: user.role,
       status: user.status,
       needPasswordChange: user.needPasswordChange,
-      contactNumber: adminProfile.contactNumber ?? null,
-      address: adminProfile.address ?? null,
+      contactNumber: adminProfile.contactNumber,
+      address: adminProfile.address,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -156,9 +150,7 @@ const createAdmin = async (input: CreateAdminServiceInput) => {
 };
 
 // Update Admin account
-const updateAdmin = async (input: UpdateAdminServiceInput) => {
-  const { actorId, actorRole, targetId, payload } = input;
-
+const updateAdmin = async ({ actorId, actorRole, targetId, payload }: UpdateAdminInput) => {
   if (actorRole !== UserRole.SUPER_ADMIN) {
     await AuditService.record({
       actorId,
@@ -225,20 +217,7 @@ const updateAdmin = async (input: UpdateAdminServiceInput) => {
   const result = await prisma.$transaction(async (tx) => {
     const targetUser = await tx.user.findUnique({
       where: { id: targetId },
-      select: {
-        id: true,
-        role: true,
-        status: true,
-        deletedAt: true,
-        admin: {
-          select: {
-            contactNumber: true,
-            address: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-      },
+      include: { admin: true },
     });
 
     if (
@@ -265,17 +244,6 @@ const updateAdmin = async (input: UpdateAdminServiceInput) => {
     const updatedUser = await tx.user.update({
       where: { id: targetId },
       data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        emailVerified: true,
-        role: true,
-        status: true,
-        needPasswordChange: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
     // Invalidate active sessions when restricting account access
@@ -324,8 +292,8 @@ const updateAdmin = async (input: UpdateAdminServiceInput) => {
       role: updatedUser.role,
       status: updatedUser.status,
       needPasswordChange: updatedUser.needPasswordChange,
-      contactNumber: targetUser.admin?.contactNumber ?? null,
-      address: targetUser.admin?.address ?? null,
+      contactNumber: targetUser.admin?.contactNumber,
+      address: targetUser.admin?.address,
       createdAt: updatedUser.createdAt,
       updatedAt,
     };
@@ -335,9 +303,7 @@ const updateAdmin = async (input: UpdateAdminServiceInput) => {
 };
 
 // Retrieve paginated Admin accounts
-const getAdmins = async (input: GetAdminsServiceInput) => {
-  const { actorId, actorRole, query } = input;
-
+const getAdmins = async ({ actorId, actorRole, query }: GetAdminsInput) => {
   if (actorRole !== UserRole.SUPER_ADMIN) {
     await AuditService.record({
       actorId,
@@ -370,8 +336,7 @@ const getAdmins = async (input: GetAdminsServiceInput) => {
     queryOptions.searchTerm = query.searchTerm;
   }
 
-  const { skip, take, orderBy, searchFilter, page, limit } =
-    buildPrismaQuery(queryOptions);
+  const { skip, take, orderBy, searchFilter, page, limit } = buildPrismaQuery(queryOptions);
 
   // Assemble query filters excluding soft-deleted and non-admin users
   const where: Prisma.UserWhereInput = {
@@ -390,25 +355,7 @@ const getAdmins = async (input: GetAdminsServiceInput) => {
       skip,
       take,
       orderBy,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        emailVerified: true,
-        role: true,
-        status: true,
-        needPasswordChange: true,
-        createdAt: true,
-        updatedAt: true,
-        admin: {
-          select: {
-            contactNumber: true,
-            address: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-      },
+      include: { admin: true },
     }),
     prisma.user.count({ where }),
   ]);
@@ -427,8 +374,8 @@ const getAdmins = async (input: GetAdminsServiceInput) => {
       role: adminUser.role,
       status: adminUser.status,
       needPasswordChange: adminUser.needPasswordChange,
-      contactNumber: adminUser.admin?.contactNumber ?? null,
-      address: adminUser.admin?.address ?? null,
+      contactNumber: adminUser.admin?.contactNumber,
+      address: adminUser.admin?.address,
       createdAt: adminUser.createdAt,
       updatedAt,
     };

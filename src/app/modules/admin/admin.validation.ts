@@ -2,6 +2,7 @@ import { z } from "zod";
 import { UserRole } from "../../../generated/prisma/enums.js";
 import {
   emailSchema,
+  idSchema,
   nameSchema,
   paginationQuerySchema,
   passwordSchema,
@@ -21,15 +22,7 @@ const createAdminSchema = {
 // Update Admin Schema
 const updateAdminSchema = {
   params: z.object({
-    id: z
-      .string({
-        error: (issue) =>
-          issue.input === undefined
-            ? "Admin ID is required"
-            : "Admin ID must be a valid text string",
-      })
-      .trim()
-      .pipe(z.uuid({ error: "Invalid Admin ID format" })),
+    id: idSchema,
   }),
 
   body: z
@@ -61,10 +54,10 @@ const getAdminsQuerySchema = {
 };
 
 // Inferred input types
-export type CreateAdminInput = z.infer<typeof createAdminSchema.body>;
+export type CreateAdminBody = z.infer<typeof createAdminSchema.body>;
+export type UpdateAdminBody = z.infer<typeof updateAdminSchema.body>;
 export type UpdateAdminParams = z.infer<typeof updateAdminSchema.params>;
-export type UpdateAdminInput = z.infer<typeof updateAdminSchema.body>;
-export type GetAdminsQueryInput = z.infer<typeof getAdminsQuerySchema.query>;
+export type GetAdminsQuery = z.infer<typeof getAdminsQuerySchema.query>;
 
 // Export admin validation schemas
 export const AdminValidation = {

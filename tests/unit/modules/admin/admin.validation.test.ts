@@ -184,21 +184,21 @@ describe("AdminValidation Unit Tests", () => {
       it("should fail when id is missing or undefined", () => {
         const result = paramsSchema.safeParse({});
 
-        expect(getFirstErrorMessage(result)).toBe("Admin ID is required");
+        expect(getFirstErrorMessage(result)).toBe("ID is required");
       });
 
       it("should fail when id is not a string", () => {
         const result = paramsSchema.safeParse({ id: 12345 });
 
         expect(getFirstErrorMessage(result)).toBe(
-          "Admin ID must be a valid text string",
+          "ID must be a valid text string",
         );
       });
 
       it("should fail when id is an invalid UUID format", () => {
         const result = paramsSchema.safeParse({ id: "invalid-uuid-string" });
 
-        expect(getFirstErrorMessage(result)).toBe("Invalid Admin ID format");
+        expect(getFirstErrorMessage(result)).toBe("Invalid ID format");
       });
     });
 

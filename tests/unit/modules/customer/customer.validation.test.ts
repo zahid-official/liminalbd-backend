@@ -180,13 +180,13 @@ describe("CustomerValidation Unit Tests", () => {
 
     it("should fail when id is undefined with required message", () => {
       expect(getFirstErrorMessage(paramsSchema.safeParse({}))).toBe(
-        "Customer ID is required",
+        "ID is required",
       );
     });
 
     it("should fail when id is not a string with custom text string message", () => {
       expect(getFirstErrorMessage(paramsSchema.safeParse({ id: 12345 }))).toBe(
-        "Customer ID must be a valid text string",
+        "ID must be a valid text string",
       );
     });
 
@@ -195,7 +195,7 @@ describe("CustomerValidation Unit Tests", () => {
         getFirstErrorMessage(
           paramsSchema.safeParse({ id: "invalid-uuid-123" }),
         ),
-      ).toBe("Invalid Customer ID format");
+      ).toBe("Invalid ID format");
     });
   });
 });
