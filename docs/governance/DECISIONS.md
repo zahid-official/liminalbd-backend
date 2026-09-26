@@ -27,7 +27,7 @@ Statuses:
 
 **Decision:**
 1. **Flattened Resource DTOs:** Public and administrative API responses for extended user entities (e.g. `Customer`, `Admin`) must return a unified, flattened Data Transfer Object (DTO) at the service/API boundary. Relational database profile tables must not be exposed as nested child objects (e.g. avoid `{ id, ..., customer: { contactNumber, address } }` or `{ id, ..., admin: { contactNumber, address } }`). All permitted profile attributes (`contactNumber`, `address`) must be projected directly on the root resource representation.
-2. **Defensive Nullish Coalescing:** Optional or unpopulated profile attributes must resolve via defensive nullish coalescing (`profile?.field ?? null`) to ensure consistent, predictable JSON schema contracts across all account lifecycle phases (creation, initial state, unpopulated fields).
+2. **Native Database NULL via Optional Chaining:** Optional or unpopulated profile attributes resolve directly via idiomatic optional chaining (`profileExtension?.field`). Because the relational database schema natively initializes unpopulated attributes as `NULL` and application lifecycle hooks guarantee 1-to-1 profile existence, redundant `?? null` wrapping is strictly omitted in adherence to KISS & YAGNI.
 3. **Dynamic Latest-Timestamp Resolution:** When an entity is composed of multiple normalized tables (e.g. `User` and `Customer` or `User` and `Admin`), the response `updatedAt` timestamp must dynamically evaluate and reflect the most recent modification across both records (`const updatedAt = profile && profile.updatedAt > user.updatedAt ? profile.updatedAt : user.updatedAt;`), reusing existing Date references without superfluous heap allocations or mathematical conversions.
 4. **Symmetrical Cross-Module Consistency:** This convention applies symmetrically across all user extensions, including customer profile retrieval (`P2-T023`), admin provisioning (`P2-T018`), admin update (`P2-T019`), and admin listing (`P2-T021`).
 
@@ -38,7 +38,7 @@ Statuses:
 4. **KISS, YAGNI & Performance:** Idiomatic direct comparison (`>`) leverages JavaScript's native date value comparison without creating new `Date` instances on the heap, ensuring high throughput and optimal memory usage.
 
 **Consequences:**
-- `CustomerService.getCustomerProfile` returns a flattened object with latest `updatedAt`.
+- `CustomerService.getCustomerById` returns a flattened object with latest `updatedAt`.
 - `AdminService.createAdmin`, `AdminService.updateAdmin`, and `AdminService.getAdmins` return flattened admin profile objects with latest `updatedAt`.
 - Future user extension modules (e.g. vendor, designer, staff profiles in later phases) must follow this identical flattened DTO and latest-timestamp pattern.
 - Unit and integration tests assert against flattened resource structures.
@@ -82,7 +82,7 @@ Restrict the privileged administrative update endpoint (`PATCH /api/v1/admin/adm
 
 **Consequences:**
 - `updateAdminSchema` in `src/app/modules/admin/admin.validation.ts` validates only `role` and `status` in the request body, rejecting empty payloads.
-- `UpdateAdminServiceInput` in `src/app/modules/admin/admin.interface.ts` defines `{ role?: UserRole; status?: UserStatus; }`.
+- `UpdateAdminInput` in `src/app/modules/admin/admin.interface.ts` defines `{ role?: UserRole; status?: UserStatus; }`.
 - `AdminService.updateAdmin` mutates only `User.role` and `User.status`, atomically invalidates active sessions when restricting an account (`SUSPENDED` / `DEACTIVATED`), and records audit trails for governance transitions.
 - Personal profile modifications (`name`, `contactNumber`, `address`) will be handled under self-service profile management endpoints.
 - Task plan `P2-T019` is updated to reflect this refined governance boundary.

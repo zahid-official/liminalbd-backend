@@ -121,11 +121,11 @@ describe("CustomerController Unit Tests", () => {
     });
   });
 
-  describe("getCustomerProfile", () => {
+  describe("getCustomerById", () => {
     const customerId = "cust-user-100";
     const mockCurrentUser: Partial<AuthUser> = {
-      id: customerId,
-      role: UserRole.CUSTOMER,
+      id: "admin-user-1",
+      role: UserRole.ADMIN,
       status: UserStatus.ACTIVE,
     };
     const mockProfile = {
@@ -142,9 +142,9 @@ describe("CustomerController Unit Tests", () => {
       updatedAt: new Date("2026-09-24T12:00:00.000Z"),
     };
 
-    it("should extract params and user context, invoke CustomerService, and return 200 OK", async () => {
-      const getProfileSpy = vi
-        .spyOn(CustomerService, "getCustomerProfile")
+    it("should extract params id, invoke CustomerService.getCustomerById, and return 200 OK", async () => {
+      const getCustomerSpy = vi
+        .spyOn(CustomerService, "getCustomerById")
         .mockResolvedValue(mockProfile);
 
       const req = {} as unknown as Request;
@@ -154,19 +154,15 @@ describe("CustomerController Unit Tests", () => {
       });
       const next = vi.fn() as unknown as NextFunction;
 
-      await CustomerController.getCustomerProfile(req, res, next);
+      await CustomerController.getCustomerById(req, res, next);
 
-      expect(getProfileSpy).toHaveBeenCalledTimes(1);
-      expect(getProfileSpy).toHaveBeenCalledWith({
-        actorId: customerId,
-        actorRole: UserRole.CUSTOMER,
-        targetId: customerId,
-      });
+      expect(getCustomerSpy).toHaveBeenCalledTimes(1);
+      expect(getCustomerSpy).toHaveBeenCalledWith(customerId);
 
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
-        message: "Customer profile retrieved successfully",
+        message: "Customer retrieved successfully",
         data: mockProfile,
       });
       expect(next).not.toHaveBeenCalled();
@@ -179,7 +175,7 @@ describe("CustomerController Unit Tests", () => {
         "Customer not found",
       );
 
-      vi.spyOn(CustomerService, "getCustomerProfile").mockRejectedValue(
+      vi.spyOn(CustomerService, "getCustomerById").mockRejectedValue(
         serviceError,
       );
 
@@ -190,7 +186,7 @@ describe("CustomerController Unit Tests", () => {
       });
       const next = vi.fn() as unknown as NextFunction;
 
-      await CustomerController.getCustomerProfile(req, res, next);
+      await CustomerController.getCustomerById(req, res, next);
 
       expect(next).toHaveBeenCalledTimes(1);
       expect(next).toHaveBeenCalledWith(serviceError);

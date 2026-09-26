@@ -1,15 +1,7 @@
-import type { UserRole } from "../../../generated/prisma/enums.js";
-import type { RegisterCustomerInput } from "./customer.validation.js";
+import type { RegisterCustomerBody } from "./customer.validation.js";
 
 // Input contract for registering a Customer account
-export interface RegisterCustomerData {
-  payload: RegisterCustomerInput;
+export interface RegisterCustomerInput {
   headers: Headers;
-}
-
-// Input contract for retrieving a Customer profile
-export interface GetCustomerProfileInput {
-  actorId: string;
-  actorRole: UserRole;
-  targetId: string;
+  payload: RegisterCustomerBody;
 }

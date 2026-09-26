@@ -4,34 +4,16 @@ import { UserRole } from "../../../generated/prisma/enums.js";
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
-import type { UpdateProfileInput } from "./user.validation.js";
+import type { UpdateProfileInput } from "./user.interface.js";
 
 // Retrieve authenticated user's own profile
 const getProfile = async (userId: string) => {
-  const user = await prisma.user.findFirst({
-    where: {
-      id: userId,
-      deletedAt: null,
-    },
-    include: {
-      customer: {
-        select: {
-          contactNumber: true,
-          address: true,
-          updatedAt: true,
-        },
-      },
-      admin: {
-        select: {
-          contactNumber: true,
-          address: true,
-          updatedAt: true,
-        },
-      },
-    },
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { customer: true, admin: true },
   });
 
-  if (!user) {
+  if (!user || user.deletedAt !== null) {
     throw new AppError(
       status.NOT_FOUND,
       PUBLIC_ERROR_CODES.USER_NOT_FOUND,
@@ -57,27 +39,21 @@ const getProfile = async (userId: string) => {
     image: user.image,
     role: user.role,
     status: user.status,
-    contactNumber: profileExtension?.contactNumber ?? null,
-    address: profileExtension?.address ?? null,
+    contactNumber: profileExtension?.contactNumber,
+    address: profileExtension?.address,
     createdAt: user.createdAt,
     updatedAt,
   };
 };
 
 // Update authenticated user's own profile
-const updateProfile = async (userId: string, payload: UpdateProfileInput) => {
-  const user = await prisma.user.findFirst({
-    where: {
-      id: userId,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      role: true,
-    },
+const updateProfile = async ({ userId, payload }: UpdateProfileInput) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, deletedAt: true },
   });
 
-  if (!user) {
+  if (!user || user.deletedAt !== null) {
     throw new AppError(
       status.NOT_FOUND,
       PUBLIC_ERROR_CODES.USER_NOT_FOUND,
@@ -96,17 +72,18 @@ const updateProfile = async (userId: string, payload: UpdateProfileInput) => {
   }
 
   if (payload.contactNumber || payload.address) {
-    const extensionUpdate = {
-      ...(payload.contactNumber && { contactNumber: payload.contactNumber }),
-      ...(payload.address && { address: payload.address }),
-    };
+    const extensionUpdate: { contactNumber?: string; address?: string } = {};
 
+    if (payload.contactNumber) {
+      extensionUpdate.contactNumber = payload.contactNumber;
+    }
+    if (payload.address) {
+      extensionUpdate.address = payload.address;
+    }
+    
     if (user.role === UserRole.CUSTOMER) {
       updateData.customer = { update: extensionUpdate };
-    } else if (
-      user.role === UserRole.ADMIN ||
-      user.role === UserRole.SUPER_ADMIN
-    ) {
+    } else {
       updateData.admin = { update: extensionUpdate };
     }
   }
@@ -116,20 +93,8 @@ const updateProfile = async (userId: string, payload: UpdateProfileInput) => {
     where: { id: userId },
     data: updateData,
     include: {
-      customer: {
-        select: {
-          contactNumber: true,
-          address: true,
-          updatedAt: true,
-        },
-      },
-      admin: {
-        select: {
-          contactNumber: true,
-          address: true,
-          updatedAt: true,
-        },
-      },
+      customer: true,
+      admin: true,
     },
   });
 
@@ -153,8 +118,8 @@ const updateProfile = async (userId: string, payload: UpdateProfileInput) => {
     image: updatedUser.image,
     role: updatedUser.role,
     status: updatedUser.status,
-    contactNumber: profileExtension?.contactNumber ?? null,
-    address: profileExtension?.address ?? null,
+    contactNumber: profileExtension?.contactNumber,
+    address: profileExtension?.address,
     createdAt: updatedUser.createdAt,
     updatedAt,
   };

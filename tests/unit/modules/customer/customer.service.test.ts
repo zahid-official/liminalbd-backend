@@ -143,13 +143,13 @@ describe("CustomerService Unit Tests", () => {
     });
   });
 
-  describe("getCustomerProfile", () => {
+  describe("getCustomerById", () => {
     const customerId = "cust-user-100";
     const userCreatedAt = new Date("2026-09-20T10:00:00.000Z");
     const userUpdatedAt = new Date("2026-09-21T12:00:00.000Z");
     const customerUpdatedAt = new Date("2026-09-23T15:00:00.000Z");
 
-    const mockTargetUser = {
+    const mockCustomerUser = {
       id: customerId,
       name: "Zahidul Islam",
       email: "zahid@liminalbd.com",
@@ -157,6 +157,7 @@ describe("CustomerService Unit Tests", () => {
       image: "https://avatar.example.com/user.jpg",
       role: UserRole.CUSTOMER,
       status: UserStatus.ACTIVE,
+      deletedAt: null,
       createdAt: userCreatedAt,
       updatedAt: userUpdatedAt,
       customer: {
@@ -166,41 +167,61 @@ describe("CustomerService Unit Tests", () => {
       },
     };
 
-    it("should throw 404 USER_NOT_FOUND when customer user does not exist or is soft-deleted", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(null);
+    it("should throw 404 USER_NOT_FOUND when user does not exist", async () => {
+      const findUniqueSpy = vi
+        .spyOn(prisma.user, "findUnique")
+        .mockResolvedValue(null);
 
       await expect(
-        CustomerService.getCustomerProfile({
-          actorId: customerId,
-          actorRole: UserRole.CUSTOMER,
-          targetId: "non-existent-id",
-        }),
+        CustomerService.getCustomerById("non-existent-id"),
       ).rejects.toMatchObject({
         statusCode: status.NOT_FOUND,
         code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
         message: "Customer not found",
       });
 
-      expect(prisma.user.findFirst).toHaveBeenCalledWith({
-        where: {
-          id: "non-existent-id",
-          role: UserRole.CUSTOMER,
-          deletedAt: null,
-        },
-        select: expect.any(Object),
+      expect(findUniqueSpy).toHaveBeenCalledWith({
+        where: { id: "non-existent-id" },
+        include: { customer: true },
       });
     });
 
-    it("should authorize and return flattened profile when Customer accesses their own profile", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
-        mockTargetUser as any,
+    it("should throw 404 USER_NOT_FOUND when user exists but role is not CUSTOMER", async () => {
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        ...mockCustomerUser,
+        role: UserRole.ADMIN,
+      } as any);
+
+      await expect(
+        CustomerService.getCustomerById(customerId),
+      ).rejects.toMatchObject({
+        statusCode: status.NOT_FOUND,
+        code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        message: "Customer not found",
+      });
+    });
+
+    it("should throw 404 USER_NOT_FOUND when customer user is soft-deleted", async () => {
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        ...mockCustomerUser,
+        deletedAt: new Date("2026-09-25T10:00:00.000Z"),
+      } as any);
+
+      await expect(
+        CustomerService.getCustomerById(customerId),
+      ).rejects.toMatchObject({
+        statusCode: status.NOT_FOUND,
+        code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        message: "Customer not found",
+      });
+    });
+
+    it("should return customer details with customer.updatedAt when customer profile is newer", async () => {
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(
+        mockCustomerUser as any,
       );
 
-      const result = await CustomerService.getCustomerProfile({
-        actorId: customerId,
-        actorRole: UserRole.CUSTOMER,
-        targetId: customerId,
-      });
+      const result = await CustomerService.getCustomerById(customerId);
 
       expect(result).toEqual({
         id: customerId,
@@ -213,53 +234,7 @@ describe("CustomerService Unit Tests", () => {
         contactNumber: "+8801700000000",
         address: "Banani, Dhaka",
         createdAt: userCreatedAt,
-        updatedAt: customerUpdatedAt, // reflects newer customer updatedAt
-      });
-    });
-
-    it("should allow Admin to view customer profile", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
-        mockTargetUser as any,
-      );
-
-      const result = await CustomerService.getCustomerProfile({
-        actorId: "admin-actor-1",
-        actorRole: UserRole.ADMIN,
-        targetId: customerId,
-      });
-
-      expect(result.id).toBe(customerId);
-    });
-
-    it("should allow Super Admin to view customer profile", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
-        mockTargetUser as any,
-      );
-
-      const result = await CustomerService.getCustomerProfile({
-        actorId: "super-admin-1",
-        actorRole: UserRole.SUPER_ADMIN,
-        targetId: customerId,
-      });
-
-      expect(result.id).toBe(customerId);
-    });
-
-    it("should throw 403 FORBIDDEN_ACCESS when a Customer attempts to view another Customer's profile", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
-        mockTargetUser as any,
-      );
-
-      await expect(
-        CustomerService.getCustomerProfile({
-          actorId: "attacker-customer-2",
-          actorRole: UserRole.CUSTOMER,
-          targetId: customerId,
-        }),
-      ).rejects.toMatchObject({
-        statusCode: status.FORBIDDEN,
-        code: PUBLIC_ERROR_CODES.FORBIDDEN_ACCESS,
-        message: "You do not have permission to access this resource",
+        updatedAt: customerUpdatedAt,
       });
     });
 
@@ -268,45 +243,37 @@ describe("CustomerService Unit Tests", () => {
       const newerUserDate = new Date("2026-09-24T18:00:00.000Z");
 
       const userWithNewerUpdate = {
-        ...mockTargetUser,
+        ...mockCustomerUser,
         updatedAt: newerUserDate,
         customer: {
-          ...mockTargetUser.customer,
+          ...mockCustomerUser.customer,
           updatedAt: olderCustomerDate,
         },
       };
 
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(
         userWithNewerUpdate as any,
       );
 
-      const result = await CustomerService.getCustomerProfile({
-        actorId: customerId,
-        actorRole: UserRole.CUSTOMER,
-        targetId: customerId,
-      });
+      const result = await CustomerService.getCustomerById(customerId);
 
       expect(result.updatedAt).toEqual(newerUserDate);
     });
 
-    it("should handle null customer relation gracefully with null defaults and user.updatedAt", async () => {
+    it("should handle null customer relation gracefully with user.updatedAt", async () => {
       const userWithoutCustomer = {
-        ...mockTargetUser,
+        ...mockCustomerUser,
         customer: null,
       };
 
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(
         userWithoutCustomer as any,
       );
 
-      const result = await CustomerService.getCustomerProfile({
-        actorId: customerId,
-        actorRole: UserRole.CUSTOMER,
-        targetId: customerId,
-      });
+      const result = await CustomerService.getCustomerById(customerId);
 
-      expect(result.contactNumber).toBeNull();
-      expect(result.address).toBeNull();
+      expect(result.contactNumber).toBeUndefined();
+      expect(result.address).toBeUndefined();
       expect(result.updatedAt).toEqual(userUpdatedAt);
     });
   });

@@ -4,7 +4,7 @@ import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import type { AuthUser } from "../auth/auth.interface.js";
 import { UserService } from "./user.service.js";
-import type { UpdateProfileInput } from "./user.validation.js";
+import type { UpdateProfileBody } from "./user.validation.js";
 
 // Retrieve authenticated user's own profile
 const getProfile = catchAsync(async (_req: Request, res: Response) => {
@@ -21,9 +21,12 @@ const getProfile = catchAsync(async (_req: Request, res: Response) => {
 // Update authenticated user's own profile
 const updateProfile = catchAsync(async (_req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
-  const body = res.locals.validated?.body as UpdateProfileInput;
-
-  const result = await UserService.updateProfile(user.id, body);
+  const payload = res.locals.validated?.body as UpdateProfileBody;
+  
+  const result = await UserService.updateProfile({
+    userId: user.id,
+    payload,
+  });
 
   sendResponse(res, {
     statusCode: status.OK,

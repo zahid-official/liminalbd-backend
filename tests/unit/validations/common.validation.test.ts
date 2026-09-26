@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  addressSchema,
   contactNumberSchema,
   emailSchema,
+  idSchema,
   nameSchema,
   paginationQuerySchema,
   passwordSchema,
@@ -254,6 +256,72 @@ describe("common.validation Unit Tests", () => {
     it("should fail when missing plus prefix in country code (e.g. 8801...)", () => {
       expect(getFirstErrorMessage(contactNumberSchema.safeParse("8801969658962"))).toBe(
         "Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)",
+      );
+    });
+  });
+
+  describe("addressSchema", () => {
+    it("should successfully parse and trim a valid address", () => {
+      const result = addressSchema.safeParse("  Gulshan 2, Dhaka, Bangladesh  ");
+
+      expect(result).toEqual({
+        success: true,
+        data: "Gulshan 2, Dhaka, Bangladesh",
+      });
+    });
+
+    it("should fail when address is undefined with custom required message", () => {
+      expect(getFirstErrorMessage(addressSchema.safeParse(undefined))).toBe(
+        "Address is required",
+      );
+    });
+
+    it("should fail when address is not a string with custom type message", () => {
+      expect(getFirstErrorMessage(addressSchema.safeParse(12345))).toBe(
+        "Address must be a valid text string",
+      );
+    });
+
+    it("should reject address shorter than 3 characters", () => {
+      expect(getFirstErrorMessage(addressSchema.safeParse("Dh"))).toBe(
+        "Address must be at least 3 characters",
+      );
+    });
+
+    it("should reject address exceeding 500 characters", () => {
+      expect(
+        getFirstErrorMessage(addressSchema.safeParse("A".repeat(501))),
+      ).toBe("Address cannot exceed 500 characters");
+    });
+  });
+
+  describe("idSchema", () => {
+    const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+
+    it("should successfully parse and trim a valid UUID", () => {
+      const result = idSchema.safeParse(`  ${validUuid}  `);
+
+      expect(result).toEqual({
+        success: true,
+        data: validUuid,
+      });
+    });
+
+    it("should fail when id is undefined with custom required message", () => {
+      expect(getFirstErrorMessage(idSchema.safeParse(undefined))).toBe(
+        "ID is required",
+      );
+    });
+
+    it("should fail when id is not a string with custom type message", () => {
+      expect(getFirstErrorMessage(idSchema.safeParse(12345))).toBe(
+        "ID must be a valid text string",
+      );
+    });
+
+    it("should reject invalid UUID format", () => {
+      expect(getFirstErrorMessage(idSchema.safeParse("invalid-uuid"))).toBe(
+        "Invalid ID format",
       );
     });
   });

@@ -7,23 +7,27 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import type { AuthSession, AuthUser } from "./auth.interface.js";
 import { AuthService } from "./auth.service.js";
 import type {
-  ChangePasswordInput,
-  ConfirmEmailVerificationInput,
-  ForgotPasswordInput,
+  ChangePasswordBody,
+  ConfirmEmailVerificationBody,
+  ForgotPasswordBody,
   LinkGoogleQuery,
-  LoginWithCredentialsInput,
+  LoginWithCredentialsBody,
   LoginWithGoogleQuery,
-  RequestEmailVerificationInput,
-  ResetPasswordInput,
-  SetPasswordInput,
+  RequestEmailVerificationBody,
+  ResetPasswordBody,
+  SetPasswordBody,
 } from "./auth.validation.js";
 
 // Request email verification OTP
 const requestEmailVerification = catchAsync(
   async (req: Request, res: Response) => {
-    const payload = res.locals.validated?.body as RequestEmailVerificationInput;
     const headers = fromNodeHeaders(req.headers);
-    const result = await AuthService.requestEmailVerification(payload, headers);
+    const payload = res.locals.validated?.body as RequestEmailVerificationBody;
+    
+    const result = await AuthService.requestEmailVerification({
+      headers,
+      payload,
+    });
 
     sendResponse(res, {
       statusCode: status.OK,
@@ -36,9 +40,13 @@ const requestEmailVerification = catchAsync(
 // Confirm email verification using provided OTP
 const confirmEmailVerification = catchAsync(
   async (req: Request, res: Response) => {
-    const payload = res.locals.validated?.body as ConfirmEmailVerificationInput;
+    const payload = res.locals.validated?.body as ConfirmEmailVerificationBody;
     const headers = fromNodeHeaders(req.headers);
-    const result = await AuthService.confirmEmailVerification(payload, headers);
+
+    const result = await AuthService.confirmEmailVerification({
+      headers,
+      payload,
+    });
 
     if (result.setCookies.length > 0) {
       res.setHeader("set-cookie", result.setCookies);
@@ -54,9 +62,13 @@ const confirmEmailVerification = catchAsync(
 
 // Login with email and password credentials
 const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as LoginWithCredentialsInput;
+  const payload = res.locals.validated?.body as LoginWithCredentialsBody;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.loginWithCredentials(payload, headers);
+
+  const result = await AuthService.loginWithCredentials({
+    headers,
+    payload,
+  });
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);
@@ -73,7 +85,11 @@ const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
 const loginWithGoogle = catchAsync(async (req: Request, res: Response) => {
   const headers = fromNodeHeaders(req.headers);
   const query = res.locals.validated?.query as LoginWithGoogleQuery | undefined;
-  const result = await AuthService.loginWithGoogle(headers, query?.redirectTo);
+
+  const result = await AuthService.loginWithGoogle({
+    headers,
+    redirectTo: query?.redirectTo,
+  });
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);
@@ -101,11 +117,11 @@ const linkGoogle = catchAsync(async (req: Request, res: Response) => {
   const headers = fromNodeHeaders(req.headers);
   const query = res.locals.validated?.query as LinkGoogleQuery | undefined;
 
-  const result = await AuthService.linkGoogleAccount(
-    user,
+  const result = await AuthService.linkGoogleAccount({
     headers,
-    query?.redirectTo,
-  );
+    user,
+    redirectTo: query?.redirectTo,
+  });
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);
@@ -135,9 +151,13 @@ const unlinkGoogle = catchAsync(async (_req: Request, res: Response) => {
 
 // Forgot password request
 const forgotPassword = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as ForgotPasswordInput;
+  const payload = res.locals.validated?.body as ForgotPasswordBody;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.forgotPassword(payload, headers);
+
+  const result = await AuthService.forgotPassword({
+    headers,
+    payload,
+  });
 
   sendResponse(res, {
     statusCode: status.OK,
@@ -148,9 +168,13 @@ const forgotPassword = catchAsync(async (req: Request, res: Response) => {
 
 // Reset password using token
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as ResetPasswordInput;
+  const payload = res.locals.validated?.body as ResetPasswordBody;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.resetPassword(payload, headers);
+
+  const result = await AuthService.resetPassword({
+    headers,
+    payload,
+  });
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);
@@ -166,9 +190,14 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 // Change password for authenticated user
 const changePassword = catchAsync(async (req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
-  const payload = res.locals.validated?.body as ChangePasswordInput;
+  const payload = res.locals.validated?.body as ChangePasswordBody;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.changePassword(user.id, payload, headers);
+
+  const result = await AuthService.changePassword({
+    userId: user.id,
+    headers,
+    payload,
+  });
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);
@@ -184,9 +213,14 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 // Set initial password for authenticated user without password
 const setPassword = catchAsync(async (req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
-  const payload = res.locals.validated?.body as SetPasswordInput;
+  const payload = res.locals.validated?.body as SetPasswordBody;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.setPassword(user.id, payload, headers);
+
+  const result = await AuthService.setPassword({
+    userId: user.id,
+    headers,
+    payload,
+  });
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);
@@ -203,7 +237,11 @@ const setPassword = catchAsync(async (req: Request, res: Response) => {
 const logout = catchAsync(async (req: Request, res: Response) => {
   const session = res.locals.session as AuthSession;
   const headers = fromNodeHeaders(req.headers);
-  const result = await AuthService.logout(session.token, headers);
+
+  const result = await AuthService.logout({
+    headers,
+    sessionToken: session.token,
+  });
 
   if (result.setCookies.length > 0) {
     res.setHeader("set-cookie", result.setCookies);

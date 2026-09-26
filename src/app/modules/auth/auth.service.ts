@@ -5,22 +5,24 @@ import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
 import { resolveCallbackURL } from "../../utils/resolveCallbackURL.js";
-import type { AuthUser } from "./auth.interface.js";
 import type {
   ChangePasswordInput,
   ConfirmEmailVerificationInput,
   ForgotPasswordInput,
+  LinkGoogleAccountInput,
   LoginWithCredentialsInput,
+  LoginWithGoogleInput,
+  LogoutInput,
   RequestEmailVerificationInput,
   ResetPasswordInput,
   SetPasswordInput,
-} from "./auth.validation.js";
+} from "./auth.interface.js";
 
 // Request email verification OTP to user's email
-const requestEmailVerification = async (
-  payload: RequestEmailVerificationInput,
-  headers: Headers,
-) => {
+const requestEmailVerification = async ({
+  headers,
+  payload,
+}: RequestEmailVerificationInput) => {
   const { email } = payload;
 
   const existingUser = await prisma.user.findUnique({
@@ -50,10 +52,10 @@ const requestEmailVerification = async (
 };
 
 // Confirm user email using verification OTP
-const confirmEmailVerification = async (
-  payload: ConfirmEmailVerificationInput,
-  headers: Headers,
-) => {
+const confirmEmailVerification = async ({
+  headers,
+  payload,
+}: ConfirmEmailVerificationInput) => {
   const { email, otp } = payload;
 
   const { headers: authHeaders, response: authResult } =
@@ -80,10 +82,10 @@ const confirmEmailVerification = async (
 };
 
 // Login user with email and password credentials
-const loginWithCredentials = async (
-  payload: LoginWithCredentialsInput,
-  headers: Headers,
-) => {
+const loginWithCredentials = async ({
+  headers,
+  payload,
+}: LoginWithCredentialsInput) => {
   const { email, password } = payload;
 
   const { headers: authHeaders, response: authResult } =
@@ -125,7 +127,10 @@ const loginWithCredentials = async (
 };
 
 // Initialize Google OAuth sign-in flow
-const loginWithGoogle = async (headers: Headers, redirectTo?: string) => {
+const loginWithGoogle = async ({
+  headers,
+  redirectTo,
+}: LoginWithGoogleInput) => {
   const callbackURL = resolveCallbackURL(redirectTo, "/dashboard");
 
   const { headers: authHeaders, response: authResult } =
@@ -146,11 +151,11 @@ const loginWithGoogle = async (headers: Headers, redirectTo?: string) => {
 };
 
 // Link Google account for authenticated user
-const linkGoogleAccount = async (
-  user: AuthUser,
-  headers: Headers,
-  redirectTo?: string,
-) => {
+const linkGoogleAccount = async ({
+  headers,
+  user,
+  redirectTo,
+}: LinkGoogleAccountInput) => {
   const { id: userId, role } = user;
 
   if (role !== UserRole.CUSTOMER) {
@@ -244,10 +249,10 @@ const unlinkGoogleAccount = async (userId: string) => {
 };
 
 // Forgot password request
-const forgotPassword = async (
-  payload: ForgotPasswordInput,
-  headers: Headers,
-) => {
+const forgotPassword = async ({
+  headers,
+  payload,
+}: ForgotPasswordInput) => {
   const { email, redirectTo } = payload;
   const resetCallbackURL = resolveCallbackURL(redirectTo, "/reset-password");
 
@@ -266,7 +271,10 @@ const forgotPassword = async (
 };
 
 // Reset user password with single-use token
-const resetPassword = async (payload: ResetPasswordInput, headers: Headers) => {
+const resetPassword = async ({
+  headers,
+  payload,
+}: ResetPasswordInput) => {
   const { token, newPassword } = payload;
 
   const { headers: authHeaders } = await auth.api.resetPassword({
@@ -286,11 +294,11 @@ const resetPassword = async (payload: ResetPasswordInput, headers: Headers) => {
 };
 
 // Change existing user password
-const changePassword = async (
-  userId: string,
-  payload: ChangePasswordInput,
-  headers: Headers,
-) => {
+const changePassword = async ({
+  userId,
+  headers,
+  payload,
+}: ChangePasswordInput) => {
   const { currentPassword, newPassword, revokeOtherSessions } = payload;
 
   const { headers: authHeaders } = await auth.api.changePassword({
@@ -316,11 +324,11 @@ const changePassword = async (
 };
 
 // Set password for Google-only OAuth accounts
-const setPassword = async (
-  userId: string,
-  payload: SetPasswordInput,
-  headers: Headers,
-) => {
+const setPassword = async ({
+  userId,
+  headers,
+  payload,
+}: SetPasswordInput) => {
   const { newPassword } = payload;
 
   const existingCredentialAccount = await prisma.account.findUnique({
@@ -362,7 +370,10 @@ const setPassword = async (
 };
 
 // Logout current session
-const logout = async (sessionToken: string, headers: Headers) => {
+const logout = async ({
+  headers,
+  sessionToken,
+}: LogoutInput) => {
   await auth.api.revokeSession({
     body: {
       token: sessionToken,

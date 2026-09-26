@@ -6,16 +6,16 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import type { AuthUser } from "../auth/auth.interface.js";
 import { AdminService } from "./admin.service.js";
 import type {
-  CreateAdminInput,
-  GetAdminsQueryInput,
-  UpdateAdminInput,
+  CreateAdminBody,
+  GetAdminsQuery,
+  UpdateAdminBody,
   UpdateAdminParams,
 } from "./admin.validation.js";
 
 // Create Admin account
 const createAdmin = catchAsync(async (_req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
-  const payload = res.locals.validated?.body as CreateAdminInput;
+  const payload = res.locals.validated?.body as CreateAdminBody;
 
   const result = await AdminService.createAdmin({
     actorId: user.id,
@@ -34,7 +34,7 @@ const createAdmin = catchAsync(async (_req: Request, res: Response) => {
 const updateAdmin = catchAsync(async (_req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
   const params = res.locals.validated?.params as UpdateAdminParams;
-  const payload = res.locals.validated?.body as UpdateAdminInput;
+  const payload = res.locals.validated?.body as UpdateAdminBody;
 
   const result = await AdminService.updateAdmin({
     actorId: user.id,
@@ -53,7 +53,7 @@ const updateAdmin = catchAsync(async (_req: Request, res: Response) => {
 // Retrieve paginated Admin accounts
 const getAdmins = catchAsync(async (_req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
-  const query = res.locals.validated?.query as GetAdminsQueryInput;
+  const query = res.locals.validated?.query as GetAdminsQuery;
 
   const result = await AdminService.getAdmins({
     actorId: user.id,

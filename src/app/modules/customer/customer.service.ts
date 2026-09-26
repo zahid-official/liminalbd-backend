@@ -4,14 +4,13 @@ import { auth } from "../../config/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
-import type {
-  GetCustomerProfileInput,
-  RegisterCustomerData,
-} from "./customer.interface.js";
+import type { RegisterCustomerInput } from "./customer.interface.js";
 
 // Register customer account
-const registerCustomer = async (input: RegisterCustomerData) => {
-  const { payload, headers } = input;
+const registerCustomer = async ({
+  headers,
+  payload,
+}: RegisterCustomerInput) => {
   const { name, email, password } = payload;
 
   const existingUser = await prisma.user.findUnique({
@@ -64,50 +63,22 @@ const registerCustomer = async (input: RegisterCustomerData) => {
   };
 };
 
-// Retrieve customer profile by ID
-const getCustomerProfile = async (input: GetCustomerProfileInput) => {
-  const { actorId, actorRole, targetId } = input;
-
-  const targetUser = await prisma.user.findFirst({
-    where: {
-      id: targetId,
-      role: UserRole.CUSTOMER,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      emailVerified: true,
-      image: true,
-      role: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-      customer: {
-        select: {
-          contactNumber: true,
-          address: true,
-          updatedAt: true,
-        },
-      },
-    },
+// Retrieve customer by ID (Admin only)
+const getCustomerById = async (customerId: string) => {
+  const targetUser = await prisma.user.findUnique({
+    where: { id: customerId },
+    include: { customer: true },
   });
 
-  if (!targetUser) {
+  if (
+    !targetUser ||
+    targetUser.role !== UserRole.CUSTOMER ||
+    targetUser.deletedAt !== null
+  ) {
     throw new AppError(
       status.NOT_FOUND,
       PUBLIC_ERROR_CODES.USER_NOT_FOUND,
       "Customer not found",
-    );
-  }
-
-  // Customers can only view their own profile; admins can view any
-  if (actorRole === UserRole.CUSTOMER && actorId !== targetUser.id) {
-    throw new AppError(
-      status.FORBIDDEN,
-      PUBLIC_ERROR_CODES.FORBIDDEN_ACCESS,
-      "You do not have permission to access this resource",
     );
   }
 
@@ -125,8 +96,8 @@ const getCustomerProfile = async (input: GetCustomerProfileInput) => {
     image: targetUser.image,
     role: targetUser.role,
     status: targetUser.status,
-    contactNumber: targetUser.customer?.contactNumber ?? null,
-    address: targetUser.customer?.address ?? null,
+    contactNumber: targetUser.customer?.contactNumber,
+    address: targetUser.customer?.address,
     createdAt: targetUser.createdAt,
     updatedAt,
   };
@@ -135,5 +106,5 @@ const getCustomerProfile = async (input: GetCustomerProfileInput) => {
 // Export customer service
 export const CustomerService = {
   registerCustomer,
-  getCustomerProfile,
+  getCustomerById,
 };

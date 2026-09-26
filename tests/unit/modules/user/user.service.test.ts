@@ -19,7 +19,7 @@ describe("UserService Unit Tests", () => {
       const mockUserDate = new Date("2026-09-20T10:00:00.000Z");
       const mockCustomerDate = new Date("2026-09-24T12:00:00.000Z");
 
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         id: customerUserId,
         name: "Customer Name",
         email: "customer@liminalbd.com",
@@ -29,36 +29,26 @@ describe("UserService Unit Tests", () => {
         status: UserStatus.ACTIVE,
         createdAt: mockUserDate,
         updatedAt: mockUserDate,
+        deletedAt: null,
         customer: {
+          userId: customerUserId,
           contactNumber: "01969658962",
           address: "Dhaka, Bangladesh",
+          createdAt: mockUserDate,
           updatedAt: mockCustomerDate,
         },
         admin: null,
-      } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
       const result = await UserService.getProfile(customerUserId);
 
-      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: {
           id: customerUserId,
-          deletedAt: null,
         },
         include: {
-          customer: {
-            select: {
-              contactNumber: true,
-              address: true,
-              updatedAt: true,
-            },
-          },
-          admin: {
-            select: {
-              contactNumber: true,
-              address: true,
-              updatedAt: true,
-            },
-          },
+          customer: true,
+          admin: true,
         },
       });
 
@@ -81,7 +71,7 @@ describe("UserService Unit Tests", () => {
       const mockUserDate = new Date("2026-09-20T10:00:00.000Z");
       const mockAdminDate = new Date("2026-09-25T14:00:00.000Z");
 
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         id: adminUserId,
         name: "Admin Name",
         email: "admin@liminalbd.com",
@@ -91,13 +81,16 @@ describe("UserService Unit Tests", () => {
         status: UserStatus.ACTIVE,
         createdAt: mockUserDate,
         updatedAt: mockUserDate,
+        deletedAt: null,
         customer: null,
         admin: {
+          userId: adminUserId,
           contactNumber: "01711223344",
           address: "Admin Office, Dhaka",
+          createdAt: mockUserDate,
           updatedAt: mockAdminDate,
         },
-      } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
       const result = await UserService.getProfile(adminUserId);
 
@@ -110,7 +103,7 @@ describe("UserService Unit Tests", () => {
     it("should defensively resolve nulls when profile extension has no contact/address", async () => {
       const mockDate = new Date("2026-09-20T10:00:00.000Z");
 
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         id: customerUserId,
         name: "New Customer",
         email: "new@liminalbd.com",
@@ -120,13 +113,16 @@ describe("UserService Unit Tests", () => {
         status: UserStatus.ACTIVE,
         createdAt: mockDate,
         updatedAt: mockDate,
+        deletedAt: null,
         customer: {
+          userId: customerUserId,
           contactNumber: null,
           address: null,
+          createdAt: mockDate,
           updatedAt: mockDate,
         },
         admin: null,
-      } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
       const result = await UserService.getProfile(customerUserId);
 
@@ -136,9 +132,22 @@ describe("UserService Unit Tests", () => {
     });
 
     it("should throw 404 AppError when user not found or soft-deleted", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
 
       await expect(UserService.getProfile("non-existent")).rejects.toThrow(
+        new AppError(
+          status.NOT_FOUND,
+          PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          "User not found",
+        ),
+      );
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        id: "deleted-user",
+        deletedAt: new Date(),
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
+
+      await expect(UserService.getProfile("deleted-user")).rejects.toThrow(
         new AppError(
           status.NOT_FOUND,
           PUBLIC_ERROR_CODES.USER_NOT_FOUND,
@@ -156,10 +165,11 @@ describe("UserService Unit Tests", () => {
       const mockUserDate = new Date("2026-09-20T10:00:00.000Z");
       const mockUpdatedDate = new Date("2026-09-25T16:00:00.000Z");
 
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         id: customerUserId,
         role: UserRole.CUSTOMER,
-      } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
+        deletedAt: null,
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
       const updateSpy = vi.spyOn(prisma.user, "update").mockResolvedValue({
         id: customerUserId,
@@ -171,19 +181,25 @@ describe("UserService Unit Tests", () => {
         status: UserStatus.ACTIVE,
         createdAt: mockUserDate,
         updatedAt: mockUpdatedDate,
+        deletedAt: null,
         customer: {
+          userId: customerUserId,
           contactNumber: "01969658962",
           address: "Gulshan, Dhaka",
+          createdAt: mockUserDate,
           updatedAt: mockUpdatedDate,
         },
         admin: null,
       } as unknown as Awaited<ReturnType<typeof prisma.user.update>>);
 
-      const result = await UserService.updateProfile(customerUserId, {
-        name: "Updated Customer Name",
-        image: "https://example.com/new-avatar.png",
-        contactNumber: "01969658962",
-        address: "Gulshan, Dhaka",
+      const result = await UserService.updateProfile({
+        userId: customerUserId,
+        payload: {
+          name: "Updated Customer Name",
+          image: "https://example.com/new-avatar.png",
+          contactNumber: "01969658962",
+          address: "Gulshan, Dhaka",
+        },
       });
 
       expect(updateSpy).toHaveBeenCalledWith({
@@ -199,20 +215,8 @@ describe("UserService Unit Tests", () => {
           },
         },
         include: {
-          customer: {
-            select: {
-              contactNumber: true,
-              address: true,
-              updatedAt: true,
-            },
-          },
-          admin: {
-            select: {
-              contactNumber: true,
-              address: true,
-              updatedAt: true,
-            },
-          },
+          customer: true,
+          admin: true,
         },
       });
 
@@ -225,10 +229,11 @@ describe("UserService Unit Tests", () => {
       const mockUserDate = new Date("2026-09-20T10:00:00.000Z");
       const mockUpdatedDate = new Date("2026-09-25T16:00:00.000Z");
 
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         id: adminUserId,
         role: UserRole.ADMIN,
-      } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
+        deletedAt: null,
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
       const updateSpy = vi.spyOn(prisma.user, "update").mockResolvedValue({
         id: adminUserId,
@@ -240,18 +245,24 @@ describe("UserService Unit Tests", () => {
         status: UserStatus.ACTIVE,
         createdAt: mockUserDate,
         updatedAt: mockUpdatedDate,
+        deletedAt: null,
         customer: null,
         admin: {
+          userId: adminUserId,
           contactNumber: "01711223344",
           address: "Headquarters, Dhaka",
+          createdAt: mockUserDate,
           updatedAt: mockUpdatedDate,
         },
       } as unknown as Awaited<ReturnType<typeof prisma.user.update>>);
 
-      const result = await UserService.updateProfile(adminUserId, {
-        name: "Updated Admin Name",
-        contactNumber: "01711223344",
-        address: "Headquarters, Dhaka",
+      const result = await UserService.updateProfile({
+        userId: adminUserId,
+        payload: {
+          name: "Updated Admin Name",
+          contactNumber: "01711223344",
+          address: "Headquarters, Dhaka",
+        },
       });
 
       expect(updateSpy).toHaveBeenCalledWith({
@@ -266,20 +277,8 @@ describe("UserService Unit Tests", () => {
           },
         },
         include: {
-          customer: {
-            select: {
-              contactNumber: true,
-              address: true,
-              updatedAt: true,
-            },
-          },
-          admin: {
-            select: {
-              contactNumber: true,
-              address: true,
-              updatedAt: true,
-            },
-          },
+          customer: true,
+          admin: true,
         },
       });
 
@@ -289,10 +288,13 @@ describe("UserService Unit Tests", () => {
     });
 
     it("should throw 404 AppError when updating non-existent user", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(null);
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
 
       await expect(
-        UserService.updateProfile("non-existent", { name: "New Name" }),
+        UserService.updateProfile({
+          userId: "non-existent",
+          payload: { name: "New Name" },
+        }),
       ).rejects.toThrow(
         new AppError(
           status.NOT_FOUND,

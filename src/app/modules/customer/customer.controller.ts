@@ -1,21 +1,23 @@
 import { fromNodeHeaders } from "better-auth/node";
 import type { Request, Response } from "express";
 import status from "http-status";
-import type { UserRole } from "../../../generated/prisma/enums.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
-import type { AuthUser } from "../auth/auth.interface.js";
 import { CustomerService } from "./customer.service.js";
 import type {
   GetCustomerParams,
-  RegisterCustomerInput,
+  RegisterCustomerBody,
 } from "./customer.validation.js";
 
 // Register customer account
 const registerCustomer = catchAsync(async (req: Request, res: Response) => {
-  const payload = res.locals.validated?.body as RegisterCustomerInput;
   const headers = fromNodeHeaders(req.headers);
-  const result = await CustomerService.registerCustomer({ payload, headers });
+  const payload = res.locals.validated?.body as RegisterCustomerBody;
+
+  const result = await CustomerService.registerCustomer({
+    headers,
+    payload,
+  });
 
   sendResponse(res, {
     statusCode: status.CREATED,
@@ -24,20 +26,14 @@ const registerCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Retrieve customer profile by ID
-const getCustomerProfile = catchAsync(async (_req: Request, res: Response) => {
-  const user = res.locals.user as AuthUser;
+// Retrieve customer by ID (Admin only)
+const getCustomerById = catchAsync(async (_req: Request, res: Response) => {
   const params = res.locals.validated?.params as GetCustomerParams;
-
-  const result = await CustomerService.getCustomerProfile({
-    actorId: user.id,
-    actorRole: user.role as UserRole,
-    targetId: params.id,
-  });
+  const result = await CustomerService.getCustomerById(params.id);
 
   sendResponse(res, {
     statusCode: status.OK,
-    message: "Customer profile retrieved successfully",
+    message: "Customer retrieved successfully",
     data: result,
   });
 });
@@ -45,5 +41,5 @@ const getCustomerProfile = catchAsync(async (_req: Request, res: Response) => {
 // Export customer controller
 export const CustomerController = {
   registerCustomer,
-  getCustomerProfile,
+  getCustomerById,
 };

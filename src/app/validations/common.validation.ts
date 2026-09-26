@@ -52,14 +52,6 @@ export const passwordSchema = z
     error: "Password must include at least one symbol (!@#$%^&*)",
   });
 
-// Shared redirect URL validation schema with standard maximum URL length
-export const redirectUrlSchema = z
-  .string({
-    error: "Redirect URL must be a valid text string",
-  })
-  .trim()
-  .max(2048, { error: "Redirect URL cannot exceed 2048 characters" });
-
 // Shared contact number validation schema
 export const contactNumberSchema = z
   .string({
@@ -74,11 +66,42 @@ export const contactNumberSchema = z
       "Please provide a valid phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX)",
   });
 
+// Shared address validation schema
+export const addressSchema = z
+  .string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "Address is required"
+        : "Address must be a valid text string",
+  })
+  .trim()
+  .min(3, { error: "Address must be at least 3 characters" })
+  .max(500, { error: "Address cannot exceed 500 characters" });
+
 // Shared user account status validation schema
 export const userStatusSchema = z.enum(
   [UserStatus.ACTIVE, UserStatus.SUSPENDED, UserStatus.DEACTIVATED],
   { error: "Status must be a valid account status" },
 );
+
+// Shared UUID identifier validation schema
+export const idSchema = z
+  .string({
+    error: (issue) =>
+      issue.input === undefined
+        ? "ID is required"
+        : "ID must be a valid text string",
+  })
+  .trim()
+  .pipe(z.uuid({ error: "Invalid ID format" }));
+
+// Shared redirect URL validation schema with standard maximum URL length
+export const redirectUrlSchema = z
+  .string({
+    error: "Redirect URL must be a valid text string",
+  })
+  .trim()
+  .max(2048, { error: "Redirect URL cannot exceed 2048 characters" });
 
 // Shared pagination and search query validation schema
 export const paginationQuerySchema = z.object({

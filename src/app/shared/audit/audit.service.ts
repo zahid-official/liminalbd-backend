@@ -62,24 +62,33 @@ const toPrismaJson = (value: Record<string, unknown> | null) => {
 };
 
 // Record an audit log entry atomically with optional transaction support
-const record = async (input: CreateAuditLogInput): Promise<AuditLog> => {
-  const client = input.tx ?? prisma;
+const record = async ({
+  actorId,
+  action,
+  entityType,
+  entityId,
+  previousValue,
+  newValue,
+  metadata,
+  tx,
+}: CreateAuditLogInput): Promise<AuditLog> => {
+  const client = tx ?? prisma;
 
   const data: CreateAuditLogData = {
-    actorId: input.actorId ?? null,
-    action: input.action,
-    entityType: input.entityType,
-    entityId: input.entityId ?? null,
+    actorId: actorId ?? null,
+    action,
+    entityType,
+    entityId: entityId ?? null,
   };
 
-  if (input.previousValue !== undefined) {
-    data.previousValue = toPrismaJson(input.previousValue);
+  if (previousValue !== undefined) {
+    data.previousValue = toPrismaJson(previousValue);
   }
-  if (input.newValue !== undefined) {
-    data.newValue = toPrismaJson(input.newValue);
+  if (newValue !== undefined) {
+    data.newValue = toPrismaJson(newValue);
   }
-  if (input.metadata !== undefined) {
-    data.metadata = toPrismaJson(input.metadata);
+  if (metadata !== undefined) {
+    data.metadata = toPrismaJson(metadata);
   }
 
   const result = await client.auditLog.create({ data });
