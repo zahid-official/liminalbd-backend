@@ -167,7 +167,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 23    | D          | `P2-T024` | Implement Customer profile and email updates                             | `✅`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
 | 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `✅`   | `P2-T022`                       | `P2-B001`                                    |
 | 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `✅`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
-| 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔲`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
+| 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `🔄`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
 
 Workstreams organize one phase; they are not sub-phases and do not permit parallel implementation. Execute tasks in order unless the plan is explicitly re-approved. Update status only in this index.
 
@@ -714,7 +714,7 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | Outcome        | `Pending`                                                                                                            |
 | Approved by    | `Pending`                                                                                                            |
 | Approved on    | `Pending`                                                                                                            |
-| Notes          | Phase is `ACTIVE/READY`; `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, `P2-T017`, `P2-T018`, `P2-T019`, `P2-T020`, and `P2-T021` are `✅ Done` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`) |
+| Notes          | Phase is `ACTIVE/READY`; `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, `P2-T017`, `P2-T018`, `P2-T019`, `P2-T020`, `P2-T021`, `P2-T022`, `P2-T023`, `P2-T024`, `P2-T025`, and `P2-T026` are `✅ Done`; `P2-T027` is `🔄 In Progress` (`P2-T003`, `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`) |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 
