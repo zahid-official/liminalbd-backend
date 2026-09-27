@@ -1,7 +1,7 @@
 # Task: P2-T026 - Implement Customer Account Lifecycle Management
 
-> **Canonical Status:** `🔄 In progress` (tracked authoritatively in parent phase file)  
-> **Planning Gate:** Approved → `🔄 In Progress`
+> **Canonical Status:** `✅ Done` (tracked authoritatively in parent phase file)  
+> **Planning Gate:** Approved → `🔄 In Progress` → `🕵️ Awaiting human review` → `✅ Done`
 
 ---
 
@@ -208,14 +208,14 @@
 
 ## 7. Verification & Quality Gates
 
-| Check                      | Required | Command or Method                               | Result    |
-| :------------------------- | :------- | :---------------------------------------------- | :-------- |
-| Acceptance criteria        | `Yes`    | Inspection against FR-CUSTOMER-004 requirements | `NOT RUN` |
-| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                             | `NOT RUN` |
-| Lint                       | `Yes`    | `pnpm lint`                                     | `NOT RUN` |
-| Tests                      | `Yes`    | `pnpm test tests/unit/modules/customer`         | `NOT RUN` |
-| Migration / data integrity | `No`     | Schema unchanged                                | `N/A`     |
-| Manual verification        | `No`     | Automated test suite covers all criteria        | `N/A`     |
+| Check                      | Required | Command or Method                               | Result   |
+| :------------------------- | :------- | :---------------------------------------------- | :------- |
+| Acceptance criteria        | `Yes`    | Inspection against FR-CUSTOMER-004 requirements | `PASSED` |
+| Type check / build         | `Yes`    | `pnpm tsc --noEmit`                             | `PASSED` |
+| Lint                       | `Yes`    | `pnpm lint`                                     | `PASSED` |
+| Tests                      | `Yes`    | `pnpm test tests/unit/modules/customer`         | `PASSED` |
+| Migration / data integrity | `No`     | Schema unchanged                                | `N/A`    |
+| Manual verification        | `No`     | Automated test suite covers all criteria        | `N/A`    |
 
 ---
 
@@ -232,19 +232,35 @@
 
 ## 9. Plan Review
 
-| Field       | Value                                    |
-| :---------- | :--------------------------------------- |
-| Outcome     | `Approved`                               |
-| Reviewed by | `Human Reviewer`                         |
-| Reviewed on | `2026-09-27`                             |
-| Notes       | `JIT plan approved for implementation`   |
+| Field       | Value                                                         |
+| :---------- | :------------------------------------------------------------ |
+| Outcome     | `Approved & Completed`                                        |
+| Reviewed by | `Human Reviewer`                                              |
+| Reviewed on | `2026-09-27`                                                  |
+| Notes       | `Task implementation verified and approved by human reviewer` |
 
 ---
 
 ## 10. Implementation Evidence
 
 - **Changed Files:**
-- **Migration Created:** None.
+  - `src/app/modules/customer/customer.validation.ts`: Defined `updateCustomerStatusSchema` and `deleteCustomerSchema` with inferred types.
+  - `src/app/modules/customer/customer.interface.ts`: Defined `UpdateCustomerStatusInput` and `DeleteCustomerInput`.
+  - `src/app/modules/customer/customer.service.ts`: Implemented `updateCustomerStatus` and `deleteCustomer` with defense-in-depth, role isolation, session revocation, atomic audit logging, and flattened DTO per `DEC-028`.
+  - `src/app/modules/customer/customer.controller.ts`: Implemented `updateCustomerStatus` and `deleteCustomer` handlers.
+  - `src/app/modules/customer/customer.routes.ts`: Mounted `PATCH /:id/status` and `DELETE /:id` with `authGuard`, `rbacGuard`, and `validateRequest`.
+  - `src/app/shared/account/`: Removed dead/obsolete ghost abstraction per `DEC-030`.
+  - `tests/unit/modules/customer/customer.validation.test.ts`: Added validation unit tests (49/49 passing).
+  - `tests/unit/modules/customer/customer.service.test.ts`: Added lifecycle unit tests (34/34 passing).
+  - `tests/unit/modules/customer/customer.controller.test.ts`: Added controller unit tests (10/10 passing).
+  - `tests/unit/modules/customer/customer.routes.test.ts`: Added route middleware unit tests (5/5 passing).
+- **Migration Created:** None (schema unchanged).
 - **Test / Verification Output:**
+  - `pnpm tsc --noEmit`: 0 errors.
+  - `pnpm lint`: 0 errors, 0 warnings.
+  - `pnpm test`: 39 passed (39), 629 passed (629).
+  - `pnpm vitest run tests/unit/modules/customer --coverage`: 100% statements, branches, functions, and lines across customer module.
 - **Deviations from Original Plan:**
+  - Per `DEC-030`, the obsolete, unused `src/app/shared/account/` directory (`account.service.ts`, `account.interface.ts`) and its unit test file were pruned under KISS, YAGNI, and Clean Architecture principles to keep domain lifecycle operations encapsulated within `CustomerService`.
 - **Remaining Concerns / Follow-ups:**
+  - None. Ready for closure and transition to `P2-T027`.

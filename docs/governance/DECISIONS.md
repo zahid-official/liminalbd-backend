@@ -38,7 +38,7 @@ Statuses:
 - `src/app/shared/account/` is completely removed.
 - `CustomerService.updateCustomerStatus` and `CustomerService.deleteCustomer` self-contain their atomic transactions, session revocation, and audit logs with `AuditEntityType.CUSTOMER`.
 - `AdminService` self-contains privileged status and role mutations with `AuditEntityType.ADMIN`.
-- Unit test suite total is updated to 39 passing test files (593 tests).
+- Unit test suite total is updated to 39 passing test files (629/629 tests passing upon P2-T026 completion).
 
 ---
 

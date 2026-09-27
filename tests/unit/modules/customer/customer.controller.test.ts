@@ -296,5 +296,167 @@ describe("CustomerController Unit Tests", () => {
       expect(res.json).not.toHaveBeenCalled();
     });
   });
+
+  describe("updateCustomerStatus", () => {
+    const customerId = "customer-uuid-456";
+    const mockAuthUser = {
+      id: "admin-uuid-001",
+      role: UserRole.ADMIN,
+    } as AuthUser;
+
+    const mockBody = {
+      status: UserStatus.SUSPENDED,
+      reason: "Fraud investigation",
+    };
+
+    const mockResult = {
+      id: customerId,
+      name: "Customer User",
+      email: "cust@liminalbd.com",
+      emailVerified: true,
+      image: null,
+      role: UserRole.CUSTOMER,
+      status: UserStatus.SUSPENDED,
+      contactNumber: "01700000000",
+      address: "Dhaka, Bangladesh",
+      createdAt: new Date("2026-09-01T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-27T12:00:00.000Z"),
+    };
+
+    it("should extract actor, params, and body, call CustomerService.updateCustomerStatus, and return 200 response", async () => {
+      const updateServiceSpy = vi
+        .spyOn(CustomerService, "updateCustomerStatus")
+        .mockResolvedValue(mockResult);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedParams: { id: customerId },
+        validatedBody: mockBody,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.updateCustomerStatus(req, res, next);
+
+      expect(updateServiceSpy).toHaveBeenCalledTimes(1);
+      expect(updateServiceSpy).toHaveBeenCalledWith({
+        actorId: mockAuthUser.id,
+        actorRole: UserRole.ADMIN,
+        customerId,
+        payload: mockBody,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Customer status updated successfully",
+        data: mockResult,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service error to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.BAD_REQUEST,
+        PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+        "Customer account is already suspended",
+      );
+
+      vi.spyOn(CustomerService, "updateCustomerStatus").mockRejectedValue(
+        serviceError,
+      );
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedParams: { id: customerId },
+        validatedBody: mockBody,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.updateCustomerStatus(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteCustomer", () => {
+    const customerId = "customer-uuid-456";
+    const mockAuthUser = {
+      id: "admin-uuid-001",
+      role: UserRole.ADMIN,
+    } as AuthUser;
+
+    const mockBody = {
+      reason: "Customer request",
+    };
+
+    const mockResult = {
+      id: customerId,
+      deletedAt: new Date("2026-09-27T12:00:00.000Z"),
+    };
+
+    it("should extract actor, params, and body, call CustomerService.deleteCustomer, and return 200 response", async () => {
+      const deleteServiceSpy = vi
+        .spyOn(CustomerService, "deleteCustomer")
+        .mockResolvedValue(mockResult);
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedParams: { id: customerId },
+        validatedBody: mockBody,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.deleteCustomer(req, res, next);
+
+      expect(deleteServiceSpy).toHaveBeenCalledTimes(1);
+      expect(deleteServiceSpy).toHaveBeenCalledWith({
+        actorId: mockAuthUser.id,
+        actorRole: UserRole.ADMIN,
+        customerId,
+        payload: mockBody,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Customer account deleted successfully",
+        data: mockResult,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward service error to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.NOT_FOUND,
+        PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        "Customer not found",
+      );
+
+      vi.spyOn(CustomerService, "deleteCustomer").mockRejectedValue(
+        serviceError,
+      );
+
+      const req = {} as Request;
+      const res = makeMockRes({
+        user: mockAuthUser,
+        validatedParams: { id: customerId },
+        validatedBody: mockBody,
+      });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await CustomerController.deleteCustomer(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
 });
 

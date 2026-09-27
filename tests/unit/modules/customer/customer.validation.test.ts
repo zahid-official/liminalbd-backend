@@ -385,5 +385,166 @@ describe("CustomerValidation Unit Tests", () => {
       });
     });
   });
+
+  describe("updateCustomerStatusSchema", () => {
+    const { params: paramsSchema, body: bodySchema } =
+      CustomerValidation.updateCustomerStatusSchema;
+
+    describe("Params Validation", () => {
+      it("should pass when id is a valid UUID", () => {
+        const result = paramsSchema.safeParse({
+          id: "123e4567-e89b-12d3-a456-426614174000",
+        });
+        expect(result.success).toBe(true);
+      });
+
+      it("should fail when id is not a valid UUID", () => {
+        const result = paramsSchema.safeParse({ id: "invalid-uuid" });
+        expect(getFirstErrorMessage(result)).toBe("Invalid ID format");
+      });
+    });
+
+    describe("Body Validation", () => {
+      it("should pass for valid status values (ACTIVE, SUSPENDED, DEACTIVATED)", () => {
+        for (const accountStatus of ["ACTIVE", "SUSPENDED", "DEACTIVATED"]) {
+          const result = bodySchema.safeParse({ status: accountStatus });
+          expect(result.success).toBe(true);
+        }
+      });
+
+      it("should pass with optional valid reason (<= 500 chars)", () => {
+        const result = bodySchema.safeParse({
+          status: "SUSPENDED",
+          reason: "Repeated terms violation",
+        });
+        expect(result).toEqual({
+          success: true,
+          data: {
+            status: "SUSPENDED",
+            reason: "Repeated terms violation",
+          },
+        });
+      });
+
+      it("should trim reason whitespace", () => {
+        const result = bodySchema.safeParse({
+          status: "SUSPENDED",
+          reason: "  Spam activity  ",
+        });
+        expect(result).toEqual({
+          success: true,
+          data: {
+            status: "SUSPENDED",
+            reason: "Spam activity",
+          },
+        });
+      });
+
+      it("should fail when status is invalid", () => {
+        const result = bodySchema.safeParse({ status: "ARCHIVED" });
+        expect(getFirstErrorMessage(result)).toBe(
+          "Status must be a valid account status",
+        );
+      });
+
+      it("should fail when status is missing", () => {
+        const result = bodySchema.safeParse({});
+        expect(getFirstErrorMessage(result)).toBe(
+          "Status must be a valid account status",
+        );
+      });
+
+      it("should fail when reason exceeds 500 characters", () => {
+        const result = bodySchema.safeParse({
+          status: "SUSPENDED",
+          reason: "a".repeat(501),
+        });
+        expect(getFirstErrorMessage(result)).toBe(
+          "Reason cannot exceed 500 characters",
+        );
+      });
+
+      it("should fail when reason is not a string", () => {
+        const result = bodySchema.safeParse({
+          status: "SUSPENDED",
+          reason: 12345,
+        });
+        expect(getFirstErrorMessage(result)).toBe(
+          "Reason must be a valid text string",
+        );
+      });
+    });
+  });
+
+  describe("deleteCustomerSchema", () => {
+    const { params: paramsSchema, body: bodySchema } =
+      CustomerValidation.deleteCustomerSchema;
+
+    describe("Params Validation", () => {
+      it("should pass when id is a valid UUID", () => {
+        const result = paramsSchema.safeParse({
+          id: "123e4567-e89b-12d3-a456-426614174000",
+        });
+        expect(result.success).toBe(true);
+      });
+
+      it("should fail when id is not a valid UUID", () => {
+        const result = paramsSchema.safeParse({ id: "non-uuid" });
+        expect(getFirstErrorMessage(result)).toBe("Invalid ID format");
+      });
+    });
+
+    describe("Body Validation", () => {
+      it("should pass when body is omitted or undefined", () => {
+        expect(bodySchema.safeParse(undefined).success).toBe(true);
+      });
+
+      it("should pass when body is empty object", () => {
+        expect(bodySchema.safeParse({}).success).toBe(true);
+      });
+
+      it("should pass with optional valid reason (<= 500 chars)", () => {
+        const result = bodySchema.safeParse({
+          reason: "Customer requested deletion",
+        });
+        expect(result).toEqual({
+          success: true,
+          data: {
+            reason: "Customer requested deletion",
+          },
+        });
+      });
+
+      it("should trim reason whitespace", () => {
+        const result = bodySchema.safeParse({
+          reason: "  Customer request  ",
+        });
+        expect(result).toEqual({
+          success: true,
+          data: {
+            reason: "Customer request",
+          },
+        });
+      });
+
+      it("should fail when reason exceeds 500 characters", () => {
+        const result = bodySchema.safeParse({
+          reason: "a".repeat(501),
+        });
+        expect(getFirstErrorMessage(result)).toBe(
+          "Reason cannot exceed 500 characters",
+        );
+      });
+
+      it("should fail when reason is not a string", () => {
+        const result = bodySchema.safeParse({
+          reason: 99999,
+        });
+        expect(getFirstErrorMessage(result)).toBe(
+          "Reason must be a valid text string",
+        );
+      });
+    });
+  });
 });
 

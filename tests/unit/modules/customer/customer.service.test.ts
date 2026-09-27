@@ -1,5 +1,5 @@
 import status from "http-status";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "../../../../src/app/config/auth.js";
 import { prisma } from "../../../../src/app/config/prisma.js";
 import { PUBLIC_ERROR_CODES } from "../../../../src/app/errors/errorCodes.js";
@@ -671,6 +671,426 @@ describe("CustomerService Unit Tests", () => {
         expect(result.data[0]?.contactNumber).toBeUndefined();
         expect(result.data[0]?.address).toBeUndefined();
         expect(result.data[0]?.updatedAt).toEqual(userUpdatedAt);
+      });
+    });
+  });
+
+  describe("updateCustomerStatus", () => {
+    const actorId = "admin-123";
+    const customerId = "customer-uuid-456";
+    const mockTx = {
+      user: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+      },
+      session: {
+        deleteMany: vi.fn(),
+      },
+    };
+
+    const mockTargetUser = {
+      id: customerId,
+      name: "Customer User",
+      email: "cust@liminalbd.com",
+      emailVerified: true,
+      image: null,
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      deletedAt: null,
+      createdAt: new Date("2026-09-01T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-10T12:00:00.000Z"),
+      customer: {
+        id: "cust-profile-1",
+        userId: customerId,
+        contactNumber: "01700000000",
+        address: "Dhaka, Bangladesh",
+        createdAt: new Date("2026-09-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-09-12T14:00:00.000Z"),
+      },
+    };
+
+    beforeEach(() => {
+      vi.spyOn(prisma, "$transaction").mockImplementation(
+        async (callback: any) => {
+          return await callback(mockTx as any);
+        },
+      );
+      vi.spyOn(AuditService, "record").mockResolvedValue({} as any);
+    });
+
+    describe("Defense-in-Depth Authorization", () => {
+      it("should reject non-admin actors with 403 and log AuditAction.UNAUTHORIZED_ATTEMPT", async () => {
+        const auditSpy = vi.spyOn(AuditService, "record");
+
+        await expect(
+          CustomerService.updateCustomerStatus({
+            actorId,
+            actorRole: UserRole.CUSTOMER,
+            customerId,
+            payload: { status: UserStatus.SUSPENDED },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message: "Only administrators can update Customer account status",
+        });
+
+        expect(auditSpy).toHaveBeenCalledTimes(1);
+        expect(auditSpy).toHaveBeenCalledWith({
+          actorId,
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.CUSTOMER,
+          entityId: customerId,
+          metadata: {
+            attemptedAction: "UPDATE_CUSTOMER_STATUS",
+            attemptedRole: UserRole.CUSTOMER,
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("Target Validation and Role Isolation", () => {
+      it("should throw 404 USER_NOT_FOUND when target user does not exist", async () => {
+        mockTx.user.findUnique.mockResolvedValue(null);
+
+        await expect(
+          CustomerService.updateCustomerStatus({
+            actorId,
+            actorRole: UserRole.ADMIN,
+            customerId,
+            payload: { status: UserStatus.SUSPENDED },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Customer not found",
+        });
+      });
+
+      it("should throw 404 USER_NOT_FOUND when target user is soft-deleted", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockTargetUser,
+          deletedAt: new Date("2026-09-15T10:00:00.000Z"),
+        });
+
+        await expect(
+          CustomerService.updateCustomerStatus({
+            actorId,
+            actorRole: UserRole.ADMIN,
+            customerId,
+            payload: { status: UserStatus.SUSPENDED },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Customer not found",
+        });
+      });
+
+      it("should throw 404 USER_NOT_FOUND when target user is not a CUSTOMER (role isolation)", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockTargetUser,
+          role: UserRole.ADMIN,
+        });
+
+        await expect(
+          CustomerService.updateCustomerStatus({
+            actorId,
+            actorRole: UserRole.ADMIN,
+            customerId,
+            payload: { status: UserStatus.SUSPENDED },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Customer not found",
+        });
+      });
+
+      it("should throw 400 VALIDATION_ERROR for redundant status transition", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockTargetUser,
+          status: UserStatus.ACTIVE,
+        });
+
+        await expect(
+          CustomerService.updateCustomerStatus({
+            actorId,
+            actorRole: UserRole.ADMIN,
+            customerId,
+            payload: { status: UserStatus.ACTIVE },
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.BAD_REQUEST,
+          code: PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+          message: "Customer account is already active",
+        });
+      });
+    });
+
+    describe("Status Mutations and Side Effects", () => {
+      it("should suspend customer, delete active sessions, log AuditAction.SUSPEND, and return flattened DTO", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockTargetUser);
+        const updatedDate = new Date("2026-09-27T12:00:00.000Z");
+        mockTx.user.update.mockResolvedValue({
+          ...mockTargetUser,
+          status: UserStatus.SUSPENDED,
+          updatedAt: updatedDate,
+        });
+        mockTx.session.deleteMany.mockResolvedValue({ count: 2 });
+        const auditSpy = vi.spyOn(AuditService, "record");
+
+        const result = await CustomerService.updateCustomerStatus({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          customerId,
+          payload: { status: UserStatus.SUSPENDED, reason: "Fraud suspected" },
+        });
+
+        expect(mockTx.user.update).toHaveBeenCalledWith({
+          where: { id: customerId },
+          data: { status: UserStatus.SUSPENDED },
+        });
+        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
+          where: { userId: customerId },
+        });
+        expect(auditSpy).toHaveBeenCalledWith({
+          action: AuditAction.SUSPEND,
+          entityType: AuditEntityType.CUSTOMER,
+          entityId: customerId,
+          actorId,
+          previousValue: { status: UserStatus.ACTIVE },
+          newValue: { status: UserStatus.SUSPENDED },
+          metadata: { reason: "Fraud suspected" },
+          tx: mockTx,
+        });
+        expect(result).toEqual({
+          id: customerId,
+          name: mockTargetUser.name,
+          email: mockTargetUser.email,
+          emailVerified: true,
+          image: null,
+          role: UserRole.CUSTOMER,
+          status: UserStatus.SUSPENDED,
+          contactNumber: mockTargetUser.customer.contactNumber,
+          address: mockTargetUser.customer.address,
+          createdAt: mockTargetUser.createdAt,
+          updatedAt: updatedDate,
+        });
+      });
+
+      it("should deactivate customer, delete active sessions, and log AuditAction.DEACTIVATE", async () => {
+        mockTx.user.findUnique.mockResolvedValue(mockTargetUser);
+        mockTx.user.update.mockResolvedValue({
+          ...mockTargetUser,
+          status: UserStatus.DEACTIVATED,
+        });
+        mockTx.session.deleteMany.mockResolvedValue({ count: 1 });
+        const auditSpy = vi.spyOn(AuditService, "record");
+
+        await CustomerService.updateCustomerStatus({
+          actorId,
+          actorRole: UserRole.SUPER_ADMIN,
+          customerId,
+          payload: { status: UserStatus.DEACTIVATED },
+        });
+
+        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
+          where: { userId: customerId },
+        });
+        expect(auditSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: AuditAction.DEACTIVATE,
+            entityType: AuditEntityType.CUSTOMER,
+          }),
+        );
+      });
+
+      it("should reactivate customer to ACTIVE without deleting sessions and log AuditAction.REACTIVATE", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          ...mockTargetUser,
+          status: UserStatus.SUSPENDED,
+        });
+        mockTx.user.update.mockResolvedValue({
+          ...mockTargetUser,
+          status: UserStatus.ACTIVE,
+        });
+        const auditSpy = vi.spyOn(AuditService, "record");
+
+        await CustomerService.updateCustomerStatus({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          customerId,
+          payload: { status: UserStatus.ACTIVE },
+        });
+
+        expect(mockTx.session.deleteMany).not.toHaveBeenCalled();
+        expect(auditSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: AuditAction.REACTIVATE,
+            entityType: AuditEntityType.CUSTOMER,
+          }),
+        );
+      });
+    });
+  });
+
+  describe("deleteCustomer", () => {
+    const actorId = "admin-123";
+    const customerId = "customer-uuid-456";
+    const mockTx = {
+      user: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+      },
+      session: {
+        deleteMany: vi.fn(),
+      },
+    };
+
+    beforeEach(() => {
+      vi.spyOn(prisma, "$transaction").mockImplementation(
+        async (callback: any) => {
+          return await callback(mockTx as any);
+        },
+      );
+      vi.spyOn(AuditService, "record").mockResolvedValue({} as any);
+    });
+
+    describe("Defense-in-Depth Authorization", () => {
+      it("should reject non-admin actors with 403 and log AuditAction.UNAUTHORIZED_ATTEMPT", async () => {
+        const auditSpy = vi.spyOn(AuditService, "record");
+
+        await expect(
+          CustomerService.deleteCustomer({
+            actorId,
+            actorRole: UserRole.CUSTOMER,
+            customerId,
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message: "Only administrators can delete Customer accounts",
+        });
+
+        expect(auditSpy).toHaveBeenCalledWith({
+          actorId,
+          action: AuditAction.UNAUTHORIZED_ATTEMPT,
+          entityType: AuditEntityType.CUSTOMER,
+          entityId: customerId,
+          metadata: {
+            attemptedAction: "DELETE_CUSTOMER",
+            attemptedRole: UserRole.CUSTOMER,
+            reason: "FORBIDDEN_ROLE_ACCESS",
+          },
+        });
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("Target Validation and Role Isolation", () => {
+      it("should throw 404 USER_NOT_FOUND when target user does not exist", async () => {
+        mockTx.user.findUnique.mockResolvedValue(null);
+
+        await expect(
+          CustomerService.deleteCustomer({
+            actorId,
+            actorRole: UserRole.ADMIN,
+            customerId,
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Customer not found",
+        });
+      });
+
+      it("should throw 404 USER_NOT_FOUND when target user is already soft-deleted", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          id: customerId,
+          role: UserRole.CUSTOMER,
+          deletedAt: new Date("2026-09-20T10:00:00.000Z"),
+        });
+
+        await expect(
+          CustomerService.deleteCustomer({
+            actorId,
+            actorRole: UserRole.ADMIN,
+            customerId,
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Customer not found",
+        });
+      });
+
+      it("should throw 404 USER_NOT_FOUND when target user has non-customer role (role isolation)", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          id: customerId,
+          role: UserRole.ADMIN,
+          deletedAt: null,
+        });
+
+        await expect(
+          CustomerService.deleteCustomer({
+            actorId,
+            actorRole: UserRole.ADMIN,
+            customerId,
+          }),
+        ).rejects.toMatchObject({
+          statusCode: status.NOT_FOUND,
+          code: PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+          message: "Customer not found",
+        });
+      });
+    });
+
+    describe("Soft-Delete Execution", () => {
+      it("should set deletedAt, invalidate all active sessions, log AuditAction.SOFT_DELETE, and return confirmation", async () => {
+        mockTx.user.findUnique.mockResolvedValue({
+          id: customerId,
+          role: UserRole.CUSTOMER,
+          deletedAt: null,
+        });
+        const deletedTimestamp = new Date("2026-09-27T14:00:00.000Z");
+        mockTx.user.update.mockResolvedValue({
+          id: customerId,
+          deletedAt: deletedTimestamp,
+        });
+        mockTx.session.deleteMany.mockResolvedValue({ count: 3 });
+        const auditSpy = vi.spyOn(AuditService, "record");
+
+        const result = await CustomerService.deleteCustomer({
+          actorId,
+          actorRole: UserRole.ADMIN,
+          customerId,
+          payload: { reason: "Customer requested deletion" },
+        });
+
+        expect(mockTx.user.update).toHaveBeenCalledWith({
+          where: { id: customerId },
+          data: { deletedAt: expect.any(Date) },
+        });
+        expect(mockTx.session.deleteMany).toHaveBeenCalledWith({
+          where: { userId: customerId },
+        });
+        expect(auditSpy).toHaveBeenCalledWith({
+          action: AuditAction.SOFT_DELETE,
+          entityType: AuditEntityType.CUSTOMER,
+          entityId: customerId,
+          actorId,
+          previousValue: { deletedAt: null },
+          newValue: { deletedAt: deletedTimestamp },
+          metadata: { reason: "Customer requested deletion" },
+          tx: mockTx,
+        });
+        expect(result).toEqual({
+          id: customerId,
+          deletedAt: deletedTimestamp,
+        });
       });
     });
   });
