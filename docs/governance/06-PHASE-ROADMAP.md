@@ -29,15 +29,14 @@
 | Phase   | Name                  | Status         | Readiness | Phase File                                     | Requirement Coverage                                                    |
 | ------- | --------------------- | -------------- | --------- | ---------------------------------------------- | ----------------------------------------------------------------------- |
 | Phase 1 | Foundation            | `COMPLETE`     | `N/A`     | `docs/governance/phases/phase-1-foundation.md` | Approved foundation, architecture and infrastructure scope              |
-| Phase 2 | Authentication & RBAC | `ACTIVE`       | `READY`   | `docs/governance/phases/phase-2-auth-rbac.md`  | [PRD](../product/PRD.md) Sections 2.1 through 2.3 and related ERD model |
+| Phase 2 | Authentication & RBAC | `COMPLETE`     | `N/A`     | `docs/governance/phases/phase-2-auth-rbac.md`  | [PRD](../product/PRD.md) Sections 2.1 through 2.3 and related ERD model |
 | Future  | Undefined scope       | `NOT APPROVED` | `N/A`     | None                                           | No approved PRD, ERD impact or phase plan                               |
 
 ### Current State
 
 - `docs/governance/phases/phase-1-foundation.md` is established as a concise retrospective record of the completed foundation.
-- `docs/governance/phases/phase-2-auth-rbac.md` is human-approved with 27 executable tasks. `P2-T003` and `P2-T004` are retired from Phase 2 because Docker is deferred to project-completion tooling work under `DEC-013`. Logging is no longer deferred: Pino adopted under `DEC-024`; Winston dropped. Testing is no longer deferred: Vitest adopted under `DEC-025`; Jest dropped.
-- Phase 2 is `ACTIVE / READY`. Tasks `P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`, `P2-T006`, `P2-T007`, `P2-T008`, `P2-T009`, `P2-T010`, `P2-T011`, `P2-T012`, `P2-T013`, `P2-T014`, `P2-T015`, `P2-T016`, `P2-T017`, `P2-T018`, `P2-T019`, `P2-T020`, `P2-T021`, `P2-T022`, `P2-T023`, `P2-T024`, `P2-T025`, and `P2-T026` are `✅ Done`.
-- Do not begin Phase 2 implementation from this roadmap alone. Follow [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md) and [phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md).
+- `docs/governance/phases/phase-2-auth-rbac.md` is `COMPLETE`. All 27 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`) are `✅ Done` with 40 test files and 653/653 tests passing. Phase completion approved by human reviewer on 2026-09-27. `P2-T003` and `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`.
+- Active phase in progress: None (Ready for Phase 3 planning, PRD/ERD alignment, and phase file activation per [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md)).
 
 ## 4. Phase 2 Requirement Coverage
 
