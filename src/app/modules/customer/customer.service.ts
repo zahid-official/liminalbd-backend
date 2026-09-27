@@ -4,11 +4,13 @@ import {
   AuditAction,
   AuditEntityType,
   UserRole,
+  UserStatus,
 } from "../../../generated/prisma/enums.js";
 import { auth } from "../../config/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../errors/AppError.js";
 import { PUBLIC_ERROR_CODES } from "../../errors/errorCodes.js";
+import type { CreateAuditLogInput } from "../../shared/audit/audit.interface.js";
 import { AuditService } from "../../shared/audit/audit.service.js";
 import {
   buildPaginationMeta,
@@ -17,8 +19,10 @@ import {
 } from "../../utils/queryBuilder.js";
 import { CUSTOMER_SEARCHABLE_FIELDS } from "./customer.constant.js";
 import type {
+  DeleteCustomerInput,
   GetCustomersInput,
   RegisterCustomerInput,
+  UpdateCustomerStatusInput,
 } from "./customer.interface.js";
 
 // Register customer account
@@ -223,9 +227,210 @@ const getCustomerById = async (customerId: string) => {
   };
 };
 
+// Update Customer account status (Admin only)
+const updateCustomerStatus = async ({
+  actorId,
+  actorRole,
+  customerId,
+  payload,
+}: UpdateCustomerStatusInput) => {
+  if (actorRole !== UserRole.ADMIN && actorRole !== UserRole.SUPER_ADMIN) {
+    await AuditService.record({
+      actorId,
+      action: AuditAction.UNAUTHORIZED_ATTEMPT,
+      entityType: AuditEntityType.CUSTOMER,
+      entityId: customerId,
+      metadata: {
+        attemptedAction: "UPDATE_CUSTOMER_STATUS",
+        attemptedRole: actorRole,
+        reason: "FORBIDDEN_ROLE_ACCESS",
+      },
+    });
+
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      "Only administrators can update Customer account status",
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const targetUser = await tx.user.findUnique({
+      where: { id: customerId },
+      include: { customer: true },
+    });
+
+    if (
+      !targetUser ||
+      targetUser.role !== UserRole.CUSTOMER ||
+      targetUser.deletedAt !== null
+    ) {
+      throw new AppError(
+        status.NOT_FOUND,
+        PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        "Customer not found",
+      );
+    }
+
+    if (targetUser.status === payload.status) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        PUBLIC_ERROR_CODES.VALIDATION_ERROR,
+        `Customer account is already ${payload.status.toLowerCase()}`,
+      );
+    }
+
+    const updatedUser = await tx.user.update({
+      where: { id: customerId },
+      data: { status: payload.status },
+    });
+
+    // Invalidate all active sessions if restricting account access
+    if (
+      payload.status === UserStatus.SUSPENDED ||
+      payload.status === UserStatus.DEACTIVATED
+    ) {
+      await tx.session.deleteMany({
+        where: { userId: customerId },
+      });
+    }
+
+    let action: AuditAction = AuditAction.REACTIVATE;
+    if (payload.status === UserStatus.SUSPENDED) {
+      action = AuditAction.SUSPEND;
+    } else if (payload.status === UserStatus.DEACTIVATED) {
+      action = AuditAction.DEACTIVATE;
+    }
+
+    const auditData: CreateAuditLogInput = {
+      action,
+      entityType: AuditEntityType.CUSTOMER,
+      entityId: customerId,
+      previousValue: { status: targetUser.status },
+      newValue: { status: payload.status },
+      tx,
+    };
+
+    if (actorId) {
+      auditData.actorId = actorId;
+    }
+    if (payload.reason) {
+      auditData.metadata = { reason: payload.reason };
+    }
+
+    await AuditService.record(auditData);
+
+    const updatedAt =
+      targetUser.customer &&
+      targetUser.customer.updatedAt > updatedUser.updatedAt
+        ? targetUser.customer.updatedAt
+        : updatedUser.updatedAt;
+
+    return {
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      emailVerified: updatedUser.emailVerified,
+      image: updatedUser.image,
+      role: updatedUser.role,
+      status: updatedUser.status,
+      contactNumber: targetUser.customer?.contactNumber,
+      address: targetUser.customer?.address,
+      createdAt: updatedUser.createdAt,
+      updatedAt,
+    };
+  });
+
+  return result;
+};
+
+// Soft-delete Customer account (Admin only)
+const deleteCustomer = async ({
+  actorId,
+  actorRole,
+  customerId,
+  payload,
+}: DeleteCustomerInput) => {
+  if (actorRole !== UserRole.ADMIN && actorRole !== UserRole.SUPER_ADMIN) {
+    await AuditService.record({
+      actorId,
+      action: AuditAction.UNAUTHORIZED_ATTEMPT,
+      entityType: AuditEntityType.CUSTOMER,
+      entityId: customerId,
+      metadata: {
+        attemptedAction: "DELETE_CUSTOMER",
+        attemptedRole: actorRole,
+        reason: "FORBIDDEN_ROLE_ACCESS",
+      },
+    });
+
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      "Only administrators can delete Customer accounts",
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const targetUser = await tx.user.findUnique({
+      where: { id: customerId },
+      select: { id: true, role: true, deletedAt: true },
+    });
+
+    if (
+      !targetUser ||
+      targetUser.role !== UserRole.CUSTOMER ||
+      targetUser.deletedAt !== null
+    ) {
+      throw new AppError(
+        status.NOT_FOUND,
+        PUBLIC_ERROR_CODES.USER_NOT_FOUND,
+        "Customer not found",
+      );
+    }
+
+    const updatedUser = await tx.user.update({
+      where: { id: customerId },
+      data: { deletedAt: new Date() },
+    });
+
+    // Invalidate all active sessions for the soft-deleted account
+    await tx.session.deleteMany({
+      where: { userId: customerId },
+    });
+
+    const auditData: CreateAuditLogInput = {
+      action: AuditAction.SOFT_DELETE,
+      entityType: AuditEntityType.CUSTOMER,
+      entityId: customerId,
+      previousValue: { deletedAt: targetUser.deletedAt },
+      newValue: { deletedAt: updatedUser.deletedAt },
+      tx,
+    };
+
+    if (actorId) {
+      auditData.actorId = actorId;
+    }
+    if (payload?.reason) {
+      auditData.metadata = { reason: payload.reason };
+    }
+
+    await AuditService.record(auditData);
+
+    return {
+      id: updatedUser.id,
+      deletedAt: updatedUser.deletedAt,
+    };
+  });
+
+  return result;
+};
+
 // Export customer service
 export const CustomerService = {
   registerCustomer,
   getCustomers,
   getCustomerById,
+  updateCustomerStatus,
+  deleteCustomer,
 };

@@ -18,7 +18,7 @@
   - `FR-CUSTOMER-004.6`: Customers cannot modify their own account status (HTTP 403 Forbidden).
   - `FR-RBAC-006`: Account lifecycle and status restrictions.
 - **ERD Reference:** `User` in `prisma/schema/auth.prisma`, `Customer` in `prisma/schema/profiles.prisma`, `Session` in `prisma/schema/auth.prisma`, `AuditLog` in `prisma/schema/audit.prisma`.
-- **Dependencies:** `P2-T016` (Audit logging), `P2-T017` (Account status enforcement & `AccountService`), `P2-T022` (Ownership authorization pattern).
+- **Dependencies:** `P2-T016` (Audit logging), `P2-T017` (Account status enforcement), `P2-T022` (Ownership authorization pattern), `DEC-030` (Domain-encapsulated lifecycle management).
 - **Blockers:** `P2-B001` (Resolved per `DEC-027` - pluralized REST paths).
 
 ---
@@ -91,7 +91,7 @@
 - **Current Behavior / Gaps:**
   - `src/app/modules/customer/` currently supports registration (`POST /register`), listing (`GET /`), and profile retrieval (`GET /:id`).
   - No administrative status update (`PATCH /:id/status`) or soft-delete (`DELETE /:id`) endpoints exist for customers.
-  - `src/app/shared/account/account.service.ts` provides baseline account status handling, but customer-specific endpoints require customer role verification (`role === CUSTOMER`), `AuditEntityType.CUSTOMER` tagging, and `DEC-028` DTO projection.
+  - Per `DEC-030`, customer lifecycle operations are encapsulated directly within `CustomerService` (atomic transaction, session invalidation, role isolation, `AuditEntityType.CUSTOMER` tagging, and `DEC-028` DTO projection), pruning obsolete shared `AccountService`.
 - **Existing Code Patterns to Follow:**
   - Route: `router.patch("/:id/status", authGuard, rbacGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN), validateRequest(schema), controller)`.
   - Route: `router.delete("/:id", authGuard, rbacGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN), validateRequest(schema), controller)`.
@@ -103,7 +103,6 @@
   - `src/app/modules/customer/customer.service.ts`
   - `src/app/modules/customer/customer.validation.ts`
   - `src/app/modules/customer/customer.interface.ts`
-  - `src/app/shared/account/account.service.ts`
   - `src/app/modules/admin/admin.service.ts` (reference implementation)
 
 ---

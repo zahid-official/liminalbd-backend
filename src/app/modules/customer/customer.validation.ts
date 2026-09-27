@@ -59,15 +59,61 @@ const getCustomersQuerySchema = {
     ),
 };
 
+// Update Customer Status Schema
+const updateCustomerStatusSchema = {
+  params: z.object({
+    id: idSchema,
+  }),
+
+  body: z.object({
+    status: userStatusSchema,
+    reason: z
+      .string({ error: "Reason must be a valid text string" })
+      .trim()
+      .max(500, { error: "Reason cannot exceed 500 characters" })
+      .optional(),
+  }),
+};
+
+// Delete Customer Schema (Soft Delete)
+const deleteCustomerSchema = {
+  params: z.object({
+    id: idSchema,
+  }),
+
+  body: z
+    .object({
+      reason: z
+        .string({ error: "Reason must be a valid text string" })
+        .trim()
+        .max(500, { error: "Reason cannot exceed 500 characters" })
+        .optional(),
+    })
+    .optional(),
+};
+
 // Inferred input types
 export type RegisterCustomerBody = z.infer<typeof registerCustomerSchema.body>;
 export type GetCustomerParams = z.infer<typeof getCustomerSchema.params>;
 export type GetCustomersQuery = z.infer<typeof getCustomersQuerySchema.query>;
+export type UpdateCustomerStatusParams = z.infer<
+  typeof updateCustomerStatusSchema.params
+>;
+export type UpdateCustomerStatusBody = z.infer<
+  typeof updateCustomerStatusSchema.body
+>;
+export type DeleteCustomerParams = z.infer<typeof deleteCustomerSchema.params>;
+export type DeleteCustomerBody = z.infer<
+  NonNullable<typeof deleteCustomerSchema.body>
+>;
 
 // Export customer validation schemas
 export const CustomerValidation = {
   registerCustomerSchema,
   getCustomerSchema,
   getCustomersQuerySchema,
+  updateCustomerStatusSchema,
+  deleteCustomerSchema,
 };
+
 

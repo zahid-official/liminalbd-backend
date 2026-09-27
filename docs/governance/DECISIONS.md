@@ -20,6 +20,28 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-030: Domain-Encapsulated Account Lifecycle Management and Pruning of Obsolete Shared AccountService
+
+**Recorded:** 2026-09-27  
+**Status:** `ACCEPTED`
+
+**Decision:**
+1. **Domain-Encapsulated Account Lifecycle Management:** Account lifecycle operations (status updates, suspensions, reactivations, soft deletions), role isolation checks, transactional updates, session invalidations (`tx.session.deleteMany({ where: { userId } })`), and granular audit logging are encapsulated directly within domain-specific services (`CustomerService`, `AdminService`), rather than routed through a generic shared abstraction.
+2. **Pruning of Obsolete Shared AccountService:** The speculative generic `src/app/shared/account/` directory (`account.service.ts`, `account.interface.ts`) and its unit tests (`tests/unit/shared/account/account.service.test.ts`) established in `P2-T017` are permanently removed per KISS, YAGNI, and Clean Architecture principles.
+
+**Why:**
+1. **Domain Specificity & Divergent Requirements:** Administrative customer lifecycle operations (`P2-T026`) require explicit customer role isolation (`role === CUSTOMER`), semantic audit logging with `AuditEntityType.CUSTOMER`, and flattened profile DTO projection per `DEC-028`. Admin account operations require `AuditEntityType.ADMIN`, self-role mutation and self-lockout prevention checks, and admin-specific DTOs.
+2. **Zero Consumers & Technical Debt:** `AccountService` had zero callers across all production code in `src/`. Retaining it as a dead ghost abstraction imposed unnecessary maintenance overhead and cognitive load on junior developers.
+3. **KISS & Junior Developer Ergonomics:** Self-contained domain services make request and transaction flows straightforward, transparent, and easy to follow end-to-end without indirection.
+
+**Consequences:**
+- `src/app/shared/account/` is completely removed.
+- `CustomerService.updateCustomerStatus` and `CustomerService.deleteCustomer` self-contain their atomic transactions, session revocation, and audit logs with `AuditEntityType.CUSTOMER`.
+- `AdminService` self-contains privileged status and role mutations with `AuditEntityType.ADMIN`.
+- Unit test suite total is updated to 39 passing test files (593 tests).
+
+---
+
 ### DEC-029: Centralize Universal Self-Service Profile Retrieval and Updates under /api/v1/users/profile
 
 **Recorded:** 2026-09-26  

@@ -33,6 +33,24 @@ router.get(
   CustomerController.getCustomerById,
 );
 
+// Update Customer account status (Admin only)
+router.patch(
+  "/:id/status",
+  authGuard,
+  rbacGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateRequest(CustomerValidation.updateCustomerStatusSchema),
+  CustomerController.updateCustomerStatus,
+);
+
+// Soft-delete Customer account (Admin only)
+router.delete(
+  "/:id",
+  authGuard,
+  rbacGuard(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateRequest(CustomerValidation.deleteCustomerSchema),
+  CustomerController.deleteCustomer,
+);
+
 // Export customer routes
 export const CustomerRoutes = router;
 

@@ -7,9 +7,13 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import type { AuthUser } from "../auth/auth.interface.js";
 import { CustomerService } from "./customer.service.js";
 import type {
+  DeleteCustomerBody,
+  DeleteCustomerParams,
   GetCustomerParams,
   GetCustomersQuery,
   RegisterCustomerBody,
+  UpdateCustomerStatusBody,
+  UpdateCustomerStatusParams,
 } from "./customer.validation.js";
 
 // Register customer account
@@ -60,9 +64,53 @@ const getCustomerById = catchAsync(async (_req: Request, res: Response) => {
   });
 });
 
+// Update Customer account status (Admin only)
+const updateCustomerStatus = catchAsync(
+  async (_req: Request, res: Response) => {
+    const user = res.locals.user as AuthUser;
+    const params = res.locals.validated?.params as UpdateCustomerStatusParams;
+    const body = res.locals.validated?.body as UpdateCustomerStatusBody;
+
+    const result = await CustomerService.updateCustomerStatus({
+      actorId: user.id,
+      actorRole: user.role as UserRole,
+      customerId: params.id,
+      payload: body,
+    });
+
+    sendResponse(res, {
+      statusCode: status.OK,
+      message: "Customer status updated successfully",
+      data: result,
+    });
+  },
+);
+
+// Soft-delete Customer account (Admin only)
+const deleteCustomer = catchAsync(async (_req: Request, res: Response) => {
+  const user = res.locals.user as AuthUser;
+  const params = res.locals.validated?.params as DeleteCustomerParams;
+  const body = res.locals.validated?.body as DeleteCustomerBody | undefined;
+
+  const result = await CustomerService.deleteCustomer({
+    actorId: user.id,
+    actorRole: user.role as UserRole,
+    customerId: params.id,
+    payload: body,
+  });
+
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: "Customer account deleted successfully",
+    data: result,
+  });
+});
+
 // Export customer controller
 export const CustomerController = {
   registerCustomer,
   getCustomers,
   getCustomerById,
+  updateCustomerStatus,
+  deleteCustomer,
 };
