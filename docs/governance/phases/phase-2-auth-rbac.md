@@ -168,6 +168,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `✅`   | `P2-T022`                       | `P2-B001`                                    |
 | 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `✅`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
 | 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `✅`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
+| 27    | C          | `P2-T030` | Implement dedicated administrative login operation and portal separation | `✅`   | `P2-T008`, `P2-T018`            | None                                         |
 
 Workstreams organize one phase; they are not sub-phases and do not permit parallel implementation. Execute tasks in order unless the plan is explicitly re-approved. Update status only in this index.
 

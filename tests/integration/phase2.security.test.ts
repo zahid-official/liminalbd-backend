@@ -210,6 +210,21 @@ describe("Phase 2 Integration & Security Verification Tests", () => {
       });
     });
 
+    it("should reject ADMIN access to Customer portal route POST /api/v1/auth/unlink/google with 403 FORBIDDEN_ROLE_ACCESS per DEC-020", async () => {
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession("ADMIN") as any);
+
+      const res = await request(getApp())
+        .post("/api/v1/auth/unlink/google")
+        .set("Cookie", ["better-auth.session_token=sample-session-token"])
+        .send({});
+
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({
+        success: false,
+        code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      });
+    });
+
     it("should reject unlinking when no Google account is linked with 400 ACCOUNT_NOT_LINKED", async () => {
       vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession("CUSTOMER") as any);
 
@@ -227,6 +242,24 @@ describe("Phase 2 Integration & Security Verification Tests", () => {
   });
 
   describe("Account Status Enforcement across Protected Routes", () => {
+    it("should reject account with needPasswordChange: true with 403 PASSWORD_CHANGE_REQUIRED on administrative route", async () => {
+      const mockSession = createMockSession("ADMIN");
+      (mockSession.user as any).needPasswordChange = true;
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(mockSession as any);
+
+      const res = await request(getApp())
+        .get("/api/v1/customers")
+        .set("Cookie", ["better-auth.session_token=sample-session-token"]);
+
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({
+        success: false,
+        code: PUBLIC_ERROR_CODES.PASSWORD_CHANGE_REQUIRED,
+        message:
+          "Password change is required before accessing administrative operations.",
+      });
+    });
+
     it("should reject SUSPENDED account with 403 ACCOUNT_SUSPENDED", async () => {
       vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession("CUSTOMER", "SUSPENDED") as any);
 
@@ -293,6 +326,114 @@ describe("Phase 2 Integration & Security Verification Tests", () => {
 
       expect(res.status).toBe(200);
       expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
+    });
+  });
+
+  describe("Administrative Login Portal (POST /api/v1/auth/admin/login)", () => {
+    it("should permit ADMIN credentials login and return session with cookies", async () => {
+      const mockAuthHeaders = new Headers();
+      mockAuthHeaders.append(
+        "set-cookie",
+        "better-auth.session_token=admin-integration-token; Path=/; HttpOnly",
+      );
+
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: {
+          token: "admin-integration-token",
+          user: {
+            id: "admin-sec-001",
+            name: "Sec Admin",
+            email: "admin@example.com",
+            emailVerified: true,
+            role: "ADMIN",
+            status: "ACTIVE",
+          },
+        },
+      } as any);
+
+      const res = await request(getApp())
+        .post("/api/v1/auth/admin/login")
+        .send({
+          email: "admin@example.com",
+          password: "SecurePassword123!",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        success: true,
+        message: "Admin login successful",
+        data: {
+          id: "admin-sec-001",
+          role: "ADMIN",
+          status: "ACTIVE",
+        },
+      });
+      expect(res.headers["set-cookie"]).toBeDefined();
+    });
+
+    it("should permit SUPER_ADMIN credentials login and return session", async () => {
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: new Headers(),
+        response: {
+          token: "superadmin-integration-token",
+          user: {
+            id: "superadmin-sec-001",
+            name: "Sec Super Admin",
+            email: "superadmin@example.com",
+            emailVerified: true,
+            role: "SUPER_ADMIN",
+            status: "ACTIVE",
+          },
+        },
+      } as any);
+
+      const res = await request(getApp())
+        .post("/api/v1/auth/admin/login")
+        .send({
+          email: "superadmin@example.com",
+          password: "SecurePassword123!",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        success: true,
+        data: {
+          role: "SUPER_ADMIN",
+        },
+      });
+    });
+
+    it("should reject CUSTOMER on POST /api/v1/auth/admin/login with 403 FORBIDDEN_ROLE_ACCESS", async () => {
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: new Headers(),
+        response: {
+          token: "customer-integration-token",
+          user: {
+            id: "cust-sec-001",
+            name: "Sec Customer",
+            email: "customer@example.com",
+            emailVerified: true,
+            role: "CUSTOMER",
+            status: "ACTIVE",
+          },
+        },
+      } as any);
+
+      const res = await request(getApp())
+        .post("/api/v1/auth/admin/login")
+        .send({
+          email: "customer@example.com",
+          password: "SecurePassword123!",
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({
+        success: false,
+        code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        message:
+          "Access denied. This login portal is reserved for administrators.",
+      });
     });
   });
 });

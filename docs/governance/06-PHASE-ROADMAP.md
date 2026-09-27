@@ -35,8 +35,8 @@
 ### Current State
 
 - `docs/governance/phases/phase-1-foundation.md` is established as a concise retrospective record of the completed foundation.
-- `docs/governance/phases/phase-2-auth-rbac.md` is `COMPLETE`. All 27 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`) are `✅ Done` with 40 test files and 653/653 tests passing. Phase completion approved by human reviewer on 2026-09-27. `P2-T003` and `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`.
-- Active phase in progress: None (Ready for Phase 3 planning, PRD/ERD alignment, and phase file activation per [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md)).
+- `docs/governance/phases/phase-2-auth-rbac.md` is `COMPLETE`. All 28 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`, `P2-T030`) are `✅ Done` with 40 test files and 671/671 tests passing. Phase completion approved by human reviewer on 2026-09-27. `P2-T003` and `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`.
+- Active phase in progress: None (Ready for Phase 3 planning or bootstrap seeding, PRD/ERD alignment, and phase file activation per [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md)).
 
 ## 4. Phase 2 Requirement Coverage
 

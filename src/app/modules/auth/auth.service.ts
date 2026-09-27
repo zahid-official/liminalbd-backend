@@ -126,6 +126,54 @@ const loginWithCredentials = async ({
   };
 };
 
+// Login administrator with email and password credentials
+const loginAdminWithCredentials = async ({
+  headers,
+  payload,
+}: LoginWithCredentialsInput) => {
+  const { email, password } = payload;
+
+  const { headers: authHeaders, response: authResult } =
+    await auth.api.signInEmail({
+      body: {
+        email,
+        password,
+      },
+      headers,
+      returnHeaders: true,
+    });
+
+  // Enforce administrative portal boundary
+  if (
+    authResult.user.role !== UserRole.ADMIN &&
+    authResult.user.role !== UserRole.SUPER_ADMIN
+  ) {
+    if (authResult.token) {
+      await prisma.session.deleteMany({
+        where: { token: authResult.token },
+      });
+    }
+
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      "Access denied. This login portal is reserved for administrators.",
+    );
+  }
+
+  return {
+    user: {
+      id: authResult.user.id,
+      name: authResult.user.name,
+      email: authResult.user.email,
+      emailVerified: authResult.user.emailVerified,
+      role: authResult.user.role,
+      status: authResult.user.status,
+    },
+    setCookies: authHeaders?.getSetCookie() ?? [],
+  };
+};
+
 // Initialize Google OAuth sign-in flow
 const loginWithGoogle = async ({
   headers,
@@ -205,7 +253,15 @@ const linkGoogleAccount = async ({
 };
 
 // Unlink Google account from authenticated user
-const unlinkGoogleAccount = async (userId: string) => {
+const unlinkGoogleAccount = async (userId: string, role?: UserRole) => {
+  if (role && role !== UserRole.CUSTOMER) {
+    throw new AppError(
+      status.FORBIDDEN,
+      PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+      "Access denied. Administrative accounts cannot link or manage Google accounts.",
+    );
+  }
+
   const accounts = await prisma.account.findMany({
     where: { userId },
     select: {
@@ -417,6 +473,7 @@ export const AuthService = {
   requestEmailVerification,
   confirmEmailVerification,
   loginWithCredentials,
+  loginAdminWithCredentials,
   loginWithGoogle,
   linkGoogleAccount,
   unlinkGoogleAccount,

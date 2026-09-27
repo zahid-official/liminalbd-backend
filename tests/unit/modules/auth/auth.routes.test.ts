@@ -43,8 +43,8 @@ describe("AuthRoutes Unit Tests", () => {
     expect(route?.stack?.[0]?.handle).toBe(authGuard);
   };
 
-  it("should register exactly 14 route layers on the auth router", () => {
-    expect(AuthRoutes.stack.length).toBe(14);
+  it("should register exactly 15 route layers on the auth router", () => {
+    expect(AuthRoutes.stack.length).toBe(15);
   });
 
   describe("Public Authentication Routes", () => {
@@ -62,6 +62,12 @@ describe("AuthRoutes Unit Tests", () => {
 
     it("should configure POST /login route with validation and controller handlers", () => {
       const route = findRoute("/login");
+      assertExclusiveMethod(route, "post");
+      expect(route?.stack?.length).toBe(2);
+    });
+
+    it("should configure POST /admin/login route with validation and controller handlers", () => {
+      const route = findRoute("/admin/login");
       assertExclusiveMethod(route, "post");
       expect(route?.stack?.length).toBe(2);
     });

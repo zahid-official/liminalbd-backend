@@ -21,6 +21,14 @@ const rbacGuard = (
         );
       }
 
+      if (user.needPasswordChange) {
+        throw new AppError(
+          status.FORBIDDEN,
+          PUBLIC_ERROR_CODES.PASSWORD_CHANGE_REQUIRED,
+          "Password change is required before accessing administrative operations.",
+        );
+      }
+
       if (!allowedRoles.includes(user.role as UserRole)) {
         throw new AppError(
           status.FORBIDDEN,

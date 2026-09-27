@@ -429,6 +429,230 @@ describe("AuthService Unit Tests", () => {
     });
   });
 
+  describe("loginAdminWithCredentials", () => {
+    const payload = {
+      email: "admin@example.com",
+      password: "AdminPassword123!",
+    };
+
+    it("should allow ADMIN login, extract cookies, and return sanitized user profile", async () => {
+      const mockAuthHeaders = new Headers();
+      mockAuthHeaders.append(
+        "set-cookie",
+        "better-auth.session_token=admin-cookie-xyz; Path=/; HttpOnly",
+      );
+
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: {
+          token: "admin-session-token",
+          user: {
+            id: "admin-1",
+            name: "Admin User",
+            email: "admin@example.com",
+            emailVerified: true,
+            role: UserRole.ADMIN,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      const result = await AuthService.loginAdminWithCredentials({
+        headers: mockHeaders,
+        payload,
+      });
+
+      expect(result).toEqual({
+        user: {
+          id: "admin-1",
+          name: "Admin User",
+          email: "admin@example.com",
+          emailVerified: true,
+          role: UserRole.ADMIN,
+          status: UserStatus.ACTIVE,
+        },
+        setCookies: [
+          "better-auth.session_token=admin-cookie-xyz; Path=/; HttpOnly",
+        ],
+      });
+    });
+
+    it("should allow SUPER_ADMIN login, extract cookies, and return sanitized user profile", async () => {
+      const mockAuthHeaders = new Headers();
+      mockAuthHeaders.append(
+        "set-cookie",
+        "better-auth.session_token=superadmin-cookie-xyz; Path=/; HttpOnly",
+      );
+
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: mockAuthHeaders,
+        response: {
+          token: "superadmin-session-token",
+          user: {
+            id: "superadmin-1",
+            name: "Super Admin User",
+            email: "superadmin@example.com",
+            emailVerified: true,
+            role: UserRole.SUPER_ADMIN,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      const result = await AuthService.loginAdminWithCredentials({
+        headers: mockHeaders,
+        payload,
+      });
+
+      expect(result).toEqual({
+        user: {
+          id: "superadmin-1",
+          name: "Super Admin User",
+          email: "superadmin@example.com",
+          emailVerified: true,
+          role: UserRole.SUPER_ADMIN,
+          status: UserStatus.ACTIVE,
+        },
+        setCookies: [
+          "better-auth.session_token=superadmin-cookie-xyz; Path=/; HttpOnly",
+        ],
+      });
+    });
+
+    it("should reject CUSTOMER login with 403 FORBIDDEN_ROLE_ACCESS and delete active session token", async () => {
+      const deleteManySpy = vi
+        .spyOn(prisma.session, "deleteMany")
+        .mockResolvedValue({ count: 1 });
+
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: new Headers(),
+        response: {
+          token: "customer-token-xyz",
+          user: {
+            id: "customer-user-1",
+            name: "Customer User",
+            email: "customer@example.com",
+            emailVerified: true,
+            role: UserRole.CUSTOMER,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      await expect(
+        AuthService.loginAdminWithCredentials({ headers: mockHeaders, payload }),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(AppError);
+        expect(err).toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message:
+            "Access denied. This login portal is reserved for administrators.",
+        });
+        return true;
+      });
+
+      expect(deleteManySpy).toHaveBeenCalledWith({
+        where: { token: "customer-token-xyz" },
+      });
+    });
+
+    it("should safely skip session deletion if Better Auth does not issue a token during CUSTOMER rejection", async () => {
+      const deleteManySpy = vi
+        .spyOn(prisma.session, "deleteMany")
+        .mockResolvedValue({ count: 0 });
+
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: new Headers(),
+        response: {
+          token: null,
+          user: {
+            id: "customer-user-1",
+            name: "Customer User",
+            email: "customer@example.com",
+            emailVerified: true,
+            role: UserRole.CUSTOMER,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      await expect(
+        AuthService.loginAdminWithCredentials({ headers: mockHeaders, payload }),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(AppError);
+        expect(err).toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message:
+            "Access denied. This login portal is reserved for administrators.",
+        });
+        return true;
+      });
+
+      expect(deleteManySpy).not.toHaveBeenCalled();
+    });
+
+    it("should fallback to empty setCookies array when authHeaders does not contain set-cookie headers", async () => {
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: new Headers(),
+        response: {
+          token: "admin-token-no-cookie",
+          user: {
+            id: "admin-1",
+            name: "Admin One",
+            email: "admin@example.com",
+            emailVerified: true,
+            role: UserRole.ADMIN,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      const result = await AuthService.loginAdminWithCredentials({
+        headers: mockHeaders,
+        payload,
+      });
+
+      expect(result.setCookies).toEqual([]);
+      expect(result.user.id).toBe("admin-1");
+    });
+
+    it("should safely handle undefined authHeaders and return empty setCookies", async () => {
+      vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
+        headers: undefined,
+        response: {
+          token: "admin-token-no-headers",
+          user: {
+            id: "admin-1",
+            name: "Admin One",
+            email: "admin@example.com",
+            emailVerified: true,
+            role: UserRole.ADMIN,
+            status: UserStatus.ACTIVE,
+          },
+        },
+      } as any);
+
+      const result = await AuthService.loginAdminWithCredentials({
+        headers: mockHeaders,
+        payload,
+      });
+
+      expect(result.setCookies).toEqual([]);
+      expect(result.user.id).toBe("admin-1");
+    });
+
+    it("should propagate errors when signInEmail rejects (e.g., invalid credentials or account status)", async () => {
+      const signInError = new Error("Invalid email or password");
+      vi.spyOn(auth.api, "signInEmail").mockRejectedValue(signInError);
+
+      await expect(
+        AuthService.loginAdminWithCredentials({ headers: mockHeaders, payload }),
+      ).rejects.toThrow(signInError);
+    });
+  });
+
   describe("loginWithGoogle", () => {
     it("should initialize Google OAuth sign-in flow with custom redirectTo and return URL & cookies", async () => {
       const mockAuthHeaders = new Headers();
@@ -758,6 +982,21 @@ describe("AuthService Unit Tests", () => {
   });
 
   describe("unlinkGoogleAccount", () => {
+    it("should throw 403 FORBIDDEN_ROLE_ACCESS if non-customer (e.g. ADMIN) attempts to unlink Google account", async () => {
+      await expect(
+        AuthService.unlinkGoogleAccount("admin-user-id", UserRole.ADMIN),
+      ).rejects.toSatisfy((err: unknown) => {
+        expect(err).toBeInstanceOf(AppError);
+        expect(err).toMatchObject({
+          statusCode: status.FORBIDDEN,
+          code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+          message:
+            "Access denied. Administrative accounts cannot link or manage Google accounts.",
+        });
+        return true;
+      });
+    });
+
     it("should throw 400 BAD_REQUEST if user has no linked Google account", async () => {
       const findManySpy = vi
         .spyOn(prisma.account, "findMany")

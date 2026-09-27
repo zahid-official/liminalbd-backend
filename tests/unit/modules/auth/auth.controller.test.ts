@@ -375,6 +375,117 @@ describe("AuthController Unit Tests", () => {
     });
   });
 
+  describe("loginAdminWithCredentials", () => {
+    const mockPayload = {
+      email: "admin@liminalbd.com",
+      password: "AdminPassword123!",
+    };
+
+    it("should extract validated body, invoke AuthService, set cookies, and send 200 response", async () => {
+      const mockResult = {
+        user: {
+          id: "admin-123",
+          name: "Admin User",
+          email: "admin@liminalbd.com",
+          emailVerified: true,
+          role: UserRole.ADMIN,
+          status: UserStatus.ACTIVE,
+        },
+        setCookies: ["better-auth.session_token=admin-cookie; Path=/"],
+      };
+
+      const loginSpy = vi
+        .spyOn(AuthService, "loginAdminWithCredentials")
+        .mockResolvedValue(mockResult);
+
+      const req = {
+        headers: {
+          "user-agent": "Vitest-Agent",
+          "x-forwarded-for": "127.0.0.1",
+        },
+      } as unknown as Request;
+
+      const res = makeMockRes({ validatedBody: mockPayload });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginAdminWithCredentials(req, res, next);
+
+      expect(loginSpy).toHaveBeenCalledTimes(1);
+      expect(loginSpy).toHaveBeenCalledWith({
+        headers: expect.any(Headers),
+        payload: mockPayload,
+      });
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        "set-cookie",
+        mockResult.setCookies,
+      );
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Admin login successful",
+        data: mockResult.user,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should omit set-cookie header when setCookies is empty", async () => {
+      const mockResult = {
+        user: {
+          id: "superadmin-123",
+          name: "Super Admin",
+          email: "superadmin@liminalbd.com",
+          emailVerified: true,
+          role: UserRole.SUPER_ADMIN,
+          status: UserStatus.ACTIVE,
+        },
+        setCookies: [],
+      };
+
+      vi.spyOn(AuthService, "loginAdminWithCredentials").mockResolvedValue(
+        mockResult,
+      );
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({ validatedBody: mockPayload });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginAdminWithCredentials(req, res, next);
+
+      expect(res.setHeader).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(status.OK);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: "Admin login successful",
+        data: mockResult.user,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should forward admin login service errors to next() middleware via catchAsync", async () => {
+      const serviceError = new AppError(
+        status.FORBIDDEN,
+        PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
+        "Access denied. This login portal is reserved for administrators.",
+      );
+
+      vi.spyOn(AuthService, "loginAdminWithCredentials").mockRejectedValue(
+        serviceError,
+      );
+
+      const req = { headers: {} } as unknown as Request;
+      const res = makeMockRes({ validatedBody: mockPayload });
+      const next = vi.fn() as unknown as NextFunction;
+
+      await AuthController.loginAdminWithCredentials(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
+    });
+  });
+
   describe("loginWithGoogle", () => {
     it("should extract validated query, convert headers faithfully, set cookies, and send 200 response", async () => {
       const mockResult = {
@@ -679,7 +790,10 @@ describe("AuthController Unit Tests", () => {
 
       await AuthController.unlinkGoogle(req, res, next);
 
-      expect(unlinkSpy).toHaveBeenCalledWith(mockCustomerUser.id);
+      expect(unlinkSpy).toHaveBeenCalledWith(
+        mockCustomerUser.id,
+        mockCustomerUser.role,
+      );
       expect(res.status).toHaveBeenCalledWith(status.OK);
       expect(res.json).toHaveBeenCalledWith({
         success: true,

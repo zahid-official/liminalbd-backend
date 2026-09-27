@@ -128,6 +128,24 @@ describe("rbacGuard Unit Tests", () => {
         code: PUBLIC_ERROR_CODES.FORBIDDEN_ROLE_ACCESS,
       });
     });
+
+    it("should reject with 403 PASSWORD_CHANGE_REQUIRED when user has needPasswordChange: true", async () => {
+      const { req, res, next } = createMockContext(UserRole.ADMIN);
+      (res.locals as any).user.needPasswordChange = true;
+      const guard = rbacGuard(UserRole.ADMIN);
+
+      await guard(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      const err = vi.mocked(next).mock.calls[0]?.[0];
+      expect(err).toBeInstanceOf(AppError);
+      expect(err).toMatchObject({
+        statusCode: status.FORBIDDEN,
+        code: PUBLIC_ERROR_CODES.PASSWORD_CHANGE_REQUIRED,
+        message:
+          "Password change is required before accessing administrative operations.",
+      });
+    });
   });
 
   describe("Defense-in-Depth Authentication Scenarios (401 UNAUTHORIZED)", () => {

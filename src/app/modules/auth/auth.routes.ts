@@ -29,6 +29,13 @@ router.post(
   AuthController.loginWithCredentials,
 );
 
+// Login administrator with email and password credentials
+router.post(
+  "/admin/login",
+  validateRequest(AuthValidation.loginWithCredentialsSchema),
+  AuthController.loginAdminWithCredentials,
+);
+
 // Google OAuth initiation
 router.post(
   "/login/google",

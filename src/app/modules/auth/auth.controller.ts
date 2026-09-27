@@ -1,6 +1,7 @@
 import { fromNodeHeaders } from "better-auth/node";
 import type { Request, Response } from "express";
 import status from "http-status";
+import { UserRole } from "../../../generated/prisma/enums.js";
 import { env } from "../../config/env.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
@@ -81,6 +82,29 @@ const loginWithCredentials = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Login administrator with email and password credentials
+const loginAdminWithCredentials = catchAsync(
+  async (req: Request, res: Response) => {
+    const payload = res.locals.validated?.body as LoginWithCredentialsBody;
+    const headers = fromNodeHeaders(req.headers);
+
+    const result = await AuthService.loginAdminWithCredentials({
+      headers,
+      payload,
+    });
+
+    if (result.setCookies.length > 0) {
+      res.setHeader("set-cookie", result.setCookies);
+    }
+
+    sendResponse(res, {
+      statusCode: status.OK,
+      message: "Admin login successful",
+      data: result.user,
+    });
+  },
+);
+
 // Login with Google OAuth
 const loginWithGoogle = catchAsync(async (req: Request, res: Response) => {
   const headers = fromNodeHeaders(req.headers);
@@ -140,7 +164,10 @@ const linkGoogle = catchAsync(async (req: Request, res: Response) => {
 // Unlink Google account from authenticated user
 const unlinkGoogle = catchAsync(async (_req: Request, res: Response) => {
   const user = res.locals.user as AuthUser;
-  const result = await AuthService.unlinkGoogleAccount(user.id);
+  const result = await AuthService.unlinkGoogleAccount(
+    user.id,
+    user.role as UserRole,
+  );
 
   sendResponse(res, {
     statusCode: status.OK,
@@ -275,6 +302,7 @@ export const AuthController = {
   requestEmailVerification,
   confirmEmailVerification,
   loginWithCredentials,
+  loginAdminWithCredentials,
   loginWithGoogle,
   handleOAuthError,
   linkGoogle,
