@@ -13,6 +13,7 @@ import { logger } from "../../../src/app/config/logger.js";
 import { prisma } from "../../../src/app/config/prisma.js";
 import { ConfigurationError } from "../../../src/app/errors/ConfigurationError.js";
 import { AuditService } from "../../../src/app/shared/audit/audit.service.js";
+import { Prisma } from "../../../src/generated/prisma/client.js";
 import {
   AuditAction,
   AuditEntityType,
@@ -21,16 +22,47 @@ import {
 } from "../../../src/generated/prisma/enums.js";
 import { seedSuperAdmin } from "../../../prisma/seed.js";
 
+// Strongly-typed mutable reference for test overrides without using 'any'
+type MutableEnv = {
+  -readonly [K in keyof typeof env]?: (typeof env)[K];
+};
+const mutableEnv = env as unknown as MutableEnv;
+
 describe("seedSuperAdmin Unit Tests", () => {
   const validEmail = "superadmin@liminalbd.com";
   const validPassword = "SuperSecretPassword123!";
   const validName = "Super Admin";
 
+  let mockUserFindFirst: ReturnType<typeof vi.fn>;
+  let mockUserFindUnique: ReturnType<typeof vi.fn>;
+  let mockUserCreate: ReturnType<typeof vi.fn>;
+  let mockAccountCreate: ReturnType<typeof vi.fn>;
+  let mockAdminCreate: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.restoreAllMocks();
-    (env as any).SUPER_ADMIN_NAME = validName;
-    (env as any).SUPER_ADMIN_EMAIL = validEmail;
-    (env as any).SUPER_ADMIN_PASSWORD = validPassword;
+    mutableEnv.SUPER_ADMIN_NAME = validName;
+    mutableEnv.SUPER_ADMIN_EMAIL = validEmail;
+    mutableEnv.SUPER_ADMIN_PASSWORD = validPassword;
+
+    mockUserFindFirst = vi.fn().mockResolvedValue(null);
+    mockUserFindUnique = vi.fn().mockResolvedValue(null);
+    mockUserCreate = vi.fn().mockResolvedValue({ id: "new-user-id" });
+    mockAccountCreate = vi.fn().mockResolvedValue({ id: "new-account-id" });
+    mockAdminCreate = vi.fn().mockResolvedValue({ userId: "new-user-id" });
+
+    vi.spyOn(prisma, "$transaction").mockImplementation(async (callback) => {
+      const mockTx = {
+        user: {
+          findFirst: mockUserFindFirst,
+          findUnique: mockUserFindUnique,
+          create: mockUserCreate,
+        },
+        account: { create: mockAccountCreate },
+        admin: { create: mockAdminCreate },
+      };
+      return callback(mockTx as unknown as Parameters<typeof callback>[0]);
+    });
   });
 
   afterEach(() => {
@@ -39,103 +71,112 @@ describe("seedSuperAdmin Unit Tests", () => {
 
   describe("Missing Environment Credentials Guard", () => {
     it("should log info and skip provisioning when SUPER_ADMIN_EMAIL is missing", async () => {
-      (env as any).SUPER_ADMIN_EMAIL = undefined;
+      mutableEnv.SUPER_ADMIN_EMAIL = undefined;
 
       const loggerSpy = vi.spyOn(logger, "info");
-      const findFirstSpy = vi.spyOn(prisma.user, "findFirst");
+      const transactionSpy = vi.spyOn(prisma, "$transaction");
 
       await seedSuperAdmin();
 
       expect(loggerSpy).toHaveBeenCalledWith(
         "SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD is not set in environment. Skipping provisioning.",
       );
-      expect(findFirstSpy).not.toHaveBeenCalled();
+      expect(transactionSpy).not.toHaveBeenCalled();
     });
 
     it("should log info and skip provisioning when SUPER_ADMIN_PASSWORD is missing", async () => {
-      (env as any).SUPER_ADMIN_PASSWORD = undefined;
+      mutableEnv.SUPER_ADMIN_PASSWORD = undefined;
 
       const loggerSpy = vi.spyOn(logger, "info");
-      const findFirstSpy = vi.spyOn(prisma.user, "findFirst");
+      const transactionSpy = vi.spyOn(prisma, "$transaction");
 
       await seedSuperAdmin();
 
       expect(loggerSpy).toHaveBeenCalledWith(
         "SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD is not set in environment. Skipping provisioning.",
       );
-      expect(findFirstSpy).not.toHaveBeenCalled();
+      expect(transactionSpy).not.toHaveBeenCalled();
     });
   });
 
   describe("Password Complexity Validation", () => {
     it("should throw ConfigurationError when password is too weak", async () => {
-      (env as any).SUPER_ADMIN_PASSWORD = "weakpassword";
+      mutableEnv.SUPER_ADMIN_PASSWORD = "weakpassword";
 
-      const findFirstSpy = vi.spyOn(prisma.user, "findFirst");
+      const transactionSpy = vi.spyOn(prisma, "$transaction");
 
       await expect(seedSuperAdmin()).rejects.toThrow(ConfigurationError);
-      expect(findFirstSpy).not.toHaveBeenCalled();
+      expect(transactionSpy).not.toHaveBeenCalled();
     });
   });
 
-  describe("Idempotency Enforcement", () => {
-    it("should skip provisioning when a Super Admin account already exists", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+  describe("Idempotency Enforcement & Identity Protection", () => {
+    it("should skip provisioning when a Super Admin with the target email already exists", async () => {
+      mockUserFindUnique.mockResolvedValue({
         id: "existing-super-admin-id",
-        email: "existing@liminalbd.com",
-      } as any);
+        email: validEmail,
+        role: UserRole.SUPER_ADMIN,
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
       const loggerSpy = vi.spyOn(logger, "info");
-      const transactionSpy = vi.spyOn(prisma, "$transaction");
 
       await seedSuperAdmin();
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        "Super Admin account already exists (existing@liminalbd.com). Skipping provisioning.",
+        `Super Admin account already exists (${validEmail}). Skipping provisioning.`,
       );
-      expect(transactionSpy).not.toHaveBeenCalled();
+      expect(mockUserCreate).not.toHaveBeenCalled();
     });
 
-    it("should warn and skip provisioning when another user already holds the target email", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(null);
-      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
-        id: "existing-customer-id",
-        role: UserRole.CUSTOMER,
-      } as any);
+    it("should skip provisioning when another Super Admin with a different email already exists", async () => {
+      mockUserFindUnique.mockResolvedValue(null);
+      mockUserFindFirst.mockResolvedValue({
+        id: "existing-other-admin-id",
+        email: "otheradmin@liminalbd.com",
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
 
-      const loggerWarnSpy = vi.spyOn(logger, "warn");
-      const transactionSpy = vi.spyOn(prisma, "$transaction");
+      const loggerSpy = vi.spyOn(logger, "info");
 
       await seedSuperAdmin();
 
-      expect(loggerWarnSpy).toHaveBeenCalledWith(
-        `User with email "${validEmail}" already exists with role CUSTOMER. Skipping provisioning.`,
+      expect(loggerSpy).toHaveBeenCalledWith(
+        "Another Super Admin account already exists (otheradmin@liminalbd.com). Skipping provisioning to prevent duplicate root accounts.",
       );
-      expect(transactionSpy).not.toHaveBeenCalled();
+      expect(mockUserCreate).not.toHaveBeenCalled();
+    });
+
+    it("should throw ConfigurationError when target email is already held by a non-Super Admin", async () => {
+      mockUserFindUnique.mockResolvedValue({
+        id: "existing-customer-id",
+        email: validEmail,
+        role: UserRole.CUSTOMER,
+      } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
+
+      await expect(seedSuperAdmin()).rejects.toThrow(ConfigurationError);
+      expect(mockUserCreate).not.toHaveBeenCalled();
+    });
+
+    it("should handle Prisma P2002 concurrent insertion race condition gracefully without throwing", async () => {
+      const p2002Error = new Prisma.PrismaClientKnownRequestError(
+        "Unique constraint failed on the fields: (`email`)",
+        { code: "P2002", clientVersion: "7.0.0" },
+      );
+      vi.spyOn(prisma, "$transaction").mockRejectedValue(p2002Error);
+      const loggerSpy = vi.spyOn(logger, "info");
+
+      await expect(seedSuperAdmin()).resolves.toBeUndefined();
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        "Super Admin was provisioned concurrently by another process. Skipping.",
+      );
     });
   });
 
   describe("Successful Provisioning Flow", () => {
     it("should atomically provision User, Account, Admin profile, and AuditLog", async () => {
-      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(null);
-      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
-
-      const mockUserCreate = vi.fn().mockResolvedValue({ id: "new-user-id" });
-      const mockAccountCreate = vi.fn().mockResolvedValue({ id: "new-account-id" });
-      const mockAdminCreate = vi.fn().mockResolvedValue({ userId: "new-user-id" });
       const auditRecordSpy = vi
         .spyOn(AuditService, "record")
-        .mockResolvedValue({} as any);
-
-      vi.spyOn(prisma, "$transaction").mockImplementation(async (callback) => {
-        const mockTx = {
-          user: { create: mockUserCreate },
-          account: { create: mockAccountCreate },
-          admin: { create: mockAdminCreate },
-        };
-        return callback(mockTx as any);
-      });
-
+        .mockResolvedValue({} as unknown as Awaited<ReturnType<typeof AuditService.record>>);
       const loggerInfoSpy = vi.spyOn(logger, "info");
 
       await seedSuperAdmin();

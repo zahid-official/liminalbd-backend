@@ -29,7 +29,7 @@ Statuses:
 **Decision:**
 1. **Initial Super Admin Bootstrapping Mechanism:** The initial root `SUPER_ADMIN` account in fresh and production environments is provisioned through an idempotent CLI seed script located at `prisma/seed.ts`, executed natively via `pnpm seed` or `prisma db seed`.
 2. **Configuration & Defensive Security:** Seed credentials are read from defensively parsed environment variables (`SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`). If `SUPER_ADMIN_PASSWORD` is omitted, an unguessable 32-byte cryptographically secure random token is generated. Passwords must pass the project's canonical `passwordSchema` complexity rules, or a `ConfigurationError` is raised before database interaction.
-3. **Idempotency Guarantee:** If an active or existing user with the target email already exists in the database, the script logs an informative warning via `logger.warn` and skips execution safely with exit code 0 without altering existing accounts.
+3. **Idempotency & Concurrency Safety:** Idempotency is verified through pre-insertion checks inside `prisma.$transaction`. Concurrency race conditions in multi-replica deployments are safely resolved via PostgreSQL's native unique constraint on `User.email` and graceful handling of Prisma `P2002` errors as an idempotent no-op. If a `SUPER_ADMIN` account already exists, the script safely skips execution with exit code 0 without altering existing accounts. If another user already holds the target email with a different role, a `ConfigurationError` is thrown to halt execution safely and prevent identity conflicts.
 4. **Atomic Provisioning & Architecture Alignment:** Provisioning executes atomically within `prisma.$transaction`, establishing:
    - Root `User` record (`role: SUPER_ADMIN`, `status: ACTIVE`, `emailVerified: true`, `needPasswordChange: true`).
    - Credential `Account` record with hashed password via Better Auth's `hashPassword` crypto utility (`providerId: "credential"`, `accountId: user.id`).
@@ -46,7 +46,7 @@ Statuses:
 - `prisma/seed.ts` is registered in `package.json` (`"seed": "prisma db seed"`, `"prisma": { "seed": "tsx ./prisma/seed.ts" }`) and `prisma.config.ts` (`migrations.seed: "tsx prisma/seed.ts"`).
 - `src/app/config/env.ts` defensively validates `SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`, and `SUPER_ADMIN_PASSWORD`.
 - Unit tests in `tests/unit/prisma/seed.test.ts` provide 100% test coverage for all seeding branches.
-- Total Phase 2 tasks updated to 29 tasks (`P2-T001`–`P2-T002`, `P2-T005`–`P2-T027`, `P2-T028`, `P2-T029`, `P2-T030`, `P2-T031`), all `✅ Done` with 41 test files and 677/677 tests passing.
+- Total Phase 2 tasks updated to 29 tasks (`P2-T001`–`P2-T002`, `P2-T005`–`P2-T027`, `P2-T028`, `P2-T029`, `P2-T030`, `P2-T031`), all `✅ Done` with 41 test files and 679/679 tests passing.
 
 ---
 

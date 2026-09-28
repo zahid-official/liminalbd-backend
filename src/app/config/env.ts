@@ -93,25 +93,27 @@ const envSchema = z.object({
     .trim()
     .min(1, { error: "SUPER_ADMIN_NAME cannot be empty" })
     .default("Super Admin"),
-  SUPER_ADMIN_EMAIL: z
-    .string({ error: "SUPER_ADMIN_EMAIL must be a valid text string" })
-    .trim()
-    .toLowerCase()
-    .pipe(
-      z
-        .email({ error: "SUPER_ADMIN_EMAIL must be a valid email address" })
-        .max(255, { error: "SUPER_ADMIN_EMAIL cannot exceed 255 characters" }),
-    )
-    .or(z.literal(""))
-    .transform((val) => (val === "" ? undefined : val))
-    .optional(),
-  SUPER_ADMIN_PASSWORD: z
-    .string({ error: "SUPER_ADMIN_PASSWORD must be a valid text string" })
-    .min(8, { error: "SUPER_ADMIN_PASSWORD must be at least 8 characters long" })
-    .max(100, { error: "SUPER_ADMIN_PASSWORD cannot exceed 100 characters" })
-    .or(z.literal(""))
-    .transform((val) => (val === "" ? undefined : val))
-    .optional(),
+  SUPER_ADMIN_EMAIL: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z
+      .string({ error: "SUPER_ADMIN_EMAIL must be a valid text string" })
+      .trim()
+      .toLowerCase()
+      .pipe(
+        z
+          .email({ error: "SUPER_ADMIN_EMAIL must be a valid email address" })
+          .max(255, { error: "SUPER_ADMIN_EMAIL cannot exceed 255 characters" }),
+      )
+      .optional(),
+  ),
+  SUPER_ADMIN_PASSWORD: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z
+      .string({ error: "SUPER_ADMIN_PASSWORD must be a valid text string" })
+      .min(8, { error: "SUPER_ADMIN_PASSWORD must be at least 8 characters long" })
+      .max(100, { error: "SUPER_ADMIN_PASSWORD cannot exceed 100 characters" })
+      .optional(),
+  ),
 });
 
 // Infer read-only TypeScript type directly from schema
