@@ -20,6 +20,36 @@ Statuses:
 
 ## Accepted Decisions
 
+### DEC-031: Idempotent Initial Super Admin Bootstrapping via Native Prisma Database Seeding
+
+**Recorded:** 2026-09-28
+**Status:** `ACCEPTED`
+**Supersedes:** `None`
+
+**Decision:**
+1. **Initial Super Admin Bootstrapping Mechanism:** The initial root `SUPER_ADMIN` account in fresh and production environments is provisioned through an idempotent CLI seed script located at `prisma/seed.ts`, executed natively via `pnpm seed` or `prisma db seed`.
+2. **Configuration & Defensive Security:** Seed credentials are read from defensively parsed environment variables (`SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`). If `SUPER_ADMIN_PASSWORD` is omitted, an unguessable 32-byte cryptographically secure random token is generated. Passwords must pass the project's canonical `passwordSchema` complexity rules, or a `ConfigurationError` is raised before database interaction.
+3. **Idempotency Guarantee:** If an active or existing user with the target email already exists in the database, the script logs an informative warning via `logger.warn` and skips execution safely with exit code 0 without altering existing accounts.
+4. **Atomic Provisioning & Architecture Alignment:** Provisioning executes atomically within `prisma.$transaction`, establishing:
+   - Root `User` record (`role: SUPER_ADMIN`, `status: ACTIVE`, `emailVerified: true`, `needPasswordChange: true`).
+   - Credential `Account` record with hashed password via Better Auth's `hashPassword` crypto utility (`providerId: "credential"`, `accountId: user.id`).
+   - Linked `Admin` profile extension record (`contactNumber: null`, `address: null`).
+   - Initial audit log entry via `AuditService.record` (`action: CREATE`, `entityType: ADMIN`, `actorId: user.id`).
+5. **KISS & Junior Developer Accessibility:** The seed script avoids unnecessary interface abstractions (`SeedOptions`, `SeedResult`), directly accesses validated environment variables and the shared Prisma client, and utilizes the shared structured `logger` with automated credential redaction (`DEC-024`) instead of `console.*`.
+
+**Why:**
+1. **Administrative Bootstrapping Deadlock Resolution:** `POST /api/v1/admins` strictly requires caller authorization with `SUPER_ADMIN` role (`FR-RBAC-004.1`, `P2-T018`). Without an initial Super Admin account in a blank database, no administrative user can log in to create subsequent administrators.
+2. **Native Tooling Alignment:** Prisma ORM provides native database seeding hooks via `prisma.config.ts` (`migrations.seed`) and `package.json` (`prisma.seed`), ensuring standardized execution during local development and CI/CD deployment pipelines.
+3. **Security Invariants:** Using Better Auth's internal `hashPassword` ensures password hashing consistency and timing safety, while `needPasswordChange: true` forces a password rotation on first administrative login (`DEC-020`, `P2-T030`).
+
+**Consequences:**
+- `prisma/seed.ts` is registered in `package.json` (`"seed": "prisma db seed"`, `"prisma": { "seed": "tsx ./prisma/seed.ts" }`) and `prisma.config.ts` (`migrations.seed: "tsx prisma/seed.ts"`).
+- `src/app/config/env.ts` defensively validates `SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`, and `SUPER_ADMIN_PASSWORD`.
+- Unit tests in `tests/unit/prisma/seed.test.ts` provide 100% test coverage for all seeding branches.
+- Total Phase 2 tasks updated to 29 tasks (`P2-T001`–`P2-T002`, `P2-T005`–`P2-T027`, `P2-T028`, `P2-T029`, `P2-T030`, `P2-T031`), all `✅ Done` with 41 test files and 677/677 tests passing.
+
+---
+
 ### DEC-030: Domain-Encapsulated Account Lifecycle Management and Pruning of Obsolete Shared AccountService
 
 **Recorded:** 2026-09-27  

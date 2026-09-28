@@ -19,6 +19,7 @@
     "push": "prisma db push",
     "pull": "prisma db pull",
     "postinstall": "prisma generate",
+    "seed": "prisma db seed",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -61,5 +62,8 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
     "vitest": "^3.2.7"
+  },
+  "prisma": {
+    "seed": "tsx ./prisma/seed.ts"
   }
 }

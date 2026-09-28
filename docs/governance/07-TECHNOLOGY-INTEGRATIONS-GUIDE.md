@@ -303,7 +303,7 @@ All database migrations and schema updates follow strict governance procedures (
 3. **AI Safety Checkpoint:**
    - Destructive commands (`migrate reset`, `db push --force-reset`, `db push --accept-data-loss`) are strictly prohibited without explicit human authorization immediately before execution.
 4. **Seed Execution:**
-   - Database seeding commands are configured under `migrations.seed` in `prisma.config.ts` and executed via `pnpm dlx prisma db seed`.
+   - Database seeding commands are configured under `migrations.seed` in `prisma.config.ts` and `package.json` (`prisma.seed`), executed via `pnpm seed` or `pnpm dlx prisma db seed` (`DEC-031`).
 
 ---
 

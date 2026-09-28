@@ -169,6 +169,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `✅`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
 | 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `✅`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
 | 27    | C          | `P2-T030` | Implement dedicated administrative login operation and portal separation | `✅`   | `P2-T008`, `P2-T018`            | None                                         |
+| 28    | C          | `P2-T031` | Initial Super Admin provisioning and Prisma database seeding             | `✅`   | `P2-T018`, `P2-T030`            | None                                         |
 
 Workstreams organize one phase; they are not sub-phases and do not permit parallel implementation. Execute tasks in order unless the plan is explicitly re-approved. Update status only in this index.
 
@@ -676,6 +677,24 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Human review:** `Approved` (2026-09-27)
 
+#### P2-T031: Initial Super Admin Provisioning & Prisma Database Seeding
+
+**Requirements:** `FR-ADMIN-001`, `FR-RBAC-001`, `DEC-020`
+**Objective:** Provide an idempotent, CLI-executable Prisma database seed script to bootstrap the initial `SUPER_ADMIN` account in fresh and production environments.
+
+**Acceptance Criteria:**
+
+- Establish an idempotent, CLI-executable Prisma database seed script at `prisma/seed.ts`.
+- Support reading Super Admin credentials from environment variables (`SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`).
+- Enforce idempotency: if a `SUPER_ADMIN` account already exists, safely skip creation and log an informational message without throwing an error.
+- Enforce security best practices: hash password using Better Auth's `hashPassword` crypto utility, set `needPasswordChange: true`, set `emailVerified: true`, set `status: ACTIVE`.
+- Execute user, credential account, admin profile creation, and initial audit log recording atomically in a Prisma transaction.
+- Sanitize output: never log or expose raw passwords or sensitive credentials in terminal logs.
+- Configure `package.json` scripts (`"seed": "prisma db seed"`) and `prisma.config.ts` / `package.json` seed definitions.
+- Write automated unit tests verifying idempotency, user creation, environment handling, and error recovery.
+
+**Additional verification:** Automated unit tests in `tests/unit/prisma/seed.test.ts` with 100% statement, branch, function, and line coverage.
+
 ---
 
 ## 10. Blockers and Open Decisions
@@ -714,8 +733,8 @@ Do not invent a resolution. Record each approved outcome in the affected task co
 | -------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Outcome        | `Approved`                                                                                                           |
 | Approved by    | `Human Reviewer`                                                                                                     |
-| Approved on    | `2026-09-27`                                                                                                         |
-| Notes          | Phase 2 is `COMPLETE`. All 27 tasks approved and verified (40 test files, 653/653 tests passing). Ready for Phase 3 planning. |
+| Approved on    | `2026-09-28`                                                                                                         |
+| Notes          | Phase 2 is `COMPLETE`. All 29 tasks approved and verified (41 test files, 677/677 tests passing). Initial Super Admin provisioning established under `P2-T031`. Ready for Phase 3 planning. |
 
 Do not mark Phase 2 `COMPLETE` or activate another phase before the transition required by [05-TASK-WORKFLOW.md](../05-TASK-WORKFLOW.md) and [06-PHASE-ROADMAP.md](../06-PHASE-ROADMAP.md).
 

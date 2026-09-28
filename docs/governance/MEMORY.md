@@ -3,7 +3,7 @@
 > Read after `AGENTS.md` at the start of every AI session.
 > Keep this as a concise, verified current-state snapshot, not a history log.
 
-**Last verified:** 2026-09-27
+**Last verified:** 2026-09-28
 
 ## 1. Governance and Phase State
 
@@ -20,8 +20,8 @@
   - [MEMORY.md](MEMORY.md)
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
-- Phase 2, Authentication & RBAC: `COMPLETE` (execution plan finalized and approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). All 28 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`, `P2-T030`) are `✅ Done`.
-- Active task in progress: None (Dedicated administrative login established under `P2-T030`; 671/671 tests passing).
+- Phase 2, Authentication & RBAC: `COMPLETE` (execution plan finalized and approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). All 29 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`, `P2-T030`, `P2-T031`) are `✅ Done`.
+- Active task in progress: None (Initial Super Admin provisioning established under `P2-T031`; 677/677 tests passing).
 
 ## 2. Current Codebase State
 
@@ -58,6 +58,7 @@
 - Pino structured logging is established (`P2-T028`, `DEC-024`): single shared logger instance in `src/app/config/logger.ts`, `pino-http` middleware mounted in `app.ts` (after parsers, before routes) for HTTP request logging with route-path isolation (`url: req.url.split('?')[0]`, omitting raw `req.query` entirely to eliminate query token leaks across mixed-case parameter names and nested URLs) and sensitive field redaction (`authorization`, `cookie`, `res.headers['set-cookie']`, `password`, `token`, `secret`), `server.ts` and `globalErrorHandler.ts` migrated from `console.*` to structured `logger.*` calls (with `requestId: req.id` correlation on internal server errors). Development uses pino-pretty; production emits raw JSON. Log level controlled via optional `LOG_LEVEL` env variable.
 - Vitest testing infrastructure is established (`P2-T029`, `DEC-025`): Vitest 3 with `environment: node`, `globals: false` (explicit imports), `@vitest/coverage-v8` for V8 coverage, `supertest` for HTTP integration tests. Tests live under mirrored `tests/unit/` (`config/`, `errors/`, `middleware/`, `modules/`, `utils/`, `validations/`) and `tests/integration/` hierarchies with exact 1:1 basename alignment (`<filename>.test.ts`). Logger is globally mocked in `tests/setup.ts` using an authentic silent Pino instance (`pino({ level: 'silent' })`). `pnpm test` runs `vitest run` (671/671 tests passing across 40 test files); `pnpm test:watch` runs interactive mode; `pnpm test:coverage` generates V8 coverage report. Jest is permanently dropped.
 - Dedicated administrative credential login is established (`P2-T030`, `DEC-020`): mounted at `POST /api/v1/auth/admin/login`, strictly reserved for `ADMIN` and `SUPER_ADMIN` roles; rejects `CUSTOMER` credentials with 403 `FORBIDDEN_ROLE_ACCESS` and revokes any issued session; `rbacGuard` enforces mandatory temporary-password change (`needPasswordChange: true` blocks administrative routes with 403 `PASSWORD_CHANGE_REQUIRED`); `unlinkGoogleAccount` enforces defense-in-depth role check rejecting non-customers with 403 `FORBIDDEN_ROLE_ACCESS`; 671/671 tests pass across 40 test files.
+- Initial Super Admin provisioning and Prisma database seeding is established (`P2-T031`, `DEC-031`): idempotent CLI seed script located at `prisma/seed.ts`, configured via `migrations.seed` in `prisma.config.ts` and `package.json` (`"seed": "prisma db seed"`); dynamically reads credentials from env (`SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`) with cryptographically secure fallback and `passwordSchema` complexity validation; executes atomically within `prisma.$transaction` creating `User` (`role: SUPER_ADMIN`, `status: ACTIVE`, `emailVerified: true`, `needPasswordChange: true`), credential `Account` with Better Auth timing-safe `hashPassword`, linked `Admin` profile, and initial audit log via `AuditService.record`; idempotently skips with warning if target account exists; sanitized logging via shared Pino logger; 677/677 tests pass across 41 test files.
 - `Dockerfile` and `.dockerignore` are intentionally absent; Docker configuration is deferred under `DEC-012`.
 
 ## 3. Known Gaps and Blockers
@@ -100,13 +101,13 @@ These are verified observations only. They do not authorize fixes outside an app
 | Check                 | Result                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------- |
 | `pnpm build`          | `PASS` on 2026-09-20                                                                  |
-| `pnpm lint`           | `PASS` on 2026-09-27                                                                  |
-| Automated tests       | `PASS` on 2026-09-27: 671/671 tests pass across 40 test files via Vitest (`DEC-025`), 100% coverage on all modules |
+| `pnpm lint`           | `PASS` on 2026-09-28                                                                  |
+| Automated tests       | `PASS` on 2026-09-28: 677/677 tests pass across 41 test files via Vitest (`DEC-025`), 100% coverage on all modules |
 | Database / migrations | `PASS` on 2026-09-12: canonical migration `20260912090148_init` applied and verified |
 
 ## 7. Next Action
 
-- Proceed with Topic B (Initial Super Admin Provisioning / Seeding).
+- Phase 2 is fully complete with all 29 tasks and initial Super Admin database seeding established. Ready for Phase 3 planning and approval.
 
 ## 8. Maintenance Rule
 
