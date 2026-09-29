@@ -56,7 +56,7 @@
 | :------------------- | :----------- | :----------- |
 | Traceability from every approved Phase 2 FR to passing behavior | Step 4 | Traceability Matrix in task document & test mapping |
 | Run full build, lint, and security verification matrix | Step 5, Step 7 | `tests/integration/phase2.security.test.ts`, `pnpm tsc`, `pnpm lint`, `pnpm test` |
-| Verify cookie, CSRF, rate-limit, session revocation, and provider boundaries | Step 5 | Automated integration tests against Express app |
+| Verify cookie, CSRF origin handling, session revocation, and provider boundaries (network rate limiting delegated to reverse proxy per DEC-019) | Step 5 | Automated integration tests against Express app |
 | Verify migration and data integrity against approved ERD | Step 6 | Prisma schema and migration inspection |
 | Confirm zero exposure of sensitive data, stack traces, or credentials | Step 5, Step 7 | Payload assertions and logger redaction tests |
 

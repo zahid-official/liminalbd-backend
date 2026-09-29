@@ -81,17 +81,20 @@ Statuses:
 1. **Universal Self-Service Profile Endpoints:** Centralize all authenticated self-service profile retrieval and mutation operations in a dedicated, universal `user` module mounted at `GET /api/v1/users/profile` and `PATCH /api/v1/users/profile`, protected by `authGuard`. This applies symmetrically across all authenticated roles (`CUSTOMER`, `ADMIN`, `SUPER_ADMIN`).
 2. **Permanent IDOR Elimination via Session Identity:** Self-service operations operate strictly and exclusively on the authenticated session identity (`res.locals.user.id`). Route parameter `:id` is permanently omitted from self-service paths, completely eliminating Insecure Direct Object Reference (IDOR) vulnerabilities by design and removing redundant route parameter validation and comparison ceremony.
 3. **Dynamic Role-Specific Profile Extension Resolution:** `UserService` dynamically resolves role-specific profile extensions (`Customer` for `CUSTOMER`, `Admin` for `ADMIN` / `SUPER_ADMIN`), keeping core user attributes (`name`, `image`) on the root `User` table and personal contact details (`contactNumber`, `address`) on the respective extension table atomically in a single persistence cycle.
-4. **Immutable Identity Boundaries:** Self-service profile updates strictly forbid modifying immutable identity fields (`email`), security credentials, account status, or roles. Email updates are governed separately through dedicated verification flows.
+4. **Immutable Identity Boundaries & YAGNI Email Policy:** Self-service profile updates strictly forbid modifying immutable identity fields (`email`), security credentials, account status, or roles. In adherence to KISS and YAGNI principles for the studio and e-commerce platform, self-service email changing is intentionally excluded from the product scope; the email address serves as the immutable primary account identifier, eliminating account takeover attack vectors and unnecessary verification complexity. Any exceptional account email adjustments are handled administratively via direct customer support.
+5. **Self-Service Exclusivity & Exclusion of Administrative Customer Profile Mutation:** Personal profile attributes (`name`, `contactNumber`, `address`, `image`) are strictly self-service concerns editable exclusively by the account owner via `PATCH /api/v1/users/profile`. Administrative users (`ADMIN`, `SUPER_ADMIN`) are restricted to customer lifecycle governance (`GET /api/v1/customers/:id`, `GET /api/v1/customers`, `PATCH /api/v1/customers/:id/status`, `DELETE /api/v1/customers/:id`). Administrative mutation of a customer's personal profile is intentionally excluded per Privacy-by-Design, KISS, and YAGNI. Context-specific contact details (such as shipping address on a specific order or site-visit contact on an inquiry) are governed directly on those operational records in later phases, preventing administrative tampering with root customer accounts.
 
 **Why:**
 1. **DRY & Prevention of Redundant Implementations:** Avoids duplicating identical self-service profile endpoints and logic across multiple domain modules (`customer`, `admin`).
 2. **Security & Zero Attack Surface:** By deriving the target user strictly from the server-validated session, cross-user tampering is architecturally impossible.
 3. **KISS & Developer Ergonomics:** Clean, predictable RESTful routing (`/users/profile`) standard across modern web applications.
+4. **YAGNI & Scope Protection (Email Immutability):** For an interior design studio and custom furniture platform, customer self-service email mutation introduces high security complexity (re-verification tokens, session invalidation, account collision) for an edge-case action (<1% frequency). Treating email as immutable for self-service preserves security, simplicity, and junior developer accessibility.
+5. **Privacy-by-Design & Data Integrity (Zero Admin Tampering):** In alignment with GDPR and modern security standards (Shopify, Stripe, Amazon), administrative personnel do not alter customer account identities. If a customer needs assistance with project/order delivery details, adjustments occur on the specific order/inquiry transaction without polluting or falsifying root customer account data.
 
 **Consequences:**
 - `UserRoutes` mounted at `/api/v1/users` in `src/app/routes/index.ts`.
 - `UserService.getProfile` and `UserService.updateProfile` handle profile operations for all roles.
-- `CustomerRoutes` retains public registration (`POST /register`) and admin-only customer retrieval (`GET /:id`).
+- `CustomerRoutes` retains public registration (`POST /register`), admin customer retrieval (`GET /:id`, `GET /`), and lifecycle status management (`PATCH /:id/status`, `DELETE /:id`). Direct administrative editing of customer profile attributes is excluded.
 - All unit and integration tests assert against `/api/v1/users/profile`.
 
 ---
@@ -106,18 +109,22 @@ Statuses:
 2. **Native Database NULL via Optional Chaining:** Optional or unpopulated profile attributes resolve directly via idiomatic optional chaining (`profileExtension?.field`). Because the relational database schema natively initializes unpopulated attributes as `NULL` and application lifecycle hooks guarantee 1-to-1 profile existence, redundant `?? null` wrapping is strictly omitted in adherence to KISS & YAGNI.
 3. **Dynamic Latest-Timestamp Resolution:** When an entity is composed of multiple normalized tables (e.g. `User` and `Customer` or `User` and `Admin`), the response `updatedAt` timestamp must dynamically evaluate and reflect the most recent modification across both records (`const updatedAt = profile && profile.updatedAt > user.updatedAt ? profile.updatedAt : user.updatedAt;`), reusing existing Date references without superfluous heap allocations or mathematical conversions.
 4. **Symmetrical Cross-Module Consistency:** This convention applies symmetrically across all user extensions, including customer profile retrieval (`P2-T023`), admin provisioning (`P2-T018`), admin update (`P2-T019`), and admin listing (`P2-T021`).
+5. **Touch the Parent Record on Profile Mutation:** In profile update flows (`UserService.updateProfile`), the root `User` record's `updatedAt` is explicitly touched (`updatedAt: new Date()`) whenever child profile extensions (`Customer` or `Admin`) are updated. This eliminates timestamp drift between normalized tables, ensuring database-level sorting (`ORDER BY "user"."updatedAt" DESC`) and API DTO response timestamps are 100% synchronized and consistent.
 
 **Why:**
 1. **Zero Database Schema Leakage:** Clients consuming the API must not be coupled to the internal normalization details of the relational database. A customer or admin is conceptually a single unified business resource.
 2. **Developer Ergonomics & Elimination of Stuttering:** Eliminates awkward repetitive nesting in frontend applications (e.g. `response.data.customer.contactNumber` or `response.data.admin.contactNumber`), providing direct access via `response.data.contactNumber`.
 3. **Cache Invalidation & Timestamp Accuracy:** If a user updates only their contact number or address, only the profile table's `updatedAt` is updated in PostgreSQL. Reflecting the latest timestamp between `user.updatedAt` and `profile.updatedAt` ensures HTTP caching mechanisms (ETag, Last-Modified) and frontend state synchronizers always observe the true latest modification.
 4. **KISS, YAGNI & Performance:** Idiomatic direct comparison (`>`) leverages JavaScript's native date value comparison without creating new `Date` instances on the heap, ensuring high throughput and optimal memory usage.
+5. **Database Sorting Alignment & Junior Accessibility (KISS):** Touching the parent record (`User.updatedAt = new Date()`) guarantees that SQL-level ordering matches client-facing timestamps without resorting to complex raw SQL `GREATEST(...)` joins or confusing junior developers with query-display inconsistencies.
 
 **Consequences:**
+- `UserService.updateProfile` always sets `updatedAt: new Date()` on the root `User` record.
 - `CustomerService.getCustomerById` returns a flattened object with latest `updatedAt`.
 - `AdminService.createAdmin`, `AdminService.updateAdmin`, and `AdminService.getAdmins` return flattened admin profile objects with latest `updatedAt`.
+- Database sorting by `updatedAt` in customer and admin listing endpoints remains 100% aligned with the displayed `updatedAt`.
 - Future user extension modules (e.g. vendor, designer, staff profiles in later phases) must follow this identical flattened DTO and latest-timestamp pattern.
-- Unit and integration tests assert against flattened resource structures.
+- Unit and integration tests assert against flattened resource structures and parent update touching.
 
 ---
 

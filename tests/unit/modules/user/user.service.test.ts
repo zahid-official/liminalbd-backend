@@ -205,6 +205,7 @@ describe("UserService Unit Tests", () => {
       expect(updateSpy).toHaveBeenCalledWith({
         where: { id: customerUserId },
         data: {
+          updatedAt: expect.any(Date),
           name: "Updated Customer Name",
           image: "https://example.com/new-avatar.png",
           customer: {
@@ -268,6 +269,7 @@ describe("UserService Unit Tests", () => {
       expect(updateSpy).toHaveBeenCalledWith({
         where: { id: adminUserId },
         data: {
+          updatedAt: expect.any(Date),
           name: "Updated Admin Name",
           admin: {
             update: {

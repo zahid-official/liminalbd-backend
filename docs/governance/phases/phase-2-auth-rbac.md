@@ -164,7 +164,7 @@ Implementation must not begin until every readiness item is satisfied and the se
 | 20    | C          | `P2-T021` | Implement the Super Admin Admin-list operation                           | `✅`   | `P2-T019`                       | `P2-B001`                                    |
 | 21    | D          | `P2-T022` | Establish the reusable ownership-authorization pattern                   | `✅`   | `P2-T010`, `P2-T015`, `P2-T016` | None                                         |
 | 22    | D          | `P2-T023` | Implement authorized Customer profile retrieval                          | `✅`   | `P2-T022`                       | `P2-B001`, `P2-B008`                         |
-| 23    | D          | `P2-T024` | Implement Customer profile and email updates                             | `✅`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
+| 23    | D          | `P2-T024` | Implement Customer profile updates                                       | `✅`   | `P2-T007`, `P2-T022`, `P2-T023` | `P2-B001`, `P2-B007`                         |
 | 24    | D          | `P2-T025` | Implement the authorized Customer-list operation                         | `✅`   | `P2-T022`                       | `P2-B001`                                    |
 | 25    | D          | `P2-T026` | Implement Customer account lifecycle management                          | `✅`   | `P2-T016`, `P2-T017`, `P2-T022` | `P2-B001`                                    |
 | 26    | E          | `P2-T027` | Complete Phase 2 integration and security verification                   | `✅`   | All non-deferred Phase 2 tasks  | All unresolved blockers, including `P2-B010` |
@@ -606,20 +606,20 @@ Approved mocks may verify Google OAuth and SMTP behavior in feature tasks. Live-
 
 **Human review:** `Approved` (2026-09-24)
 
-#### P2-T024: Implement Customer Profile and Email Updates
+#### P2-T024: Implement Customer Profile Updates
 
 **Requirements:** `FR-CUSTOMER-001`, `FR-RBAC-005`  
-**Objective:** Update permitted Customer profile data while preserving credential/provider boundaries and email verification rules.
+**Objective:** Update permitted Customer profile data while preserving credential/provider boundaries and treating email as an immutable account identifier per DEC-029.
 
 **Acceptance Criteria:**
 
 - Allow Customers to update only their own permitted name, contact number, address and approved avatar representation.
-- Allow authorized administrators to update only permitted business-profile fields.
-- Prevent profile input from modifying role, status, ownership, credentials or provider-account data.
-- Change email only through the approved account flow with validation, uniqueness and correct verification-state reset.
+- Restrict customer personal profile updates strictly to the authenticated owner via self-service; administrators manage account lifecycle only per DEC-029.
+- Prevent profile input from modifying role, status, ownership, credentials, email or provider-account data.
+- Treat email as an immutable primary account identifier per DEC-029/YAGNI; forbid self-service email mutation.
 - Enforce ownership, return required errors and cover the approved avatar resolution from `P2-B007`.
 
-**Additional verification:** Ownership, field allow-list, duplicate-email, verification-state and avatar checks; automated Vitest unit test suites (`user.validation.test.ts`, `user.service.test.ts`, `user.controller.test.ts`, `user.routes.test.ts`) with 100% statement, branch, function, and line coverage.
+**Additional verification:** Ownership, field allow-list, email immutability, role/status tampering prevention and avatar checks; automated Vitest unit test suites (`user.validation.test.ts`, `user.service.test.ts`, `user.controller.test.ts`, `user.routes.test.ts`) with 100% statement, branch, function, and line coverage.
 
 **Human review:** `Approved` (2026-09-26)
 

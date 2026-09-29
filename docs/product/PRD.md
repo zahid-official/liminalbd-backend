@@ -562,12 +562,11 @@ SUPER_ADMIN → ADMIN
 | ID                                                                                                   | Requirement                                                                                | Acceptance Criteria                                                                                                                                |
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-CUSTOMER-001.1                                                                                    | Customers can update their own permitted profile information                               | - Name, contact number, address and avatar can be updated according to field validation rules                                                      |
-| FR-CUSTOMER-001.2                                                                                    | Authorized administrative users can update permitted customer profile information          | - `ADMIN` and `SUPER_ADMIN` access follows assigned permissions                                                                                    |
-| - Authentication credentials and provider account data cannot be modified through profile management |
-| FR-CUSTOMER-001.3                                                                                    | Customers can update their own email address through the supported account management flow | - The new email must pass validation and uniqueness checks                                                                                         |
-| - Email verification requirements must be applied after the change                                   |
-| FR-CUSTOMER-001.4                                                                                    | Changing an email address must update its verification state appropriately                 | - The new email remains unverified until successfully verified, unless the configured authentication provider supplies a trusted verified identity |
-| FR-CUSTOMER-001.5                                                                                    | Customer profile updates must enforce ownership and authorization rules                    | - Customers cannot update another customer's profile                                                                                               |
+| FR-CUSTOMER-001.2                                                                                    | Administrative scope is restricted to account lifecycle management (per DEC-029 & Privacy-by-Design) | - Personal profile attributes (name, contact number, address, avatar) are self-service only and cannot be modified by administrators               |
+| - Administrative authority is confined to account status, suspension, reactivation, and soft deletion                               |
+| FR-CUSTOMER-001.3                                                                                    | Primary account email is immutable in self-service profile updates (per DEC-029 & YAGNI)      | - Email cannot be modified via self-service profile updates; requests to mutate email are omitted or rejected                                      |
+| - Any account email adjustments require administrative support assistance                            |
+| FR-CUSTOMER-001.4                                                                                    | Customer profile updates must enforce ownership and authorization rules                    | - Customers cannot update another customer's profile                                                                                               |
 | - Unauthorized access → HTTP 403 Forbidden                                                           |
 
 **Error Scenarios:**
@@ -575,7 +574,6 @@ SUPER_ADMIN → ADMIN
 - Unauthorized profile update → HTTP 403 Forbidden
 - Customer not found → HTTP 404 Not Found
 - Invalid profile data → HTTP 400 Bad Request
-- Duplicate email → HTTP 409 Conflict
 
 ---
 

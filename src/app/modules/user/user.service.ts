@@ -61,8 +61,10 @@ const updateProfile = async ({ userId, payload }: UpdateProfileInput) => {
     );
   }
 
-  // Build selective update payload for provided attributes
-  const updateData: Prisma.UserUpdateInput = {};
+  // Touch root User timestamp on profile mutations to synchronize DB sorting and display (KISS)
+  const updateData: Prisma.UserUpdateInput = {
+    updatedAt: new Date(),
+  };
 
   if (payload.name) {
     updateData.name = payload.name;
@@ -104,12 +106,6 @@ const updateProfile = async ({ userId, payload }: UpdateProfileInput) => {
       ? updatedUser.customer
       : updatedUser.admin;
 
-  // Accurately reflect latest modification timestamp across identity and profile extension
-  const updatedAt =
-    profileExtension && profileExtension.updatedAt > updatedUser.updatedAt
-      ? profileExtension.updatedAt
-      : updatedUser.updatedAt;
-
   return {
     id: updatedUser.id,
     name: updatedUser.name,
@@ -121,7 +117,7 @@ const updateProfile = async ({ userId, payload }: UpdateProfileInput) => {
     contactNumber: profileExtension?.contactNumber,
     address: profileExtension?.address,
     createdAt: updatedUser.createdAt,
-    updatedAt,
+    updatedAt: updatedUser.updatedAt,
   };
 };
 

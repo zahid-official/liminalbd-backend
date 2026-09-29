@@ -1,6 +1,7 @@
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { auth } from "../../src/app/config/auth.js";
+import { prisma } from "../../src/app/config/prisma.js";
 import { PUBLIC_ERROR_CODES } from "../../src/app/errors/errorCodes.js";
 import { getApp } from "../helpers/app.helper.js";
 
@@ -227,6 +228,7 @@ describe("Phase 2 Integration & Security Verification Tests", () => {
 
     it("should reject unlinking when no Google account is linked with 400 ACCOUNT_NOT_LINKED", async () => {
       vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession("CUSTOMER") as any);
+      vi.spyOn(prisma.account, "findMany").mockResolvedValue([]);
 
       const res = await request(getApp())
         .post("/api/v1/auth/unlink/google")
@@ -327,6 +329,15 @@ describe("Phase 2 Integration & Security Verification Tests", () => {
       expect(res.status).toBe(200);
       expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
     });
+
+    it("should not allow CORS for unauthorized or malicious origins", async () => {
+      const res = await request(getApp())
+        .get("/")
+        .set("Origin", "http://malicious-site.com");
+
+      expect(res.status).toBe(200);
+      expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+    });
   });
 
   describe("Administrative Login Portal (POST /api/v1/auth/admin/login)", () => {
@@ -405,6 +416,7 @@ describe("Phase 2 Integration & Security Verification Tests", () => {
     });
 
     it("should reject CUSTOMER on POST /api/v1/auth/admin/login with 403 FORBIDDEN_ROLE_ACCESS", async () => {
+      vi.spyOn(prisma.session, "deleteMany").mockResolvedValue({ count: 1 } as any);
       vi.spyOn(auth.api, "signInEmail").mockResolvedValue({
         headers: new Headers(),
         response: {
