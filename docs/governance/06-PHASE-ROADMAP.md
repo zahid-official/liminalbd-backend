@@ -35,7 +35,7 @@
 ### Current State
 
 - `docs/governance/phases/phase-1-foundation.md` is established as a concise retrospective record of the completed foundation.
-- `docs/governance/phases/phase-2-auth-rbac.md` is `COMPLETE`. All 29 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`, `P2-T030`, `P2-T031`) are `✅ Done` with 41 test files and 679/679 tests passing. Initial Super Admin bootstrapping established via `prisma/seed.ts` under `P2-T031` / `DEC-031`. Phase completion approved by human reviewer. `P2-T003` and `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`.
+- `docs/governance/phases/phase-2-auth-rbac.md` is `COMPLETE`. All 29 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`, `P2-T030`, `P2-T031`) are `✅ Done` with 41 test files and 680/680 tests passing. Initial Super Admin bootstrapping established via `prisma/seed.ts` under `P2-T031` / `DEC-031`. Phase completion approved by human reviewer. `P2-T003` and `P2-T004` retired under `DEC-013`; Winston dropped → Pino under `DEC-024`; Jest dropped → Vitest under `DEC-025`.
 - Active phase in progress: None (Ready for Phase 3 planning, PRD/ERD alignment, and phase file activation per [05-TASK-WORKFLOW.md](05-TASK-WORKFLOW.md)).
 
 ## 4. Phase 2 Requirement Coverage

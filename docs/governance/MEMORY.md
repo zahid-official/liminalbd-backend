@@ -21,7 +21,7 @@
   - [tasks/\_template.md](tasks/_template.md)
 - Phase 1, Foundation: `COMPLETE` (retrospective record established at [phases/phase-1-foundation.md](phases/phase-1-foundation.md)).
 - Phase 2, Authentication & RBAC: `COMPLETE` (execution plan finalized and approved at [phases/phase-2-auth-rbac.md](phases/phase-2-auth-rbac.md)). All 29 tasks (`P2-T029`, `P2-T028`, `P2-T001`, `P2-T002`, `P2-T005`–`P2-T027`, `P2-T030`, `P2-T031`) are `✅ Done`.
-- Active task in progress: None (Initial Super Admin provisioning established under `P2-T031`; 679/679 tests passing).
+- Active task in progress: None (Initial Super Admin provisioning established under `P2-T031`; 680/680 tests passing).
 
 ## 2. Current Codebase State
 
@@ -101,7 +101,7 @@ These are verified observations only. They do not authorize fixes outside an app
 | --------------------- | ------------------------------------------------------------------------------------- |
 | `pnpm build`          | `PASS` on 2026-09-20                                                                  |
 | `pnpm lint`           | `PASS` on 2026-09-28                                                                  |
-| Automated tests       | `PASS` on 2026-09-28: 679/679 tests pass across 41 test files via Vitest (`DEC-025`), 100% coverage on all modules |
+| Automated tests       | `PASS` on 2026-09-30: 680/680 tests pass across 41 test files via Vitest (`DEC-025`), 100% coverage on all modules |
 | Database / migrations | `PASS` on 2026-09-12: canonical migration `20260912090148_init` applied and verified |
 
 ## 7. Next Action
