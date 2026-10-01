@@ -658,16 +658,400 @@ SUPER_ADMIN → ADMIN
 
 ---
 
+## 📑 STEP 3: FUNCTIONAL REQUIREMENTS (FR)
+
+## 3.1 Project Showcase Module
+
+> **Project Showcase Model:** The Project Showcase module manages Liminal Interior Design Studio’s interior design portfolio projects. ADMIN and SUPER_ADMIN users can create incomplete drafts, update project information and images, and publish projects after all publication requirements are satisfied. Public users can access published projects only. Archived projects remain available for administrative access until permanently deleted by a SUPER_ADMIN.
+> 
+> 
+> Project cover and gallery images are managed within the Project Showcase domain. Uploaded images use the approved Cloudinary integration.
+> 
+
+### Project Image Rules
+
+Project images must be valid JPEG, PNG, or WebP files, up to 10 MB each. A project can have one cover image and up to 20 gallery images. The cover image does not count toward the gallery limit.
+
+### FR-PROJECT-001: Create Project
+
+**Priority**: HIGH
+
+**User Story**: As an Admin or Super Admin, I want to create an incomplete project draft or immediately publish a complete project so that I can prepare project content progressively and control its public visibility.
+
+**Requirements**:
+
+| ID | Requirement | Acceptance Criteria |
+| --- | --- | --- |
+| FR-PROJECT-001.1 | ADMIN and SUPER_ADMIN users can create projects | - Requires a valid authenticated session- Missing or invalid session → HTTP 401 Unauthorized- CUSTOMER access → HTTP 403 Forbidden |
+| FR-PROJECT-001.2 | Projects support residential and commercial categories | - Allowed values are RESIDENTIAL and COMMERCIAL- Category is optional for a Draft and required for a Published project |
+| FR-PROJECT-001.3 | Project information requirements depend on the initial status | - A Draft may contain partial or no project information- A Published project requires a title, category, and description- Location and completion date are optional |
+| FR-PROJECT-001.4 | Project creation supports cover and gallery image uploads | - Project data and images are submitted using multipart/form-data- Supports one cover image and up to 20 gallery images- Draft projects may be created without images- A cover image is required for a Published project- Images must comply with the Project Image Rules |
+| FR-PROJECT-001.5 | The creator must select the initial project status | - Allowed values are DRAFT and PUBLISHED; no implicit default is applied- Draft projects are not publicly visible and have no publishedAt timestamp- Published projects receive a server-generated publishedAt timestamp |
+| FR-PROJECT-001.6 | Published projects must satisfy all publication requirements | - Valid title, category, description, and cover image are required- Incomplete or invalid publication data → HTTP 400 Bad Request |
+| FR-PROJECT-001.7 | The system generates a unique URL-safe slug when a project is first published | - Draft projects have no slug- The slug is generated server-side from the project title- Clients cannot provide or override the slug- Duplicate generated slug → HTTP 409 Conflict |
+| FR-PROJECT-001.8 | Successful project creation must be auditable | - Records the authenticated actor, project, CREATE action, and timestamp through the audit mechanism |
+| FR-PROJECT-001.9 | Project creation handles uploaded media consistently | - Project data, media metadata, and audit record are persisted consistently- Failure to upload a required image prevents project creation- If validation or database persistence fails after upload, newly uploaded images are cleaned up |
+
+**Input Validation Rules**:
+
+Project fields are sent as a JSON data part within multipart/form-data; uploaded files use the coverImage and galleryImages fields.
+
+```tsx
+{
+  data: {
+    status: "DRAFT" | "PUBLISHED",
+    title?: string,
+    category?: "RESIDENTIAL" | "COMMERCIAL",
+    description?: string,
+    location?: string,
+    completionDate?: string
+  },
+  coverImage?: File,
+  galleryImages?: File[]
+}
+```
+
+**Status Rules**:
+
+- A Draft may be created with only status; any provided field must still pass validation.
+- A Published project requires a valid title, category, description, and cover image.
+- The system generates slug and sets publishedAt when a project is published.
+- Clients cannot set slug, publishedAt, or other system-managed fields.
+
+**Success Response**: HTTP 201 Created
+
+```json
+{
+  "success": true,
+  "message": "Project created successfully",
+  "data": {
+    "id": "uuid",
+    "title": "Modern Dhaka Apartment",
+    "slug": "modern-dhaka-apartment",
+    "category": "RESIDENTIAL",
+    "description": "A contemporary residential interior design project.",
+    "location": "Dhaka",
+    "completionDate": "2026-09-20",
+    "status": "PUBLISHED",
+    "publishedAt": "2026-09-30T10:30:00.000Z",
+    "coverImage": {
+      "id": "uuid",
+      "url": "https://media.example.com/project-cover.webp"
+    },
+    "galleryImages": [
+      {
+        "id": "uuid",
+        "url": "https://media.example.com/project-gallery-1.webp"
+      }
+    ],
+    "createdAt": "2026-09-30T10:30:00.000Z",
+    "updatedAt": "2026-09-30T10:30:00.000Z"
+  }
+}
+```
+
+For an incomplete Draft, omitted fields return null; slug and publishedAt are null, and galleryImages is an empty array.
+
+**Error Scenarios**:
+
+- Missing or invalid status, or invalid project information → HTTP 400 Bad Request
+- Missing required Published-project information or cover image → HTTP 400 Bad Request
+- Unsupported, oversized, or excessive image uploads → HTTP 400 Bad Request
+- Generated slug already exists → HTTP 409 Conflict
+- Missing or invalid session → HTTP 401 Unauthorized
+- CUSTOMER access → HTTP 403 Forbidden
+- Media storage or unexpected persistence failure → HTTP 500 Internal Server Error with a sanitized response
+
+---
+
+### FR-PROJECT-002: Update Project
+
+**Priority**: HIGH
+
+**User Story**: As an Admin or Super Admin, I want to update project information and images so that Draft and Published projects remain accurate and complete.
+
+**Requirements**:
+
+| ID | Requirement | Acceptance Criteria |
+| --- | --- | --- |
+| FR-PROJECT-002.1 | ADMIN and SUPER_ADMIN users can update project information and images | - Supports partial updates to title, category, description, location, and completion date- Supports adding, replacing, removing, and reordering gallery images, and replacing or removing the cover image- At least one actual information or image change must be provided- Missing or invalid session → HTTP 401 Unauthorized- CUSTOMER access → HTTP 403 Forbidden |
+| FR-PROJECT-002.2 | Project updates must respect the current status | - Draft information and images can be added, modified, or cleared- Published projects must retain a valid title, category, description, and cover image after the update- Archived projects cannot be updated |
+| FR-PROJECT-002.3 | Project slug remains unchanged during updates | - Clients cannot provide or modify the slug- Updating a Draft title does not generate a slug- Updating a Published title does not change its existing slug or public URL |
+| FR-PROJECT-002.4 | Successful project updates must be auditable | - Records the authenticated actor, project, UPDATE action, changed fields or media, previous and new values where applicable, and timestamp through the audit mechanism |
+| FR-PROJECT-002.5 | Project updates handle uploaded and existing media consistently | - Project changes and audit record are persisted consistently- If validation or database persistence fails after upload, newly uploaded images are cleaned up and existing project media is retained- Replaced or removed stored images are cleaned up after the database update succeeds |
+
+> Project publication status is managed through the Project Publication Lifecycle operation. Updating project information or images does not publish or archive the project.
+> 
+
+**Input Validation Rules**:
+
+The data object is sent as JSON within multipart/form-data. Newly uploaded files use the coverImage and galleryImages fields.
+
+```tsx
+{
+  data: {
+    title?: string,
+    category?: "RESIDENTIAL" | "COMMERCIAL",
+    description?: string,
+    location?: string,
+    completionDate?: string,
+    removeCoverImage?: true,
+    removeGalleryImageIds?: string[],
+    galleryImageOrder?: string[]
+  },
+  coverImage?: File,
+  galleryImages?: File[]
+}
+```
+
+**Update Rules**:
+
+- At least one project information field or actual image operation is required; an empty payload is rejected.
+- Omitted fields and images remain unchanged.
+- Setting an allowed information field to null clears it where permitted.
+- Any project information or image may be cleared while the project is a Draft.
+- A Published project must retain its title, category, description, and cover image.
+- Uploading a new cover image replaces the existing cover. A Published project may replace its cover if a valid replacement is included in the same request.
+- removeCoverImage: true is permitted only when the resulting project is a Draft.
+- Gallery removal IDs must belong to the target project. The final gallery must contain no more than 20 images.
+- If galleryImageOrder is provided, it must identify each retained existing gallery image exactly once; new images are appended in request order.
+- slug, status, publishedAt, and system-managed fields cannot be changed through this operation.
+- Archived projects are read-only.
+
+**Success Response**: HTTP 200 OK
+
+```json
+{
+  "success": true,
+  "message": "Project updated successfully",
+  "data": {
+    "id": "uuid",
+    "title": "Updated Apartment Interior",
+    "slug": "modern-dhaka-apartment",
+    "category": "RESIDENTIAL",
+    "description": "An updated description of the interior design project.",
+    "location": "Dhaka",
+    "completionDate": "2026-09-20",
+    "status": "PUBLISHED",
+    "publishedAt": "2026-09-25T10:30:00.000Z",
+    "coverImage": {
+      "id": "uuid",
+      "url": "https://media.example.com/project-cover-new.webp"
+    },
+    "galleryImages": [
+      {
+        "id": "uuid",
+        "url": "https://media.example.com/project-gallery-1.webp"
+      }
+    ],
+    "updatedAt": "2026-09-30T12:00:00.000Z"
+  }
+}
+```
+
+**Error Scenarios**:
+
+- Invalid project ID, empty update, or invalid information → HTTP 400 Bad Request
+- Attempt to clear required Published-project information or cover image → HTTP 400 Bad Request
+- Invalid gallery image ID/order, unsupported, oversized, or excessive image uploads → HTTP 400 Bad Request
+- Project not found → HTTP 404 Not Found
+- Attempt to update an Archived project → HTTP 422 Unprocessable Entity
+- Missing or invalid session → HTTP 401 Unauthorized
+- CUSTOMER access → HTTP 403 Forbidden
+- Image storage or unexpected persistence failure → HTTP 500 Internal Server Error with a sanitized response
+
+---
+
+### FR-PROJECT-003: Project Publication, Archiving & Visibility
+
+**Priority**: HIGH
+
+**User Story**: As an authorized administrator, I want to publish or archive projects so that I can control which projects are available to the public while retaining archived project information for administrative access.
+
+**Requirements**:
+
+| ID | Requirement | Acceptance Criteria |
+| --- | --- | --- |
+| FR-PROJECT-003.1 | Authorized administrators can publish a Draft project | - Authenticated ADMIN and SUPER_ADMIN users can transition a project from DRAFT to PUBLISHED- Publication requirements must be satisfied before publishing (see FR-PROJECT-003.3)- The system generates a unique slug from the project title and records publishedAt when publishing- Slug conflict → HTTP 409 Conflict |
+| FR-PROJECT-003.2 | Authorized administrators can archive a Published project | - Authenticated ADMIN and SUPER_ADMIN users can transition a project from PUBLISHED to ARCHIVED- The project is removed from public access- Project information, media, slug, and publishedAt are retained for administrative access; the system records archivedAt- A Published project cannot be returned to Draft |
+| FR-PROJECT-003.3 | The system validates publication requirements before publishing | - A project can be published only when its title, category, description, and cover image are valid and present- Missing or invalid publication data → HTTP 400 Bad Request- If validation fails, the project remains in its current status |
+| FR-PROJECT-003.4 | Public users can access only Published projects | - Public project endpoints return or expose only projects with PUBLISHED status- DRAFT and ARCHIVED projects are excluded from public listings and detail responses- Listing and detail behavior is defined in the corresponding retrieval requirements |
+| FR-PROJECT-003.5 | Project publication status changes must be auditable | - Each successful DRAFT → PUBLISHED or PUBLISHED → ARCHIVED transition records the project, acting user, previous status, new status, and event timestamp through the audit mechanism- Failed transitions do not create a status-change audit record |
+
+> A project may also be created with PUBLISHED as its initial status. That flow, including publication validation, slug generation, and publishedAt, is covered by FR-PROJECT-001.
+> 
+
+**Error Scenarios**:
+
+- Invalid project ID → HTTP 400 Bad Request
+- Project not found → HTTP 404 Not Found
+- Missing or invalid publication data → HTTP 400 Bad Request
+- Invalid status transition, including an attempt to return a Published project to Draft → HTTP 400 Bad Request
+- Generated slug conflict → HTTP 409 Conflict
+- Missing or invalid session → HTTP 401 Unauthorized
+- CUSTOMER access → HTTP 403 Forbidden
+
+---
+
+### FR-PROJECT-004: Get Project List
+
+**Priority**: HIGH
+
+**User Story**: As a visitor, I want to browse published projects so that I can explore the studio’s previous work; authorized administrators need to manage projects across all statuses.
+
+**Requirements**:
+
+| ID | Requirement | Acceptance Criteria |
+| --- | --- | --- |
+| FR-PROJECT-004.1 | Public users can retrieve Published projects | - Public project listing is available without authentication- Returns only projects with PUBLISHED status- DRAFT and ARCHIVED projects are excluded |
+| FR-PROJECT-004.2 | Project listings support pagination | - Supports page and limit query parameters- page defaults to 1 and must be a positive integer- limit defaults to 10, must be a positive integer, and cannot exceed 100- Invalid pagination values → HTTP 400 Bad Request- Response includes page, limit, total, and totalPages in meta |
+| FR-PROJECT-004.3 | Project listings support category and search filters | - Supports optional category values RESIDENTIAL or COMMERCIAL- Supports optional searchTerm that matches part of the project title, case-insensitively- searchTerm is trimmed and cannot exceed 100 characters- Category and search filters can be used together- Invalid filter values → HTTP 400 Bad Request |
+| FR-PROJECT-004.4 | Authorized administrators can retrieve projects across all statuses | - The administrative listing requires an authenticated ADMIN or SUPER_ADMIN user- Returns projects with DRAFT, PUBLISHED, or ARCHIVED status- Supports the pagination and category/search filters above- Supports an optional status filter with values DRAFT, PUBLISHED, or ARCHIVED; when omitted, all statuses are included- Administrative list items include each project’s status- Missing or invalid session → HTTP 401 Unauthorized- CUSTOMER access to the administrative listing → HTTP 403 Forbidden |
+
+**Success Response**: HTTP 200 OK
+
+```json
+{
+  "success": true,
+  "message": "Projects retrieved successfully",
+  "data": [
+    {
+      "id": "uuid",
+      "title": "Modern Minimalist Residence",
+      "slug": "modern-minimalist-residence",
+      "category": "RESIDENTIAL",
+      "coverImageUrl": "https://..."
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 34,
+    "totalPages": 4
+  }
+}
+```
+
+Administrative list items additionally include status; Draft projects may have a null slug and cover image.
+
+**Error Scenarios**:
+
+- Invalid pagination, category, search, or administrative status filter → HTTP 400 Bad Request
+- Missing or invalid session for the administrative listing → HTTP 401 Unauthorized
+- CUSTOMER access to the administrative listing → HTTP 403 Forbidden
+
+---
+
+### FR-PROJECT-005: Get Project Details
+
+**Priority**: HIGH
+
+**User Story**: As a visitor, I want to view a Published project’s details, while authorized administrators need to access project details across all statuses for management.
+
+**Requirements**:
+
+| ID | Requirement | Acceptance Criteria |
+| --- | --- | --- |
+| FR-PROJECT-005.1 | Public users can retrieve a Published project by slug | - Project detail is available without authentication- A valid slug returns the Published project’s title, slug, category, description, optional location and completion date, cover image, and gallery images- DRAFT, ARCHIVED, or otherwise unavailable projects return HTTP 404 Not Found |
+| FR-PROJECT-005.2 | Authorized administrators can retrieve a project by ID across all statuses | - Authenticated ADMIN and SUPER_ADMIN users can retrieve a project with DRAFT, PUBLISHED, or ARCHIVED status by its ID- The response includes project information, status, and associated cover and gallery images- A Draft project may have a null slug- Missing or invalid session → HTTP 401 Unauthorized- CUSTOMER access → HTTP 403 Forbidden- Project not found → HTTP 404 Not Found |
+
+**Success Response**: HTTP 200 OK
+
+```json
+{
+  "success": true,
+  "message": "Project retrieved successfully",
+  "data": {
+    "id": "uuid",
+    "title": "Modern Minimalist Residence",
+    "slug": "modern-minimalist-residence",
+    "category": "RESIDENTIAL",
+    "description": "A contemporary interior design project.",
+    "location": "Dhaka",
+    "completionDate": "2026-09-20",
+    "coverImage": {
+      "id": "uuid",
+      "url": "https://media.example.com/project-cover.webp"
+    },
+    "galleryImages": [
+      {
+        "id": "uuid",
+        "url": "https://media.example.com/project-gallery-1.webp"
+      }
+    ]
+  }
+}
+```
+
+Administrative detail responses additionally include status, publishedAt, and archivedAt where applicable. Draft projects may have a null slug and no cover image.
+
+**Error Scenarios**:
+
+- Public project not found or not Published → HTTP 404 Not Found
+- Administrative project not found → HTTP 404 Not Found
+- Missing or invalid session for administrative detail → HTTP 401 Unauthorized
+- CUSTOMER access to administrative detail → HTTP 403 Forbidden
+
+---
+
+### FR-PROJECT-006: Permanently Delete Archived Project
+
+**Priority**: MEDIUM
+
+**User Story**: As a Super Admin, I want to permanently delete an archived project after explicit confirmation so that obsolete projects and their associated media can be removed from the system.
+
+**Requirements**:
+
+| ID | Requirement | Acceptance Criteria |
+| --- | --- | --- |
+| FR-PROJECT-006.1 | Only Super Admins can permanently delete an Archived project | - An authenticated SUPER_ADMIN can delete a project only when its status is ARCHIVED- Confirmation must identify the selected project and include the exact phrase delete my project; the server validates the confirmation before deletion- The confirmation clearly warns that deletion cannot be undone- ADMIN users cannot permanently delete projects- DRAFT and PUBLISHED projects cannot be permanently deleted |
+| FR-PROJECT-006.2 | Permanent deletion removes the project and associated media | - The project record and its cover and gallery media are permanently removed from the system- A successful response is returned only when deletion is complete- The deleted project cannot be retrieved through normal application access |
+| FR-PROJECT-006.3 | Permanent project deletion must be auditable | - Each successful deletion records the acting SUPER_ADMIN, project identifier, previous status (ARCHIVED), and deletion timestamp through the audit mechanism- The audit record remains available after the project and its media are deleted- The project deletion and audit record are persisted atomically- Failed deletion attempts do not create a deletion audit record |
+
+**Deletion Confirmation Input**:
+
+```tsx
+{
+  projectTitleConfirmation: string, // must match the selected project's current title
+  confirmationPhrase: "delete my project"
+}
+```
+
+**Success Response**: HTTP 200 OK
+
+```json
+{
+  "success": true,
+  "message": "Project deleted permanently",
+  "data": {
+    "id": "uuid"
+  }
+}
+```
+
+**Error Scenarios**:
+
+- Invalid project ID → HTTP 400 Bad Request
+- Project not found, including an already deleted project → HTTP 404 Not Found
+- Project is not ARCHIVED → HTTP 400 Bad Request
+- Missing or invalid deletion confirmation → HTTP 400 Bad Request
+- Missing or invalid session → HTTP 401 Unauthorized
+- ADMIN or CUSTOMER attempts permanent deletion → HTTP 403 Forbidden
+- Media storage or unexpected persistence failure → HTTP 500 Internal Server Error with a sanitized response
+
+---
+
 ## 📑 Phase-Wise Scope Evolution & Future Modules
 
 > **Implementation & Governance Rule:**
->
-> 1. **Current Approved Scope:** The functional requirements above strictly cover **Phase 2: Authentication & RBAC** (`FR-AUTH-001` through `FR-AUTH-009`, `FR-RBAC-001` through `FR-RBAC-006`, `FR-ADMIN-001` through `FR-ADMIN-003`, and `FR-CUSTOMER-001` through `FR-CUSTOMER-004`).
-> 2. **Upcoming Modules:** Subsequent modules (e.g., Interior Design Inquiries, Custom Furniture Inquiries, Furniture Catalog & Inventory, Cart & Checkout, Orders & Payment Processing, Blog & Content Management, Studio Showcase) are being prepared by the product team.
-> 3. **Progressive Integration & Governance Sync:** As future modules/phases are added to this PRD:
->    - Corresponding governance files must be updated immediately in accordance with `AGENTS.md` (Section 9: Requirement Changes).
->    - The AI must update `docs/governance/06-PHASE-ROADMAP.md` to reflect new phase scope and readiness.
->    - The relevant phase execution plan (`phases/phase-X-...md`) must be created/updated with reviewable tasks.
->    - Durable decisions must be recorded in `docs/governance/DECISIONS.md`.
->    - Implementation must only begin after explicit human approval of the updated governance documents.
-> 4. **AI Instruction:** AI agents and contributors must **never** assume or invent requirements for future modules. Any functionality outside the currently documented FRs is considered unapproved for implementation.
+> 
+> 1. **Current Documented Scope:** This PRD documents **Phase 2: Authentication & RBAC** (FR-AUTH-001 through FR-AUTH-009, FR-RBAC-001 through FR-RBAC-006, FR-ADMIN-001 through FR-ADMIN-003, and FR-CUSTOMER-001 through FR-CUSTOMER-004) and **Phase 3: Project Showcase** (FR-PROJECT-001 through FR-PROJECT-006).
+> 2. **Phase Status & Execution Gate:** Phase 2 implementation is complete. Phase 3 requirements are documented in this PRD; adding them here does not by itself authorize implementation. Phase 3 execution may begin only after explicit human approval of the updated governance documents.
+> 3. **Upcoming Modules:** Interior Design Inquiries, Custom Furniture Inquiries, Furniture Catalog & Inventory, Cart & Checkout, Orders & Payment Processing, Blog & Content Management, and Studio Location Management remain future scope and are not approved for implementation by this PRD update.
+> 4. **Progressive Integration & Governance Sync:** As future modules/phases are added to this PRD:
+>     - Corresponding governance files must be updated immediately in accordance with `AGENTS.md` (Section 9: Requirement Changes).
+>     - The AI must update `docs/governance/06-PHASE-ROADMAP.md` to reflect new phase scope and readiness.
+>     - The relevant phase execution plan (`phases/phase-X-...md`) must be created/updated with reviewable tasks.
+>     - Durable decisions must be recorded in `docs/governance/DECISIONS.md`.
+>     - Implementation must only begin after explicit human approval of the updated governance documents.
+> 5. **AI Instruction:** AI agents and contributors must **never** assume or invent requirements for future modules. Any functionality outside the currently documented FRs is considered unapproved for implementation.
