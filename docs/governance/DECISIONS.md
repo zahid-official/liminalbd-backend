@@ -46,7 +46,7 @@ Statuses:
 - `prisma/seed.ts` is registered in `package.json` (`"seed": "prisma db seed"`, `"prisma": { "seed": "tsx ./prisma/seed.ts" }`) and `prisma.config.ts` (`migrations.seed: "tsx prisma/seed.ts"`).
 - `src/app/config/env.ts` defensively validates `SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`, and `SUPER_ADMIN_PASSWORD`.
 - Unit tests in `tests/unit/prisma/seed.test.ts` provide 100% test coverage for all seeding branches.
-- Total Phase 2 tasks updated to 29 tasks (`P2-T001`–`P2-T002`, `P2-T005`–`P2-T027`, `P2-T028`, `P2-T029`, `P2-T030`, `P2-T031`), all `✅ Done` with 41 test files and 679/679 tests passing.
+- Total Phase 2 tasks updated to 29 tasks (`P2-T001`–`P2-T002`, `P2-T005`–`P2-T027`, `P2-T028`, `P2-T029`, `P2-T030`, `P2-T031`), all `✅ Done` with 41 test files and 680/680 tests passing.
 
 ---
 
